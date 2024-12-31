@@ -14,7 +14,7 @@
 }
 
 .App-body {
-  background-color: #9f9f9f;
+  /* background-color: #9f9f9f; */
 
   font-size: calc(10px + 2vmin);
   color: rgb(0, 0, 0);
@@ -33,7 +33,7 @@
 
 .title {
   position: relative;
-  top: 1em;
+  top: 0.7em;
 }
 
 .description {
