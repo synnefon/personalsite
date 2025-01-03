@@ -1,0 +1,30 @@
+.links-proj {
+  position: relative;
+  top: -2.3em;
+  height: 4em;
+  display: grid;  
+  grid-template-columns: repeat(2, min(10.3em, 30%));
+}
+
+.link-proj:nth-child(1) {
+  background-color: #910A67;
+}
+.link-proj:nth-child(2) {
+  background-color: #720455;
+}
+.link-proj:nth-child(3) {
+  background-color: #3C0753;
+}
+.link-proj:nth-child(4) {
+  background-color: #030637;
+}
+
+.link-proj {
+  color: white; /* no blue link text */
+  text-decoration: none; /* no underlined link text */
+}
+
+a.link-proj:hover {
+  color: black;
+  background-color: #FFCFEF;
+}
