@@ -12,14 +12,14 @@ export default function Projects() {
           <a className="link-proj" href="https://thangs.com/designer/synnefon" rel="noreferrer">
             <p className="link-text">3D models</p>
           </a>
-          <a className="link-proj" href="http://3.128.170.87" rel="noreferrer">
+          <a className="link-proj" href="http://18.190.107.78" rel="noreferrer">
             <p className="link-text">shufflenator</p>
           </a>
-          <a className="link-proj" href="http://3.128.170.87" rel="noreferrer">
-            <p className="link-text">thing</p>
+          <a className="link-proj" href="http://18.190.107.78" rel="noreferrer">
+            <p className="link-text">thing 1</p>
           </a>
-          <a className="link-proj" href="http://3.128.170.87" rel="noreferrer">
-            <p className="link-text">thing2</p>
+          <a className="link-proj" href="http:/18.190.107.78" rel="noreferrer">
+            <p className="link-text">thing 2</p>
           </a>
         </div>
       </div>
