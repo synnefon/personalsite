@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import Snek from './Snek';
 import './projects.css';
 
 
@@ -12,19 +13,25 @@ export default function Projects() {
         <div className="links-proj">
           <a className="link-proj" href="https://thangs.com/designer/synnefon" rel="noreferrer">
             <p className="link-text">3D models</p>
+            <p className="tooltip-text">a collection of my 3D-printable work</p>
           </a>
           <a className="link-proj" href="http://18.190.107.78" rel="noreferrer">
             <p className="link-text">shufflenator</p>
+            <p className="tooltip-text">tells you the optimal shuffle pattern for a deck of cards</p>
           </a>
           <Link className="link-proj" to="/wip" rel="noreferrer">
-            <p className="link-text">infinite terrain gen</p>
+            <p className="link-text">virtual rpg tabletop</p>
+            <p className="tooltip-text">real-time updating battle maps, world maps, and images</p>
           </Link>
           <Link className="link-proj" to="/wip" rel="noreferrer">
-            <p className="link-text">virtual rpg tabletop</p>
+            <p className="link-text">infinite terrain gen</p>
+            <p className="tooltip-text">a godot module that generates infinite terrains</p>
           </Link>
           <Link className="link-proj" to="/wip" rel="noreferrer">
             <p className="link-text">gmail automations</p>
+            <p className="tooltip-text">for those who have too many emails in their inboxes</p>
           </Link>
+          <Snek/>
         </div>
       </div>
     </div>

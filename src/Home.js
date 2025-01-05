@@ -11,8 +11,11 @@ export default function Home() {
   const toggleShowSelf = () => setShowSelf(!showSelf);
 
   useEffect(() => {
+    if (!showSelf) return;
+    
     const timeoutId = setTimeout(() => setShowSelf(false), 12_000);
     return () => clearTimeout(timeoutId);
+    
   }, [showSelf]);
 
   return (
