@@ -1,14 +1,10 @@
 body {
+  overflow-x: hidden;
   overflow-y: hidden;
 }
 
 .App {
   text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -47,7 +43,8 @@ body {
   top: -2.3em;
   height: 4em;
   display: grid;  
-  grid-template-columns: repeat(3, min(10.3em, 30%));
+  grid-template-columns: repeat(3, min(15em, 30%));
+  grid-template-rows: repeat(3, 7.5em);;
 }
 
 a.link-home:hover {
@@ -100,14 +97,11 @@ p.link-text {
 
 img#person-icon {
   position: absolute;
-  width: 1.5em;
-  right: 6%;
+  width: 2em;
+  right: 4%;
   bottom: 0%;
-  transition: bottom 0.5s ease-in-out;
-}
-
-img#person-icon:hover {
-  cursor: pointer;
+  transition: right 0.7s ease-in-out;
+  cursor: pointer!important;
 }
 
 img#self-gif {
@@ -118,6 +112,5 @@ img#self-gif {
 }
 
 .invisible {
-  transition: bottom 0.5s ease-in-out;
-  bottom: -10%!important;
+  right: -5%!important;
 }

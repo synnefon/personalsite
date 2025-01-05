@@ -8,12 +8,11 @@ export default function Projects() {
     <div className="app-base">
       <div className="content-wrapper">
         <h2 className="title">projects</h2>
-        <br/>
-        <br/>
+        <h6 className="description">an assortment of web-accessible projects</h6>
         <div className="links-proj">
           <a className="link-proj" href="https://thangs.com/designer/synnefon" rel="noreferrer">
-            <p className="link-text">3D models</p>
-            <p className="tooltip-text">a collection of my 3D-printable work</p>
+            <p className="link-text">3d models</p>
+            <p className="tooltip-text">a collection of my 3d-printable work</p>
           </a>
           <a className="link-proj" href="http://18.190.107.78" rel="noreferrer">
             <p className="link-text">shufflenator</p>

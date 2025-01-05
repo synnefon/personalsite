@@ -1,19 +1,16 @@
-body {
-  
-}
-
 .links-proj {
-  position: relative;
-  height: 4em;
   display: grid;  
   grid-template-columns: repeat(3, min(15em, 30%));
   grid-template-rows: repeat(3, 7.5em);
+  position: relative;
+  top: -2.3em;
+  height: 4em;
 }
 
 .link-proj {
   color: white; /* no blue link text */
   text-decoration: none; /* no underlined link text */
-  font-size: calc(26px);
+  z-index: 1;
 }
 
 .link-proj:nth-child(1) {
@@ -32,6 +29,30 @@ body {
   background-color: #030535;
 }
 
+@media screen and (max-width: 349px) {
+  p.link-text,
+  p.tooltip-text {
+    font-size: calc(10px + 1vmin);
+  }
+}
+
+@media screen and (max-width: 259px) {
+  p.link-text,
+  p.tooltip-text {
+    font-size: calc(10px);
+  }
+}
+
+@media screen and (max-width: 211px) {
+  p.link-text,
+  p.tooltip-text {
+    font-size: calc(10px - 1vmin);
+  }
+  .links {
+    grid-template-columns: repeat(3, min(4em));
+  }
+}
+
 a.link-proj:hover {
   color: black;
   background-color: #D2E0FB;
@@ -47,5 +68,6 @@ a.link-proj:hover {
   color: #7487ad;
   margin: 10px;
   margin-top: 0em;
+  z-index: 999;
 }
 

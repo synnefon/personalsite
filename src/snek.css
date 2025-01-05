@@ -73,6 +73,7 @@ button {
 button:hover {
   background-color: #3cff00;
   color: black;
+  transition: 0.8s;
 }
 
 .score {

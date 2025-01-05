@@ -36,8 +36,8 @@ export default function Home() {
   return (
     <div className="app-base">
       <div className="content-wrapper">
-        <h2 className="title">Connor Hopkins</h2>
-        <h6 className="description">Software Engineer, Thing-Maker, Dungeon Master, Fictional Character.</h6>
+        <h2 className="title">connor hopkins</h2>
+        <h6 className="description">software engineer, thing-maker, dungeon master, fictional character</h6>
         <div className="links">
           <a className="link-home" href="https://github.com/synnefon" rel="noreferrer">
             <p className="link-text">github</p>

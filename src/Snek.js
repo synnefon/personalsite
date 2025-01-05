@@ -219,8 +219,8 @@ export default function Snek() {
                 SNEK
             </h1>
             {gameOver && <p className="game-over">GAME OVER</p>}
-            {!isPlaying && <button onClick={startGame}>start game</button>}
-            {gameOver && <button onClick={startGame}>play again?</button>}
+            {!isPlaying && !gameOver && <button onClick={startGame}>start game</button>}
+            {gameOver && <button onClick={startGame}>main menu</button>}
             <div 
                 className="board"
                 style={{
