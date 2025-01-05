@@ -1,9 +1,9 @@
 .links-proj {
   position: relative;
-  top: -2.3em;
   height: 4em;
   display: grid;  
-  grid-template-columns: repeat(2, min(10.3em, 30%));
+  grid-template-columns: repeat(2, min(15em, 30%));
+  grid-template-rows: repeat(3, 7em);
 }
 
 .link-proj:nth-child(1) {
@@ -17,6 +17,9 @@
 }
 .link-proj:nth-child(4) {
   background-color: #030637;
+}
+.link-proj:nth-child(5) {
+  background-color: #000000;
 }
 
 .link-proj {

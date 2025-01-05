@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import './projects.css';
 
 
@@ -15,12 +16,15 @@ export default function Projects() {
           <a className="link-proj" href="http://18.190.107.78" rel="noreferrer">
             <p className="link-text">shufflenator</p>
           </a>
-          <a className="link-proj" href="http://18.190.107.78" rel="noreferrer">
-            <p className="link-text">thing 1</p>
-          </a>
-          <a className="link-proj" href="http:/18.190.107.78" rel="noreferrer">
-            <p className="link-text">thing 2</p>
-          </a>
+          <Link className="link-proj" to="/wip" rel="noreferrer">
+            <p className="link-text">infinite terrain gen</p>
+          </Link>
+          <Link className="link-proj" to="/wip" rel="noreferrer">
+            <p className="link-text">virtual rpg tabletop</p>
+          </Link>
+          <Link className="link-proj" to="/wip" rel="noreferrer">
+            <p className="link-text">gmail automations</p>
+          </Link>
         </div>
       </div>
     </div>

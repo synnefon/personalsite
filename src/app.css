@@ -1,3 +1,7 @@
+body {
+  overflow-y: hidden;
+}
+
 .App {
   text-align: center;
 }
@@ -91,4 +95,28 @@ p.link-text {
   margin-left: 0.3em;
   margin-top: 1.5em;
   margin-bottom: 1.5em;
+}
+
+img#person-icon {
+  position: absolute;
+  width: 1.5em;
+  right: 6%;
+  bottom: 0%;
+  transition: bottom 0.5s ease-in-out;
+}
+
+img#person-icon:hover {
+  cursor: pointer;
+}
+
+img#self-gif {
+  position: absolute;
+  width: 10em;
+  right: 0%;
+  bottom: 0%;
+}
+
+.invisible {
+  transition: bottom 0.5s ease-in-out;
+  bottom: -10%!important;
 }

@@ -1,7 +1,20 @@
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+
+import personIcon from './assets/person.png';
+import selfGif from './assets/self.gif';
+
 import './app.css';
 
 export default function Home() {
+  const [showSelf, setShowSelf] = useState(false);
+  const toggleShowSelf = () => setShowSelf(!showSelf);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => setShowSelf(false), 12_000);
+    return () => clearTimeout(timeoutId);
+  }, [showSelf]);
+
   return (
     <div className="app-base">
       <div className="content-wrapper">
@@ -18,6 +31,14 @@ export default function Home() {
             <p className="link-text">projects</p>
           </Link>
         </div>
+        <img 
+          id="person-icon"
+          className={`${showSelf ? 'invisible' : ''}`}
+          alt="a pixelated person"
+          src={personIcon}
+          onClick={toggleShowSelf}
+        />
+        {showSelf && <img id="self-gif" alt="a gif of the author waving" src={selfGif}/> }
       </div>
     </div>
   );
