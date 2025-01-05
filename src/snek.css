@@ -42,7 +42,7 @@
 
 .food {
   background-color: #3cff00;
-  z-index: 10;
+  z-index: 1;
   border-color: black;
   box-shadow: 0px 0px 2px 2px #3cff00;
   animation: glowfood 1.5s linear infinite alternate;
@@ -91,7 +91,7 @@ button:hover {
   letter-spacing: 8px;
   position: absolute;
   animation: blinker 1s linear infinite;
-  z-index: 999;
+  z-index: 998;
 }
 
 @keyframes blinker {

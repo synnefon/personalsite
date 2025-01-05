@@ -18,18 +18,30 @@ export default function Snek() {
     const snekCoordinates = useRef([]);
     const direction = useRef(RIGHT);
     const snekCoordinatesMap = useRef(new Set());
-    const foodCoords = useRef({
-        row: -1,
-        col: -1,
-    });
+    const foodCoords = useRef({row: -1, col: -1});
     const [points, setPoints] = useState(0);
     const [gameOver, setGameOver] = useState(false);
     const [isPlaying, setPlaying] = useState(0);
-    const [invert, setInvert] = useState(false)
+    const [invert, setInvert] = useState(false);
+
+    const getNewDirection = useCallback((key) => {
+        let availableTurns 
+        switch(direction.current) {
+            case UP: case DOWN: 
+                availableTurns = {"ArrowRight": RIGHT, "ArrowLeft": LEFT};
+                break;
+            case RIGHT: case LEFT: 
+                availableTurns = {"ArrowUp": UP, "ArrowDown": DOWN,};
+                break;
+            default:
+                availableTurns = {};
+        };
+        return availableTurns[key] || direction.current;
+    }, [direction]);
 
     const handleDirectionChange = useCallback((key) => {
       direction.current = getNewDirection(key);
-    }, []);
+    }, [getNewDirection]);
 
     useEffect(() => {
         window.addEventListener("keydown", (e) => handleDirectionChange(e.key));
@@ -59,21 +71,6 @@ export default function Snek() {
     useEffect(() => {
        initGame();
     }, [initGame]);
-
-    const getNewDirection = (key) => {
-        switch (key) {
-            case "ArrowUp":
-                return UP;
-            case "ArrowDown":
-                return DOWN;
-            case "ArrowRight":
-                return RIGHT;
-            case "ArrowLeft":
-                return LEFT;
-            default:
-                return direction.current;
-        }
-    };
 
     const syncSnekCoordinatesMap = () => {
         const snekCoordsSet = new Set(
@@ -142,8 +139,7 @@ export default function Snek() {
     };
     
     useEffect(() => {
-        console.log(points)
-        if (points >= 10) {
+        if (points > 0 && points % 10 === 0) {
             setInvert(true)
         }
     }, [points])
@@ -168,10 +164,7 @@ export default function Snek() {
         const row = Math.floor(Math.random() * ROWs);
         const col = Math.floor(Math.random() * COLs);
 
-        foodCoords.current = {
-            row,
-            col,
-        };
+        foodCoords.current = {row, col};
     };
 
     const startGame = async () => {

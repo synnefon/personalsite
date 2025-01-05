@@ -8,14 +8,29 @@ import './app.css';
 
 export default function Home() {
   const [showSelf, setShowSelf] = useState(false);
-  const toggleShowSelf = () => setShowSelf(!showSelf);
+
+  const toggleShowSelf = () => {
+    restartGif();
+    setShowSelf(!showSelf);
+  }
+
+  const restartGif = () => { 
+    const gif = document.getElementById("self-gif");
+    gif.style = "display: none;";
+    gif.style = "display: block;";
+    if (gif) {
+      setTimeout(() => {
+        var imgSrc = gif.src;
+        gif.src = imgSrc; 
+      }, 0);
+    }
+  }
 
   useEffect(() => {
     if (!showSelf) return;
-    
     const timeoutId = setTimeout(() => setShowSelf(false), 12_000);
+
     return () => clearTimeout(timeoutId);
-    
   }, [showSelf]);
 
   return (
@@ -41,7 +56,11 @@ export default function Home() {
           src={personIcon}
           onClick={toggleShowSelf}
         />
-        {showSelf && <img id="self-gif" alt="a gif of the author waving" src={selfGif}/> }
+        <img 
+          id="self-gif"
+          alt="a gif of the author waving"
+          src={selfGif} style={{display: showSelf ? 'block' : 'none'}}
+        />
       </div>
     </div>
   );
