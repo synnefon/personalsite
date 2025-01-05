@@ -139,10 +139,13 @@ export default function Snek() {
     };
     
     useEffect(() => {
-        if (points > 0 && points % 10 === 0) {
-            setInvert(true)
+        if (points === 0) return;
+        if (points % 20 === 0) {
+            setInvert(false);
+        } else if (points % 10 === 0) {
+            setInvert(true);
         }
-    }, [points])
+    }, [points]);
 
     const collisionCheck = (snekHead) => {
         if (
@@ -186,8 +189,7 @@ export default function Snek() {
         (row_idx, col_idx) => {
             const coords = `${row_idx}:${col_idx}`;
             const foodPos = `${foodCoords.current.row}:${foodCoords.current.col}`;
-            const head =
-                snekCoordinates.current[snekCoordinates.current.length - 1];
+            const head = snekCoordinates.current[snekCoordinates.current.length - 1];
             const headPos = `${head?.row}:${head?.col}`;
 
             const isFood = coords === foodPos;
