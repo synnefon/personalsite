@@ -37,9 +37,12 @@ export default function Home() {
 
   
   useEffect(() => {
-    const descriptors = ['software engineer', 'thing-maker', 'dungeon master', 'rock climber', 'cat dad', 'aspiring wood worker',  'part-time audiophile', 'full-time wikipedia spelunker',
-       'human band name generator', 'fast reader, slow typer','fictional character', 'lava lamp enthusiast', 'user of the lower case', 'the ignoble', 'enjoyer of snacks', 
-       '...pls look at projects', '...or just click on any link', 'im running out of autobaiographical subheadings', 'collector of stickers'];
+    const descriptors = [
+      'software engineer', 'thing maker', 'dungeon master', 'rock climber', 'cat dad', 'aspiring wood worker', 'crepuscular code creator', '3d printer mechanic',
+       'bike lane survivor', 'magic player', 'part-time audiophile', 'full-time wikipedia spelunker', 'human band name generator', 'fast reader, slow typer', 'secretly a gnome',
+      'lava lamp enthusiast', 'map fanatic', 'habitual oatmeal eater', 'lower case advocate', 'the ignoble', 'bug fact purveyor', 'list writer', 'rumored fictional character',
+      '...pls look at projects', '...or just click on any link', "is running out of autobiographical subheadings",
+    ];
     
     const timeoutId = setTimeout(() => {
       setDescription(descriptors[descriptionIdx]);
