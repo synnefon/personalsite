@@ -52,27 +52,49 @@ div#app-base {
   grid-template-rows: repeat(2, 7.5em);
 }
 
-a.link-home:hover {
-  background-color: #213363;
-  color: white;
-}
-
 .link-home {
-  color: white; /* no blue link text */
+  color: black; /* no blue link text */
   text-decoration: none; /* no underlined link text */
 }
 
-.link-home:nth-child(1) {
+a.link-home:hover {
+  color: white;
+}
+
+.link-home:nth-child(1):hover {
   background-color: #d3d150;
 }
-.link-home:nth-child(2) {
+.link-home:nth-child(2):hover {
   background-color: #81a849;
 }
-.link-home:nth-child(3) {
+.link-home:nth-child(3):hover {
   background-color: #417b43;
 }
-.link-home:nth-child(4) {
+.link-home:nth-child(4):hover {
   background-color: #144d35;
+}
+
+.link-home:nth-child(1) {
+  border-top: 2px dashed black;
+  border-left: 2px dashed black;
+  border-right: 2px dashed black;
+  border-bottom: 2px dashed black;
+
+}
+.link-home:nth-child(2) {
+  border-top: 2px dashed black;
+  border-right: 2px dashed black;
+  border-bottom: 2px dashed black;
+}
+.link-home:nth-child(3) {
+  border-bottom: 2px dashed black;
+  border-left: 2px dashed black;
+  border-right: 2px dashed black;
+
+}
+.link-home:nth-child(4) {
+  border-bottom: 2px dashed black;
+  border-right: 2px dashed black;
 }
 
 @media screen and (max-width: 349px) {

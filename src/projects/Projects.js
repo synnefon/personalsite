@@ -16,7 +16,7 @@ export default function Projects() {
           </a>
           <a className="link-proj" href="http://18.190.107.78" rel="noreferrer">
             <p className="link-text">shufflenator</p>
-            <p className="tooltip-text">tells you the optimal shuffle pattern for a deck of cards</p>
+            <p className="tooltip-text">gives a card deck's optimal shuffle pattern</p>
           </a>
           <Link className="link-proj" to="/wip" rel="noreferrer">
             <p className="link-text">virtual rpg tabletop</p>
