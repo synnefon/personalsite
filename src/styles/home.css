@@ -55,6 +55,7 @@ div#app-base {
 .link-home {
   color: black; /* no blue link text */
   text-decoration: none; /* no underlined link text */
+  transition: all 0.2s ease-in-out;
 }
 
 a.link-home:hover {

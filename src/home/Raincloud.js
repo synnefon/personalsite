@@ -4,6 +4,7 @@ import { useLongPress } from 'use-long-press';
 import dropImg from '../assets/drop.png'
 import cloudGif from '../assets/cloud.gif'
 import cloudImg from '../assets/cloud.png'
+import darkCloudImg from '../assets/darkCloud.png'
 
 import flower0 from '../assets/flower/flower0.png'
 import flower1 from '../assets/flower/flower1.png'
@@ -53,6 +54,7 @@ function Rain({numDrops}) {
 
 export default function Raincloud({numDrops}){
   const [isRaining, setIsRaining] = useState(false);
+  const [darkCloud, setDarkCloud] = useState(false);
   const [flowerIdx, setFlowerIdx] = useState(-1);
 
   const flowers = [flower0, flower1, flower2, flower3, flower4, flower5]
@@ -78,17 +80,24 @@ export default function Raincloud({numDrops}){
     }
   );
 
+  const toggleDarkCloud = (b) => {
+    setTimeout(() => {
+      setDarkCloud(b)
+    }, 100)
+  }
+
   return (
     <div id="raincloud">
       <div 
         id="cloud" 
         {...bindCloudPressed()}
-        onClick={() => {}}
+        onMouseEnter={() => toggleDarkCloud(true)}
+        onMouseLeave={() => toggleDarkCloud(false)}
       >
         {isRaining ? <Rain numDrops={numDrops}/> : <></>}
         {
-          isRaining 
-          ? <img id="cloud-gif" alt="a little cloud gif" src={cloudGif} draggable={false}/>
+          isRaining ? <img id="cloud-gif" alt="a little cloud gif" src={cloudGif} draggable={false}/>
+          : darkCloud ? <img id="cloud-img" alt="a little cloud" src={darkCloudImg} draggable={false}/>
           : <img id="cloud-img" alt="a little cloud" src={cloudImg} draggable={false}/>
         }
       </div>
