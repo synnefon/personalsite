@@ -1,0 +1,19 @@
+img#person-icon {
+  position: absolute;
+  width: 2em;
+  left: 4%;
+  bottom: 0%;
+  transition: left 0.7s ease-in-out;
+  cursor: pointer!important;
+}
+
+img#self-gif {
+  position: absolute;
+  width: 10em;
+  left: 0%;
+  bottom: 0%;
+}
+
+.invisible {
+  left: -5%!important;
+}

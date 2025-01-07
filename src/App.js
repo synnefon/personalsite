@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Home from './Home';
-import Projects from './Projects';
-import Wip from './Wip';
+
+import Home from './home/Home';
+import Projects from './projects/Projects';
+import Wip from './projects/Wip';
 
 function App() {
   return (

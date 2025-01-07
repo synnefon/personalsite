@@ -1,0 +1,24 @@
+@font-face {
+  font-family: 'F25_Bank_Printer';
+  src: local('F25'), url('../fonts/F25_Bank_Printer.otf') format('opentype');
+  font-weight: 400;
+  font-style: monospace;
+}
+
+header {
+  margin: 0;
+  font-family: F25_Bank_Printer, monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  font-family: F25_Bank_Printer, monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
