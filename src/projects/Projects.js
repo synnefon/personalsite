@@ -27,8 +27,8 @@ export default function Projects() {
             <p className="tooltip-text">a godot module that generates infinite terrains</p>
           </Link>
           <Link className="link-proj" to="/wip" rel="noreferrer">
-            <p className="link-text">gmail automations</p>
-            <p className="tooltip-text">for those who have too many emails in their inboxes</p>
+            <p className="link-text">toolbox</p>
+            <p className="tooltip-text">a set of useful little tools</p>
           </Link>
           <Snek/>
         </div>
