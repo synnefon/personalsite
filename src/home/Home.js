@@ -9,7 +9,7 @@ import { getRandomColor } from '../util/Color';
 export default function Home() {
   const [descriptionIdx, setDescriptionIdx] = useState(1);
   const [description, setDescription] = useState('software engineer');
-  const [showLightning, setShowLightning] = useState(true);
+  const [showLightning, setShowLightning] = useState(false);
   const [descriptionCycling, setDescriptionCycling] = useState(false);
 
   const descriptors = [
