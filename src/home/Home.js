@@ -9,7 +9,7 @@ import { getRandomColor } from '../util/Color';
 export default function Home() {
   const [descriptionIdx, setDescriptionIdx] = useState(1);
   const [description, setDescription] = useState('software engineer');
-  const [showLightning, setShowLightning] = useState(false);
+  const [showLightning, setShowLightning] = useState(true);
   const [descriptionCycling, setDescriptionCycling] = useState(false);
 
   const descriptors = [
@@ -34,7 +34,12 @@ export default function Home() {
           <div 
             className="description"
             onClick={cycleDescription}
-            style={{'color': descriptionCycling ? getRandomColor(50, 180).rgb : '#2C4E80'}}
+            style={{
+              'color': 
+                showLightning ? 'black' 
+                : descriptionCycling ? getRandomColor(50, 180).rgb 
+                : '#2C4E80'
+            }}
           >
             <span className="bracket">{'{'}</span>
             <span className='description-text'>{` ${description} `}</span>
