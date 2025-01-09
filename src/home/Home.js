@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Raincloud from '../raincloud/Raincloud';
 import Self from './Self';
 
@@ -11,6 +11,8 @@ export default function Home() {
   const [description, setDescription] = useState('software engineer');
   const [showLightning, setShowLightning] = useState(false);
   const [descriptionCycling, setDescriptionCycling] = useState(false);
+
+  const navigate = useNavigate();
 
   const descriptors = [
     'software engineer', 'thing maker', 'dungeon master', 'rock climber', 'cat dad', 'aspiring wood worker', 'crepuscular code creator', '3d printer mechanic',
@@ -47,12 +49,12 @@ export default function Home() {
           </div>
         </h6>
         <div className="links">
-          <Link className="link-home" to="/wip" rel="noreferrer">
+          <div className="link-home" onClick={() => navigate('/wip')}>
             <p className="link-text">resume</p>
-          </Link>
-          <Link className="link-home" to="/projects" rel="noreferrer">
+          </div>
+          <div className="link-home"onClick={() => navigate('/projects')}>
             <p className="link-text">projects</p>
-          </Link>
+          </div>
           <a className="link-home" href="https://github.com/synnefon" rel="noreferrer">
             <p className="link-text">github</p>
           </a>
