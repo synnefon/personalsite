@@ -10,9 +10,8 @@ export default function Flower({id, isRaining, growSpeed}) {
   const [left] = useState(`${(Math.random() - 0.15)*100}%`);
 
   useEffect(() => {
-    let timeoutId = null
-    if (!isRaining || flowerIdx >= 5) return () => clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => setFlowerIdx(() => flowerIdx+1), growSpeed);
+    if (!isRaining || flowerIdx >= 5) return;
+    const timeoutId = setTimeout(() => setFlowerIdx(() => flowerIdx+1), growSpeed);
     return () => clearTimeout(timeoutId);
   }, [flowerIdx, growSpeed, isRaining]);
 

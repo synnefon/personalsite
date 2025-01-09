@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import dropImg from '../assets/drop.png'
 import '../styles/raincloud.css'
 
-export default function Rain({numDrops, showLightning}) {
+export default function Rain({numDrops, showLightning, setDropsFallen}) {
   const [canMakeDrops, setCanMakeDrops] = useState(true)
   const randRange = (minNum, maxNum) => (Math.floor(Math.random() * (maxNum - minNum + 1)) + minNum);
 
@@ -19,13 +19,20 @@ export default function Rain({numDrops, showLightning}) {
     drop.setAttribute('id', `drop`);
     drop.setAttribute('pointer-events', 'none')
 
-    rain.appendChild(drop);
+    try { rain.appendChild(drop) } 
+    catch {};
 
     drop.style.setProperty('--rand', `${(Math.random())*85}%`);    
-    const t2 = setTimeout(() => rain.removeChild(drop), 3_000);
+    const t2 = setTimeout(() => {
+      try{ 
+        rain.removeChild(drop);
+        setDropsFallen((df) => df + 1);
+      }
+      catch{};
+    }, 3_000);
 
     return () => clearTimeout(t2);
-  }, [numDrops]);
+  }, [numDrops, setDropsFallen]);
 
   const startRain = useCallback(() => {
     if (!canMakeDrops) return;
@@ -38,9 +45,7 @@ export default function Rain({numDrops, showLightning}) {
     setTimeout(() => setCanMakeDrops(true), randRange(0, (1_000)));
   }, [makeDrop, numDrops, canMakeDrops]);
 
-  useEffect(() => {
-    startRain();
-  }, [numDrops, startRain]);
+  useEffect(() => startRain(), [numDrops, startRain]);
 
   return (
     <div 

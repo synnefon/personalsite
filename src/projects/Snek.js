@@ -16,16 +16,17 @@ export default function Snek() {
     const timer = useRef(null);
     const grid = useRef(Array(ROWs).fill(Array(COLs).fill("")));
     const snekCoordinates = useRef([]);
-    const direction = useRef(RIGHT);
     const snekCoordinatesMap = useRef(new Set());
     const foodCoords = useRef({row: -1, col: -1});
+    const direction = useRef(RIGHT);
+    const nextDirection = useRef(RIGHT);
     const [points, setPoints] = useState(0);
     const [gameOver, setGameOver] = useState(false);
     const [isPlaying, setPlaying] = useState(0);
     const [invert, setInvert] = useState(false);
 
-    const getNewDirection = useCallback((key) => {
-        let availableTurns 
+    const getNextDirection = useCallback((key) => {
+        let availableTurns;
         switch(direction.current) {
             case UP: case DOWN: 
                 availableTurns = {"ArrowRight": RIGHT, "ArrowLeft": LEFT};
@@ -39,22 +40,16 @@ export default function Snek() {
         return availableTurns[key] || direction.current;
     }, [direction]);
 
-    const handleDirectionChange = useCallback((key) => {
-      direction.current = getNewDirection(key);
-    }, [getNewDirection]);
-
     useEffect(() => {
-        window.addEventListener("keydown", (e) => handleDirectionChange(e.key));
-    }, [handleDirectionChange]);
+        window.addEventListener("keydown", (e) => {
+            nextDirection.current = getNextDirection(e.key);
+        });
+    }, [getNextDirection]);
 
     const initGame = useCallback(() => {
         const snek_postions = [];
         for (let i = 0; i < DEFAULT_SNEK_LENGTH; i++) {
-            snek_postions.push({
-                row: 0,
-                col: i,
-                isHead: false,
-            });
+            snek_postions.push({ row: 0, col: i, isHead: false});
         }
 
         snek_postions[DEFAULT_SNEK_LENGTH - 1].isHead = true;
@@ -66,11 +61,10 @@ export default function Snek() {
         setPoints(0);
         setInvert(false);
         direction.current = RIGHT;
+        nextDirection.current = RIGHT;
     }, [])
 
-    useEffect(() => {
-       initGame();
-    }, [initGame]);
+    useEffect(() => initGame(), [initGame]);
 
     const syncSnekCoordinatesMap = () => {
         const snekCoordsSet = new Set(
@@ -87,11 +81,17 @@ export default function Snek() {
         const coords = snekCoordinates.current;
         const snekTail = coords[0];
         const snekHead = coords.pop();
-        const curr_direction = direction.current;
+        direction.current = nextDirection.current;
+        const move_dir = nextDirection.current;
 
         const foodConsumed =
             snekHead.row === foodCoords.current.row &&
             snekHead.col === foodCoords.current.col;
+        
+        if (foodConsumed) {
+            setPoints((points) => points + 1);
+            populateFoodBall();
+        }
 
         coords.forEach((_, idx) => {
             if (idx === coords.length - 1) {
@@ -99,11 +99,10 @@ export default function Snek() {
                 coords[idx].isHead = false;
                 return;
             }
-
             coords[idx] = coords[idx + 1];
         });
 
-        switch (curr_direction) {
+        switch (move_dir) {
             case UP:
                 snekHead.row -= 1;
                 break;
@@ -120,21 +119,13 @@ export default function Snek() {
                 break;
         }
 
-        if (foodConsumed) {
-            setPoints((points) => points + 1);
-            populateFoodBall();
-        }
-
-        const collided = collisionCheck(snekHead);
-        if (collided) {
+        if (collisionDetected(snekHead)) {
             stopGame();
             return;
         }
 
         coords.push(snekHead);
-        snekCoordinates.current = foodConsumed
-            ? [snekTail, ...coords]
-            : coords;
+        snekCoordinates.current = foodConsumed ? [snekTail, ...coords] : coords;
         syncSnekCoordinatesMap();
     };
     
@@ -147,18 +138,20 @@ export default function Snek() {
         }
     }, [points]);
 
-    const collisionCheck = (snekHead) => {
+    const collisionDetected = (snekHead) => {
         if (
             snekHead.col >= COLs ||
             snekHead.row >= ROWs ||
             snekHead.col < 0 ||
             snekHead.row < 0
         ) {
+            console.log("a")
             return true;
         }
 
         const coordsKey = `${snekHead.row}:${snekHead.col}`;
         if (snekCoordinatesMap.current.has(coordsKey)) {
+            console.log("b")
             return true;
         }
     };
@@ -178,7 +171,7 @@ export default function Snek() {
 
     const stopGame = async () => {
         setGameOver(true);
-        setPlaying(false);
+        setPlaying(0);
         setInvert(false);
         if (timer.current) {
             clearInterval(timer.current);

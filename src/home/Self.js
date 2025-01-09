@@ -25,6 +25,7 @@ export default function Self() {
     }
   }
 
+  // handle showing the gif of the author waving
   useEffect(() => {
     if (!showSelf) return;
     const timeoutId = setTimeout(() => setShowSelf(false), 12_000);
