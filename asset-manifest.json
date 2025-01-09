@@ -1,16 +1,16 @@
 {
   "files": {
-    "main.css": "/personalsite/static/css/main.96ea698f.css",
-    "main.js": "/personalsite/static/js/main.53373419.js",
-    "static/media/self.gif": "/personalsite/static/media/self.ad1e6f139233db344487.gif",
-    "static/media/F25_Bank_Printer.otf": "/personalsite/static/media/F25_Bank_Printer.07be3c3654876f79f05c.otf",
-    "static/media/bolt.gif": "/personalsite/static/media/bolt.4f185b197b69919b0229.gif",
-    "index.html": "/personalsite/index.html",
-    "main.96ea698f.css.map": "/personalsite/static/css/main.96ea698f.css.map",
-    "main.53373419.js.map": "/personalsite/static/js/main.53373419.js.map"
+    "main.css": "/static/css/main.09c691aa.css",
+    "main.js": "/static/js/main.edb2423b.js",
+    "static/media/self.gif": "/static/media/self.ad1e6f139233db344487.gif",
+    "static/media/F25_Bank_Printer.otf": "/static/media/F25_Bank_Printer.07be3c3654876f79f05c.otf",
+    "static/media/bolt.gif": "/static/media/bolt.4f185b197b69919b0229.gif",
+    "index.html": "/index.html",
+    "main.09c691aa.css.map": "/static/css/main.09c691aa.css.map",
+    "main.edb2423b.js.map": "/static/js/main.edb2423b.js.map"
   },
   "entrypoints": [
-    "static/css/main.96ea698f.css",
-    "static/js/main.53373419.js"
+    "static/css/main.09c691aa.css",
+    "static/js/main.edb2423b.js"
   ]
 }
