@@ -1,16 +1,16 @@
 {
   "files": {
     "main.css": "/static/css/main.09c691aa.css",
-    "main.js": "/static/js/main.b77faa39.js",
+    "main.js": "/static/js/main.edb2423b.js",
     "static/media/self.gif": "/static/media/self.ad1e6f139233db344487.gif",
     "static/media/F25_Bank_Printer.otf": "/static/media/F25_Bank_Printer.07be3c3654876f79f05c.otf",
     "static/media/bolt.gif": "/static/media/bolt.4f185b197b69919b0229.gif",
     "index.html": "/index.html",
     "main.09c691aa.css.map": "/static/css/main.09c691aa.css.map",
-    "main.b77faa39.js.map": "/static/js/main.b77faa39.js.map"
+    "main.edb2423b.js.map": "/static/js/main.edb2423b.js.map"
   },
   "entrypoints": [
     "static/css/main.09c691aa.css",
-    "static/js/main.b77faa39.js"
+    "static/js/main.edb2423b.js"
   ]
 }
