@@ -1,6 +1,5 @@
 div#bounce-room {
   position: absolute;
-
   height: 80vh;
   width: 80vw;
   left: 10vw;
@@ -8,9 +7,9 @@ div#bounce-room {
 }
 
 div#bouncing-text {
+  font-size: min(2vw, 4vh)!important;
   align-items: start;
   position: absolute;
-  width: 436px;
-  height: 38px;
-  font-size: 2.5em
+  width: calc(min(2vw, 4vh) * 11);
+  height: min(2vw, 4vh);
 }

@@ -7,6 +7,10 @@ img#person-icon {
   cursor: pointer!important;
 }
 
+img#person-icon:hover {
+  filter: invert(50%) sepia(100%) hue-rotate(180deg);
+}
+
 img#self-gif {
   position: absolute;
   width: 10em;

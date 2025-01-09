@@ -1,62 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import Raincloud from './Raincloud';
+import Raincloud from '../raincloud/Raincloud';
 import Self from './Self';
 
 import '../styles/home.css';
+import { getRandomColor } from '../util/Color';
 
 export default function Home() {
-  const [showSelf, setShowSelf] = useState(false);
   const [descriptionIdx, setDescriptionIdx] = useState(1);
   const [description, setDescription] = useState('software engineer');
+  const [showLightning, setShowLightning] = useState(false);
+  const [descriptionCycling, setDescriptionCycling] = useState(false);
 
-  const toggleShowSelf = () => {
-    restartGif();
-    setShowSelf(!showSelf);
-  }
+  const descriptors = [
+    'software engineer', 'thing maker', 'dungeon master', 'rock climber', 'cat dad', 'aspiring wood worker', 'crepuscular code creator', '3d printer mechanic',
+     'bike lane survivor', 'magic player', 'part-time audiophile', 'full-time wikipedia spelunker', 'human band name generator', 'fast reader, slow typer', 'secretly a gnome',
+    'lava lamp enthusiast', 'map fanatic', 'habitual oatmeal eater', 'lower case advocate', 'the ignoble', 'bug fact purveyor', 'list writer', 'rumored fictional character',
+    'have i mentioned software engineer already?',
+    '...pls look at projects', '...or just click on any link', "is running out of autobiographical subheadings",
+  ];
 
-  const restartGif = () => { 
-    const gif = document.getElementById("self-gif");
-    gif.style = "display: none;";
-    gif.style = "display: block;";
-    if (gif) {
-      setTimeout(() => {
-        var imgSrc = gif.src;
-        gif.src = imgSrc; 
-      }, 0);
-    }
-  }
-
-  useEffect(() => {
-    if (!showSelf) return;
-    const timeoutId = setTimeout(() => setShowSelf(false), 12_000);
-
-    return () => clearTimeout(timeoutId);
-  }, [showSelf]);
-
-  
-  useEffect(() => {
-    const descriptors = [
-      'software engineer', 'thing maker', 'dungeon master', 'rock climber', 'cat dad', 'aspiring wood worker', 'crepuscular code creator', '3d printer mechanic',
-       'bike lane survivor', 'magic player', 'part-time audiophile', 'full-time wikipedia spelunker', 'human band name generator', 'fast reader, slow typer', 'secretly a gnome',
-      'lava lamp enthusiast', 'map fanatic', 'habitual oatmeal eater', 'lower case advocate', 'the ignoble', 'bug fact purveyor', 'list writer', 'rumored fictional character',
-      'have i mentioned software engineer already?',
-      '...pls look at projects', '...or just click on any link', "is running out of autobiographical subheadings",
-    ];
-    
-    const timeoutId = setTimeout(() => {
-      setDescription(descriptors[descriptionIdx]);
-      setDescriptionIdx((descriptionIdx+1) % descriptors.length);
-    }, 2_700);
-
-    return () => clearTimeout(timeoutId);
-  }, [description, descriptionIdx])
+  const cycleDescription = () => {
+    setDescription(descriptors[descriptionIdx]);
+    setDescriptionIdx((descriptionIdx+1) % descriptors.length);
+    setDescriptionCycling(true);
+  };
 
   return (
-    <div id="app-base">
+    <div id="app-base" class={`${showLightning ? 'lightning' : ''}`}>
       <div className="content-wrapper">
         <h2 className="title">connor hopkins</h2>
-        <h6 className="description">{`{ ${description} }`}</h6>
+        <h6 className="description-bar">
+          <div 
+            className="description"
+            onClick={cycleDescription}
+            style={{'color': descriptionCycling ? getRandomColor(50, 180).rgb : '#2C4E80'}}
+          >
+            <span className="bracket">{'{'}</span>
+            <span className='description-text'>{` ${description} `}</span>
+            <span className="bracket">{'}'}</span>
+          </div>
+        </h6>
         <div className="links">
           <Link className="link-home" to="/wip" rel="noreferrer">
             <p className="link-text">resume</p>
@@ -71,8 +55,8 @@ export default function Home() {
             <p className="link-text">linkedin</p>
           </a>
         </div>
-        <Raincloud numDrops={20}/>
-        <Self showSelf={showSelf} toggleShowSelf={toggleShowSelf}/>
+        <Raincloud showLightning={showLightning} setShowLightning={setShowLightning}/>
+        <Self/>
       </div>
     </div>
   );

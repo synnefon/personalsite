@@ -1,16 +1,16 @@
 /* rain drop styles */
 
 .drop {
-	height:40px;
+	height: 2.5vw;
 	position: absolute;
 	bottom: 200px;
   overflow-x: hidden;
   overflow-y: hidden;
-  top: 55px;
+  top: 85px;
   left: var(--rand);
   z-index: 1;
-  -webkit-animation: fall 3s linear infinite;
-  -moz-animation: fall 3s linear infinite;
+  -webkit-animation: fall 3s linear;
+  -moz-animation: fall 3s linear;
 }
 
 /* drop animation styles */
@@ -27,7 +27,7 @@
 
 div#raincloud {
   height: 90vh;
-  width: 16vw;
+  width: 18vw;
   right: 5vw;
   top: 10%;
   position: absolute;
@@ -46,9 +46,17 @@ img#cloud-img {
   cursor: pointer;
 }
 
-img#flower {
+img#lightning {
+  position: absolute;
+  height: 104%;
+  width: 200%;
+  top: 10%;
+  bottom: 0em;
+  left: -50%;
+}  
+
+img.flower {
   bottom: 0px;
-  right: 5vw;
   height: 10vh;
   position: absolute;
 }

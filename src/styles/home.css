@@ -12,10 +12,12 @@ div#app-base {
   overflow-y: hidden;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+div#app-base.lightning {
+  background-image: url('../assets/bolt_backgroud.gif')!important;
+  background-size: cover;
+  height: 100vh;
+  padding:0;
+  margin:0;
 }
 
 .content-wrapper {
@@ -29,7 +31,7 @@ div#app-base {
   text-align: left;
   font-size: calc(10px + 2vmin);
   color: rgb(0, 0, 0);
-  background-color: rgb(255, 255, 255);
+  background-color: transparent;
   
   min-height: 100vh;
 }
@@ -38,9 +40,29 @@ div#app-base {
   position: relative;
 }
 
-.description {
+.description-bar {
   position: relative;
   top: -3em;
+}
+
+.bracket {
+  color: black;
+  font-weight: bold;
+}
+
+.description{
+  width: 75%;
+}
+
+.description:hover {
+  cursor: pointer;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
+
+.description-text:hover {
+  filter: invert(100%);
 }
 
 .links {
@@ -118,7 +140,6 @@ a.link-home:hover {
     grid-template-columns: repeat(3, min(4em));
   }
 }
-
 
 p.link-text {
   margin-left: 0.3em;

@@ -8,7 +8,7 @@ export default function Projects() {
     <div className="app-base">
       <div className="content-wrapper">
         <h2 className="title">projects</h2>
-        <h6 className="description">an assortment of web-accessible projects</h6>
+        <h6 className="description-bar">an assortment of web-accessible projects</h6>
         <div className="links-proj">
           <a className="link-proj" href="https://thangs.com/designer/synnefon" rel="noreferrer">
             <p className="link-text">3d models</p>
