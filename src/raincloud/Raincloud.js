@@ -39,7 +39,6 @@ export default function Raincloud({showLightning, setShowLightning}){
 
   // trigger lightning when enough drops fall
   useEffect(() => {
-    console.log(dropsFallen)
     if (dropsFallen > LIGHTNING_THRESHOLD) {
       setShowLightning(true);
       return;

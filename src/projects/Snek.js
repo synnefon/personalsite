@@ -145,13 +145,11 @@ export default function Snek() {
             snekHead.col < 0 ||
             snekHead.row < 0
         ) {
-            console.log("a")
             return true;
         }
 
         const coordsKey = `${snekHead.row}:${snekHead.col}`;
         if (snekCoordinatesMap.current.has(coordsKey)) {
-            console.log("b")
             return true;
         }
     };

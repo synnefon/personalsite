@@ -2,7 +2,7 @@
   "name": "personalsite",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://gitname.github.io/react-gh-pages",
+  "homepage": "http://connorhopkins.dev",
   "dependencies": {
     "cra-template": "1.2.0",
     "motion": "^11.16.0",
