@@ -1,16 +1,16 @@
 {
   "files": {
-    "main.css": "/react-gh-pages/static/css/main.3be4a1ff.css",
-    "main.js": "/react-gh-pages/static/js/main.a57ce188.js",
-    "static/media/self.gif": "/react-gh-pages/static/media/self.ad1e6f139233db344487.gif",
-    "static/media/F25_Bank_Printer.otf": "/react-gh-pages/static/media/F25_Bank_Printer.07be3c3654876f79f05c.otf",
-    "static/media/bolt.gif": "/react-gh-pages/static/media/bolt.4f185b197b69919b0229.gif",
-    "index.html": "/react-gh-pages/index.html",
-    "main.3be4a1ff.css.map": "/react-gh-pages/static/css/main.3be4a1ff.css.map",
-    "main.a57ce188.js.map": "/react-gh-pages/static/js/main.a57ce188.js.map"
+    "main.css": "/static/css/main.09c691aa.css",
+    "main.js": "/static/js/main.b77faa39.js",
+    "static/media/self.gif": "/static/media/self.ad1e6f139233db344487.gif",
+    "static/media/F25_Bank_Printer.otf": "/static/media/F25_Bank_Printer.07be3c3654876f79f05c.otf",
+    "static/media/bolt.gif": "/static/media/bolt.4f185b197b69919b0229.gif",
+    "index.html": "/index.html",
+    "main.09c691aa.css.map": "/static/css/main.09c691aa.css.map",
+    "main.b77faa39.js.map": "/static/js/main.b77faa39.js.map"
   },
   "entrypoints": [
-    "static/css/main.3be4a1ff.css",
-    "static/js/main.a57ce188.js"
+    "static/css/main.09c691aa.css",
+    "static/js/main.b77faa39.js"
   ]
 }
