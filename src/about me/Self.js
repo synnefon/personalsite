@@ -1,12 +1,18 @@
 import React, { useEffect, useState } from 'react';
 
 import personIcon from '../assets/person.png';
+import bluePersonIcon from '../assets/person.png';
 import selfGif from '../assets/self.gif';
 
 import '../styles/self.css'
 
 export default function Self() {
-    const [showSelf, setShowSelf] = useState(false);
+  const [showSelf, setShowSelf] = useState(false);
+  const [hoverPerson, setHoverPerson] = useState(false);
+
+  const toggleHoverPerson = () => {
+    setHoverPerson((hoverPerson) => !hoverPerson);
+  }
   
   const toggleShowSelf = () => {
     restartGif();
@@ -36,10 +42,12 @@ export default function Self() {
   return (
     <>
       <img 
+        // onMouseEnter={toggleHoverPerson()}
+        // onMouseLeave={toggleHoverPerson()}
         id="person-icon"
         className={`${showSelf ? 'invisible' : ''}`}
         alt="a pixelated person"
-        src={personIcon}
+        // src={hoverPerson ? bluePersonIcon : personIcon}
         onClick={toggleShowSelf}
       />
       <img 

@@ -1,23 +1,24 @@
 img#person-icon {
   position: absolute;
-  width: 2em;
+  width: 5em;
   left: 4%;
   bottom: 0%;
   transition: left 0.7s ease-in-out;
   cursor: pointer!important;
+  content: url("../assets/person.png");
 }
 
 img#person-icon:hover {
-  filter: invert(50%) sepia(100%) hue-rotate(180deg);
+  content: url("../assets/blue_person.png");
 }
 
 img#self-gif {
   position: absolute;
-  width: 10em;
+  width: 20em;
   left: 0%;
   bottom: 0%;
 }
 
 .invisible {
-  left: -5%!important;
+  left: -6em!important;
 }
