@@ -10,7 +10,7 @@ export default function Home() {
   const [descriptionIdx, setDescriptionIdx] = useState(1);
   const [description, setDescription] = useState('software engineer');
   const [descriptionCycling, setDescriptionCycling] = useState(false);
-  const [showLightning, setShowLightning] = useState(true);
+  const [showLightning, setShowLightning] = useState(false);
 
   const descriptors = [
     'software engineer', 'thing maker', 'dungeon master', 'rock climber', 'cat dad', 'aspiring wood worker', 'crepuscular code creator', '3d printer mechanic',
