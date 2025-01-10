@@ -11,6 +11,9 @@
   right: 0em;
   margin-top: 0.2em;
   margin-right: 0.2em;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 .nav-link {

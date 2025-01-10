@@ -72,7 +72,8 @@ button {
 
 button:hover {
   background-color: #3cff00;
-  color: var(--text-color);
+  color: var(--inv-text-color);
+  border: 3px solid var(--inv-text-color);
   transition: 0.8s;
 }
 
@@ -91,12 +92,15 @@ button:hover {
   color: red;
   letter-spacing: 8px;
   position: absolute;
-  animation: blinker 1s linear infinite;
+  animation: blinker 2s linear infinite;
   z-index: 998;
 }
 
 @keyframes blinker {
   80% {
     opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
   }
 }

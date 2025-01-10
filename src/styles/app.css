@@ -3,7 +3,7 @@ body {
   height: 100%;
 }
 
-.invert-color {
+.home-colors {
   --bg-color: rgb(51, 0, 255);
   --inv-text-color: var(--bg-color)!important;
   --inv-bg-color: var(--text-color)!important;
