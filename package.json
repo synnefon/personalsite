@@ -2,7 +2,6 @@
   "name": "personalsite",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://connorhopkins.dev",
   "dependencies": {
     "cra-template": "1.2.0",
     "motion": "^11.16.0",
@@ -14,12 +13,18 @@
     "use-long-press": "^3.2.0"
   },
   "scripts": {
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "prod": "echo \"Add your build command here\"",
+    "postinstall": "node ./node_modules/husky/lib/installer/bin install",
+    "deploy": "git push origin `git subtree split --prefix dist main`:gh-pages --force"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run prod"
+    }
   },
   "eslintConfig": {
     "extends": [
@@ -41,6 +46,7 @@
   },
   "devDependencies": {
     "gh-pages": "^6.3.0",
+    "husky": "^9.1.7",
     "web-vitals": "^4.2.4"
   }
 }
