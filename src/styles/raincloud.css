@@ -1,7 +1,7 @@
 /* rain drop styles */
 
 .drop {
-	height: 2.5vw;
+	height: 4vh;
 	position: absolute;
 	bottom: 200px;
   overflow-x: hidden;
@@ -28,9 +28,23 @@
 div#raincloud {
   height: 90vh;
   width: 18vw;
-  right: 5vw;
-  top: 10%;
+  left: 1vw;
+  bottom: 0vh;
   position: absolute;
+  overflow: hidden;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+@media screen and (max-width: 500px) {
+  div#raincloud {
+    margin-right: 5%;
+    margin-top: 2em;
+    position: relative;
+    align-self: center;
+    width: 70vw;
+  }
 }
 
 div#cloud {

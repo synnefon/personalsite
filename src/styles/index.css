@@ -5,6 +5,21 @@
   font-style: monospace;
 }
 
+html, body, #app, #app>div {
+  height: 100%;
+}
+
+#root {
+  height: 100%;
+}
+
+:root {
+  --bg-color: rgb(5, 4, 4)!important;
+  --text-color: rgb(234, 234, 247);
+  --inv-text-color: var(--bg-color);
+  --inv-bg-color: var(--text-color);
+}
+
 header {
   margin: 0;
   font-family: F25_Bank_Printer, monospace;
@@ -17,6 +32,8 @@ body {
   font-family: F25_Bank_Printer, monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
 
 code {

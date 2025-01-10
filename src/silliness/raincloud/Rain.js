@@ -1,11 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
-import dropImg from '../assets/drop.png'
-import '../styles/raincloud.css'
+import dropImg from '../../assets/drop.png'
+
+import '../../styles/raincloud.css'
 
 export default function Rain({numDrops, showLightning, setDropsFallen}) {
   const [canMakeDrops, setCanMakeDrops] = useState(true)
   const randRange = (minNum, maxNum) => (Math.floor(Math.random() * (maxNum - minNum + 1)) + minNum);
+
+  const fallDrop = useCallback((rain, drop) => {
+    try{ 
+      rain.removeChild(drop);
+      setDropsFallen((df) => df + 1);
+    }
+    catch{};
+  }, [setDropsFallen]);
 
   const makeDrop = useCallback(() => {
     const rain = document.getElementById('rain');
@@ -23,16 +32,10 @@ export default function Rain({numDrops, showLightning, setDropsFallen}) {
     catch {};
 
     drop.style.setProperty('--rand', `${(Math.random())*85}%`);    
-    const t2 = setTimeout(() => {
-      try{ 
-        rain.removeChild(drop);
-        setDropsFallen((df) => df + 1);
-      }
-      catch{};
-    }, 3_000);
+    const t2 = setTimeout(() => fallDrop(rain, drop), 3_000);
 
     return () => clearTimeout(t2);
-  }, [numDrops, setDropsFallen]);
+  }, [fallDrop, numDrops]);
 
   const startRain = useCallback(() => {
     if (!canMakeDrops) return;

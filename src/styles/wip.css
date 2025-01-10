@@ -6,10 +6,24 @@ div#bounce-room {
   top: 10vh;
 }
 
+#root {
+  background-color: var(--inv-bg-color);
+}
+
 div#bouncing-text {
-  font-size: min(2vw, 4vh)!important;
   align-items: start;
   position: absolute;
-  width: calc(min(2vw, 4vh) * 11);
-  height: min(2vw, 4vh);
+  font-size: min(4vw, 4vh)!important;
+  width: calc(min(4vw, 4vh) * 11);
+  height: min(4vw, 4vh);
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+@media screen and (max-width: 500px) { 
+  div#bouncing-text {
+    width: calc(min(2vw, 4vh) * 11);
+    height: 2em;
+  }
 }

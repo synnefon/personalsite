@@ -203,38 +203,41 @@ export default function Snek() {
     );
 
     return (
-        <div 
-            className={`game-container${invert ? ' invert' : ''}`}
-        >
-            <h1
-                style={{display: isPlaying || gameOver ? 'none' : 'block'}}
-            >
-                SNEK
-            </h1>
-            {gameOver && <p className="game-over">GAME OVER</p>}
-            {!isPlaying && !gameOver && <button onClick={startGame}>start game</button>}
-            {gameOver && <button onClick={startGame}>main menu</button>}
+        // <div id="app-base">
             <div 
-                className="board"
-                style={{
-                    display: isPlaying || gameOver? 'block' : 'none',
-                }}
+                className={`game-container${invert ? ' invert' : ''}`}
             >
-                {grid.current?.map((row, row_idx) => (
-                    <div key={row_idx} className="row">
-                        {row.map((_, col_idx) => getCell(row_idx, col_idx))}
-                    </div>
-                ))}
+                <h1
+                    className="snek-title"
+                    style={{display: isPlaying || gameOver ? 'none' : 'block'}}
+                >
+                    SNEK
+                </h1>
+                {gameOver && <p className="game-over">GAME OVER</p>}
+                {!isPlaying && !gameOver && <button onClick={startGame}>start game</button>}
+                {gameOver && <button onClick={startGame}>main menu</button>}
+                <div 
+                    className="board"
+                    style={{
+                        display: isPlaying || gameOver? 'block' : 'none',
+                    }}
+                >
+                    {grid.current?.map((row, row_idx) => (
+                        <div key={row_idx} className="row">
+                            {row.map((_, col_idx) => getCell(row_idx, col_idx))}
+                        </div>
+                    ))}
+                </div>
+                <p
+                    style={{
+                        display: isPlaying || gameOver ? 'block' : 'none',
+                        color: invert ? 'var(--inv-text-color)' : 'inherit'
+                    }}
+                    className="score"
+                >
+                    food eaten: {points}
+                </p>
             </div>
-            <p
-                style={{
-                    display: isPlaying || gameOver ? 'block' : 'none',
-                    color: invert ? 'white' : 'black'
-                }}
-                className="score"
-            >
-                food eaten: {points}
-            </p>
-        </div>
+        // </div>
     );
 }

@@ -6,7 +6,7 @@ import '../styles/wip.css'
 
 export default function Wip() { 
   const [color, setColor] = useState(getRandomColor());
-  const { containerRef, elementRef, impactCount } = useDvdScreensaver({speed: 2});
+  const { containerRef, elementRef, impactCount } = useDvdScreensaver({speed: (window.innerWidth / 2_000) * 2});
 
   useEffect(() => setColor(getRandomColor()), [impactCount]);
 
