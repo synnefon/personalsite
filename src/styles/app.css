@@ -28,7 +28,7 @@ div#app-base.lightning {
 
 .content-wrapper {
   font-size: calc(10px + 2vmin);
-  width: 40%;
+  width: 45%;
   display: flex;
   flex-direction: column;
 }

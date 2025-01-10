@@ -1,0 +1,34 @@
+.navbar {
+  position: absolute;
+  background-color: transparent;
+  overflow: hidden;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  font-size: calc(10px + 1vmin);
+  display: flex;
+  flex-direction: row;
+  right: 0em;
+  margin-top: 0.2em;
+  margin-right: 0.2em;
+}
+
+.nav-link {
+  color: var(--text-color);
+  text-decoration: none; /* no underlined link text */
+  /* margin-left: 1em; */
+  border-right: 1px dotted var(--text-color);
+}
+.nav-link:last-child {
+  border-right: none;
+}
+
+.nav-link:hover {
+  color: pink;
+}
+
+.nav-link-text {
+  margin: 0.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}

@@ -33,7 +33,7 @@ export default function Home() {
           <span className="bracket invert-color">{'}'}</span>
         </h5>
         <div className="links invert-color">
-          <Link className="link top left invert-color" to="/aboutme" rel="noreferrer">
+          <Link className="link top left invert-color" to="/about" rel="noreferrer">
             <p className="link-text invert-color">about me</p>
             <p className="tooltip-text invert-color">$ whois connorhopkins.dev</p>
           </Link>
