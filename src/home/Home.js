@@ -42,10 +42,10 @@ export default function Home() {
             <p className="link-text home-colors">projects</p>
             <p className="tooltip-text home-colors">an assortment of web-accessible work</p>
           </Link>
-          <Link className="link middle left home-colors" to="/wip" rel="noreferrer">
+          <a className="link middle left home-colors" href="https://docs.google.com/document/d/1A77LelAqhLE98pvkOYpHjUAs7l3LW-mcSQr-_MpbP6I/edit?usp=sharing" rel="noreferrer">
             <p className="link-text home-colors">resume</p>
             <p className="tooltip-text home-colors">the list of stuff i've done professionally</p>
-          </Link>
+          </a>
           <a className="link middle right home-colors" href="https://github.com/synnefon" rel="noreferrer">
             <p className="link-text home-colors">github</p>
             <p className="tooltip-text home-colors">where you can see some code i've written</p>
