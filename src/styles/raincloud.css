@@ -28,8 +28,8 @@
 div#raincloud {
   height: 90vh;
   width: 18vw;
-  left: 1vw;
-  bottom: 0vh;
+  left: -23vw;
+  top: 10vh;
   position: absolute;
   overflow: hidden;
   -webkit-user-select: none;
@@ -39,11 +39,11 @@ div#raincloud {
 
 @media screen and (max-width: 500px) {
   div#raincloud {
-    margin-right: 5%;
-    margin-top: 2em;
     position: relative;
-    align-self: center;
-    width: 70vw;
+    top: 2vh;
+    width: 90vw;
+    left: -2vw;
+    height: 60vh;
   }
 }
 

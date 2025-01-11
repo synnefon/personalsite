@@ -1,7 +1,6 @@
 body {
   overflow-x: hidden;
   overflow-y: scroll;
-  height: 100%;
 }
 
 .home-colors {
@@ -15,9 +14,12 @@ div#app-base {
   transition: all 2s linear!important;
   justify-content: center;
   display: flex;
-  flex-direction: row;
-  top: 0%!important;
-  height: 100%;
+  flex-direction: column;
+  top: 0px!important;
+  bottom: 0px;
+  position: absolute;
+  width: 100%;
+  margin: 0;
   background-color: var(--bg-color);
   color: var(--text-color);
 }
@@ -30,15 +32,17 @@ div#app-base.lightning {
 
 .content-wrapper {
   font-size: calc(10px + 2vmin);
+  top: 0px;
   width: 45%;
   display: flex;
   flex-direction: column;
+  position: absolute;
 }
 
 .title {
   position: relative;
   top: 0px;
-  margin: 0px;
+  margin: 1px;
   margin-top: 1em;
   -webkit-user-select: none;
   -ms-user-select: none;
@@ -53,6 +57,10 @@ div#app-base.lightning {
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+.description-text::after {
+  color: orange;
 }
 
 .bracket {
@@ -136,24 +144,7 @@ p.link-text {
 
 @media screen and (max-width: 500px) {
   .content-wrapper { 
-    width: 70%;
-  }
-}
-
-@media screen and (max-width: 330px) {
-  .content-wrapper { 
     width: 90%;
+    margin-top: 50px;
   }
-  /* .links {
-    grid-template-columns: repeat(1, 100%);
-  }
-  .link {
-    border: 0px;
-    border-bottom: 2px dashed var(--text-color);
-    border-left: 2px dashed var(--text-color);
-    border-right: 2px dashed var(--text-color);
-  }
-  .link:nth-child(1) {
-    border-top: 2px dashed var(--text-color);
-  } */
 }

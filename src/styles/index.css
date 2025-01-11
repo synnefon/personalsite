@@ -5,14 +5,6 @@
   font-style: monospace;
 }
 
-html, body, #app, #app>div {
-  height: 100%;
-}
-
-#root {
-  height: 100%;
-}
-
 :root {
   --bg-color: rgb(5, 4, 4)!important;
   --text-color: rgb(234, 234, 247);
