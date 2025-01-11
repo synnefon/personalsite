@@ -51,9 +51,6 @@ export default function Rain({numDrops, showLightning, setDropsFallen}) {
   useEffect(() => startRain(), [numDrops, startRain]);
 
   return (
-    <div 
-      id="rain"
-      style={{'visibility': showLightning ? 'hidden' : 'visible'}}
-    />
+    <div id="rain" style={{'visibility': showLightning ? 'hidden' : 'visible'}}/>
   );
 }

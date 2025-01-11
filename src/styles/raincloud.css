@@ -52,12 +52,23 @@ div#cloud {
   position: absolute;
 }
 
-img#cloud-gif,
-img#cloud-img {
+.cloud-gif,
+.cloud-img,
+.cloud-img.hoverable-cloud {
   width: 100%;
   z-index: 999;
   position: absolute;
   cursor: pointer;
+}
+
+.cloud-gif {
+  content: url('../assets/cloud.gif');
+}
+.cloud-img {
+  content: url('../assets/cloud.png');
+}
+.cloud-img.hoverable-cloud:hover {
+  content: url('../assets/darkCloud.png');
 }
 
 img#lightning {
