@@ -1,5 +1,6 @@
 body {
   overflow-x: hidden;
+  overflow-y: scroll;
   height: 100%;
 }
 
@@ -15,6 +16,7 @@ div#app-base {
   justify-content: center;
   display: flex;
   flex-direction: row;
+  top: 0%!important;
   height: 100%;
   background-color: var(--bg-color);
   color: var(--text-color);
@@ -35,6 +37,7 @@ div#app-base.lightning {
 
 .title {
   position: relative;
+  top: 0px;
   margin: 0px;
   margin-top: 1em;
   -webkit-user-select: none;
@@ -67,7 +70,7 @@ div#app-base.lightning {
 .link {
   color: inherit; /* no blue link text */
   text-decoration: none; /* no underlined link text */
-  transition: all 0.2s ease-in-out;
+  transition: transform 0.8s ease;
   overflow: hidden;
   -webkit-user-select: none;
   -ms-user-select: none;
@@ -77,6 +80,13 @@ div#app-base.lightning {
 a.link:hover {
   color: var(--inv-text-color);
   background-color: var(--inv-bg-color);
+}
+
+a.link:hover > p.link-text {
+  animation: boing 0.3s ease-in-out alternate;
+}
+a.link:hover > .tooltip-text {
+  animation: boing 0.3s ease-in-out alternate;
 }
 
 .top {
@@ -134,7 +144,7 @@ p.link-text {
   .content-wrapper { 
     width: 90%;
   }
-  .links {
+  /* .links {
     grid-template-columns: repeat(1, 100%);
   }
   .link {
@@ -145,5 +155,5 @@ p.link-text {
   }
   .link:nth-child(1) {
     border-top: 2px dashed var(--text-color);
-  }
+  } */
 }

@@ -1,5 +1,5 @@
 .navbar {
-  position: absolute;
+  position: absolute!important;
   background-color: transparent;
   overflow: hidden;
   -webkit-user-select: none;
@@ -14,13 +14,21 @@
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  z-index: 1;
+}
+
+.hamburger-react {
+  position: relative;
+  background-color: transparent;
+  color: var(--text-color);
+  z-index: 1;
 }
 
 .nav-link {
   color: var(--text-color);
   text-decoration: none; /* no underlined link text */
-  /* margin-left: 1em; */
-  border-right: 1px dashed var(--text-color);
+  transition-duration: 0.4s;
+  /* border-right: 1px dashed var(--text-color); */
 }
 .nav-link:last-child {
   border-right: none;
@@ -28,10 +36,24 @@
 
 .nav-link:hover {
   color: pink;
+  animation: boing 0.3s ease-in-out alternate;
 }
 
 .nav-link-text {
-  margin: 0.5em;
+  margin: 0.6em;
   margin-top: 0.5em;
   margin-bottom: 0.5em;
+}
+
+
+@media screen and (max-width: 230px) {
+  .nav-link-text {
+    margin: 0.4em;
+  }
+}
+
+@media screen and (max-width: 215px) {
+  .navbar {
+    flex-direction: column;
+  }
 }

@@ -7,7 +7,7 @@ div#bounce-room {
 }
 
 #root {
-  background-color: var(--inv-bg-color);
+  background-color: var(--bg-color);
 }
 
 div#bouncing-text {

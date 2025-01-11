@@ -25,6 +25,15 @@ export default function Raincloud({showLightning, setShowLightning}){
   const [dropsFallen, setDropsFallen] = useState(0);
   const rainSFX = useMemo(() => new Audio(rainNoise), []);
   const thunderSFX = useMemo(() => new Audio(thunderNoise), []);
+  const [width, setWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleWindowSizeChange = () => setWidth(window.innerWidth);
+      window.addEventListener('resize', handleWindowSizeChange);
+      return () => window.removeEventListener('resize', handleWindowSizeChange);
+  }, [setWidth]);
+
+  const isMobile = width <= 768;
 
   const incrNumFlowers = () => setNumFlowers((nf) => nf+1);
 
@@ -40,7 +49,7 @@ export default function Raincloud({showLightning, setShowLightning}){
   const toggleRaining = useCallback((isRaining) => {
     setNumDrops(isRaining ? DROPS_PER_SEC : 0);
     if (isRaining) {
-      rainSFX.volume = 1;
+      rainSFX.volume = 0.8;
       rainSFX.play();
     } else {
       fadeOutRain();
@@ -59,10 +68,11 @@ export default function Raincloud({showLightning, setShowLightning}){
 
   // trigger lightning when enough drops fall
   useEffect(() => {
-    if (dropsFallen <= LIGHTNING_THRESHOLD) return;
+    if (dropsFallen <= LIGHTNING_THRESHOLD && !showLightning) return;
+    console.log("triggering")
     thunderSFX.play();
     setShowLightning(true);
-  }, [dropsFallen, rainSFX, setShowLightning, thunderSFX])
+  }, [dropsFallen, rainSFX, setShowLightning, showLightning, thunderSFX])
 
   // make some new flowers
   useEffect(() => {
@@ -75,15 +85,15 @@ export default function Raincloud({showLightning, setShowLightning}){
   useEffect(() => {
     if (!showLightning) return;
 
-    toggleRaining(false);
     const timeoutId1 = setTimeout(() => setNumFlowers(0), 1_400);
     const timeoutId2 = setTimeout(() => {
+      toggleRaining(false);
       setShowLightning(false);
       thunderSFX.pause();
       fadeOutRain();
       setDropsFallen(0);
       setNumFlowers(0);
-    }, 3_000);
+    }, 7_000);
 
     return () => {
       clearTimeout(timeoutId1);
@@ -96,6 +106,17 @@ export default function Raincloud({showLightning, setShowLightning}){
     setTimeout(() => setNumDrops(0), 600);
   }
 
+  const CloudImg = () => {
+    const alt = 'a little cloud'
+    return (
+      numDrops > 0 && !showLightning 
+        ? <img id="cloud-gif" src={cloudGif} alt={alt} draggable={false}/>
+        : darkCloud && !showLightning 
+          ? <img id="cloud-img" src={darkCloudImg} alt={alt} draggable={false}/>
+          : <img id="cloud-img" src={cloudImg} alt={alt} draggable={false}/>
+    );
+  }
+
   return (
     <div id="raincloud">
       <Rain
@@ -106,15 +127,11 @@ export default function Raincloud({showLightning, setShowLightning}){
       <div 
         id="cloud" 
         {...bindCloudPressed()}
-        onClick={dribble}
+        onClick={isMobile ? () => toggleRaining(!(numDrops > 0)) : dribble}
         onMouseEnter={() => toggleDarkCloud(true)}
         onMouseLeave={() => toggleDarkCloud(false)}
       >
-        {
-          numDrops > 0 && !showLightning ? <img id="cloud-gif" alt="a little cloud gif" src={cloudGif} draggable={false}/>
-          : darkCloud && !showLightning ? <img id="cloud-img" alt="a little cloud" src={darkCloudImg} draggable={false}/>
-          : <img id="cloud-img" alt="a little cloud" src={cloudImg} draggable={false}/>
-        }
+      <CloudImg/>
       </div>
       {
         Array.from({ length: numFlowers }, (_, i) => i).map((i) => 

@@ -20,6 +20,14 @@ html, body, #app, #app>div {
   --inv-bg-color: var(--text-color);
 }
 
+@keyframes boing {
+  0% { transform: scale(1.0); }
+  15% { transform: scale(0.95); }
+  40% { transform: scale(1.07); }
+  95% { transform: scale(0.99); }
+  100% { transform: scale(1.0); }
+}
+
 header {
   margin: 0;
   font-family: F25_Bank_Printer, monospace;

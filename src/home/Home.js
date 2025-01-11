@@ -33,7 +33,7 @@ export default function Home() {
           <span className="bracket home-colors">{'}'}</span>
         </h5>
         <div className="links home-colors">
-          <Link className="link top left home-colors" to="/about" rel="noreferrer">
+          <Link className="link home-colors top left" to="/about" rel="noreferrer">
             <p className="link-text home-colors">about me</p>
             <p className="tooltip-text home-colors">$ whois connorhopkins.dev</p>
           </Link>
