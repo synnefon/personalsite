@@ -27,6 +27,9 @@ export default function Snek({onPage=true}) {
     const [points, setPoints] = useState(0);
     const [gameOver, setGameOver] = useState(false);
     const [isPlaying, setPlaying] = useState(0);
+    const [dirKey, setDirKey] = useState("ArrowRight");
+
+    const gameRef = useRef();
     
     const clickSFX = useMemo(() => new Audio(clickNoise), []);
     const gameOverSFX = useMemo(() => new Audio(gameOverNoise), []);
@@ -35,7 +38,6 @@ export default function Snek({onPage=true}) {
 
     const getNextDirection = useCallback((key) => {
         let availableTurns;
-        console.log(key)
         switch(direction.current) {
             case UP: case DOWN: 
                 availableTurns = {"ArrowRight": RIGHT, "ArrowLeft": LEFT};
@@ -50,10 +52,17 @@ export default function Snek({onPage=true}) {
     }, [direction]);
 
     useEffect(() => {
+        if (onPage) return;
         window.addEventListener("keydown", (e) => {
             nextDirection.current = getNextDirection(e.key);
         });
-    }, [getNextDirection]);
+    }, [getNextDirection, onPage]);
+
+    useEffect(() => {
+        if (!onPage) return;
+        console.log(dirKey)
+        nextDirection.current = getNextDirection(dirKey);
+    }, [dirKey, getNextDirection, onPage]);
 
     const initGame = useCallback(() => {
         const snek_postions = [];
@@ -98,6 +107,7 @@ export default function Snek({onPage=true}) {
         const snekTail = coords[0];
         const snekHead = coords.pop();
         direction.current = nextDirection.current;
+
         const move_dir = nextDirection.current;
 
         const foodConsumed =
@@ -215,28 +225,34 @@ export default function Snek({onPage=true}) {
         clickSFX.play();
     }
 
-    const onThumbPadPress = (dir) => nextDirection.current = getNextDirection(dir);
+    // const onThumbPadPress = (dir) => {
+    //     console.log(dir)
+    //     new KeyboardEvent('keypress', {
+    //         key: dir,
+    //     });
+    //     // gameRef.dispatchEvent(new KeyboardEvent('keypress', { key: dir}));
+    // }
 
     const ThumbPad = () => {
         return (
             <div className="thumb-pad">
                 <div className="thumb-pad-top">
-                    <div onClick={() => onThumbPadPress("ArrowUp")} className="dir-button">⇧</div>
+                    <div onClick={() => setDirKey("ArrowUp")} className="dir-button">⇧</div>
                 </div>
                 <div className="thumb-pad-middle">
-                    <div onClick={() => onThumbPadPress("ArrowLeft")} className="dir-button">⇦</div>
+                    <div onClick={() => setDirKey("ArrowLeft")} className="dir-button">⇦</div>
                     <div className="dir-button middle"></div>
-                    <div onClick={() => onThumbPadPress("ArrowRight")} className="dir-button">⇨</div>
+                    <div onClick={() => setDirKey("ArrowRight")} className="dir-button">⇨</div>
                 </div>
                 <div className="thumb-pad-bottom">
-                    <div onClick={() => onThumbPadPress("ArrowDown")} className="dir-button">⇩</div>
+                    <div onClick={() => setDirKey("ArrowDown")} className="dir-button">⇩</div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div id={`${onPage ? 'app-base' : ''}`}>
+        <div id={`${onPage ? 'app-base' : ''}`} ref={gameRef}>
             <div 
                 className={
                     `game-container${onPage ? ' pagified' : ''}`

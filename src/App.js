@@ -5,6 +5,7 @@ import Home from './home/Home';
 import Projects from './projects/Projects';
 import AboutMe from './about me/AboutMe';
 import Snek from './silliness/Snek';
+import Copyright from './Copyright';
 
 import Wip from './projects/Wip';
 
@@ -19,6 +20,7 @@ function App() {
         <Route path="/snek" element={<Snek />} />
         <Route path="/wip" element={<Wip />} />
       </Routes>
+      <Copyright/>
     </Router> 
   );
 }

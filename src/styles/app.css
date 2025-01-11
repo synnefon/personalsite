@@ -149,3 +149,13 @@ p.link-text {
     margin-top: 50px;
   }
 }
+
+div#copyright {
+  font-size: calc(6px + 1vmin);
+  text-align: right;
+  position: absolute;
+  width: 100%;
+  /* left:0; */
+  bottom:10px;
+  right: 10px;
+}
