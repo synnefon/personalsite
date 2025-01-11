@@ -34,7 +34,7 @@ export default function Home() {
         </h5>
         <div className="links home-colors">
           <Link className="link home-colors top left" to="/about" rel="noreferrer">
-            <p className="link-text home-colors">about me</p>
+            <p className="link-text home-colors">about</p>
             <p className="tooltip-text home-colors">$ whois connorhopkins.dev</p>
           </Link>
           <Link className="link top right home-colors" to="/projects" rel="noreferrer">
@@ -53,10 +53,10 @@ export default function Home() {
             <p className="link-text home-colors">linkedin</p>
             <p className="tooltip-text home-colors">let's network!</p>
           </a>
-          <Link className="link bottom right home-colors" to="/wip" rel="noreferrer">
+          <a href="mailto:connorjhopkins@gmail.com?subject=let's%20collab!%20" className="link bottom right home-colors" >
             <p className="link-text home-colors">get in touch</p>
-            <p className="tooltip-text home-colors">an email form</p>
-          </Link>
+            <p className="tooltip-text home-colors">shoot me an email</p>
+          </a>
         </div>
       </div>
     </div>
