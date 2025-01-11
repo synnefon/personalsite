@@ -1,4 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+
+import clickNoise from '../assets/groovy_click.mp3';
+import gameOverNoise from '../assets/game_over.mp3';
+import gameMusicNoise from '../assets/the_gathering.mp3';
 
 import '../styles/snek.css'
 
@@ -12,7 +16,7 @@ const DOWN = Symbol("down");
 const RIGHT = Symbol("right");
 const LEFT = Symbol("left");
 
-export default function Snek() {
+export default function Snek({onPage=true}) {
     const timer = useRef(null);
     const grid = useRef(Array(ROWs).fill(Array(COLs).fill("")));
     const snekCoordinates = useRef([]);
@@ -23,10 +27,15 @@ export default function Snek() {
     const [points, setPoints] = useState(0);
     const [gameOver, setGameOver] = useState(false);
     const [isPlaying, setPlaying] = useState(0);
-    const [invert, setInvert] = useState(false);
+    
+    const clickSFX = useMemo(() => new Audio(clickNoise), []);
+    const gameOverSFX = useMemo(() => new Audio(gameOverNoise), []);
+    const gameMusic = useMemo(() => new Audio(gameMusicNoise), []);
+    gameMusic.loop = true;
 
     const getNextDirection = useCallback((key) => {
         let availableTurns;
+        console.log(key)
         switch(direction.current) {
             case UP: case DOWN: 
                 availableTurns = {"ArrowRight": RIGHT, "ArrowLeft": LEFT};
@@ -55,14 +64,16 @@ export default function Snek() {
         snek_postions[DEFAULT_SNEK_LENGTH - 1].isHead = true;
         snekCoordinates.current = snek_postions;
 
+        gameOverSFX.volume = 1;
+        clickSFX.volume = 1;
+        gameMusic.volume = 1;
         syncSnekCoordinatesMap();
         populateFoodBall();
         setGameOver(false);
         setPoints(0);
-        setInvert(false);
         direction.current = RIGHT;
         nextDirection.current = RIGHT;
-    }, [])
+    }, [clickSFX, gameMusic, gameOverSFX])
 
     useEffect(() => initGame(), [initGame]);
 
@@ -73,7 +84,12 @@ export default function Snek() {
         snekCoordinatesMap.current = snekCoordsSet;
     };
 
-    const moveSnek = () => {
+    const eatFood = () => {
+        setPoints((points) => points + 1);
+        populateFoodBall();
+    }
+
+    const tickSnek = () => {
         if (gameOver) return;
 
         setPlaying((s) => s + 1);
@@ -88,10 +104,7 @@ export default function Snek() {
             snekHead.row === foodCoords.current.row &&
             snekHead.col === foodCoords.current.col;
         
-        if (foodConsumed) {
-            setPoints((points) => points + 1);
-            populateFoodBall();
-        }
+        if (foodConsumed) eatFood(coords, snekHead);
 
         coords.forEach((_, idx) => {
             if (idx === coords.length - 1) {
@@ -119,62 +132,64 @@ export default function Snek() {
                 break;
         }
 
-        if (collisionDetected(snekHead)) {
-            stopGame();
-            return;
-        }
+        if (collisionDetected(snekHead)) return stopGame();
 
         coords.push(snekHead);
         snekCoordinates.current = foodConsumed ? [snekTail, ...coords] : coords;
         syncSnekCoordinatesMap();
     };
-    
-    useEffect(() => {
-        if (points === 0) return;
-        if (points % 20 === 0) {
-            setInvert(false);
-        } else if (points % 10 === 0) {
-            setInvert(true);
-        }
-    }, [points]);
 
     const collisionDetected = (snekHead) => {
-        if (
+        const collidedWithWall = 
             snekHead.col >= COLs ||
             snekHead.row >= ROWs ||
             snekHead.col < 0 ||
-            snekHead.row < 0
-        ) {
-            return true;
-        }
+            snekHead.row < 0;
 
-        const coordsKey = `${snekHead.row}:${snekHead.col}`;
-        if (snekCoordinatesMap.current.has(coordsKey)) {
-            return true;
-        }
+        const collidedWithSelf = snekCoordinatesMap.current.has(
+            `${snekHead.row}:${snekHead.col}`
+        );
+
+        return collidedWithSelf || collidedWithWall;
     };
 
     const populateFoodBall = async () => {
         const row = Math.floor(Math.random() * ROWs);
         const col = Math.floor(Math.random() * COLs);
-
         foodCoords.current = {row, col};
     };
 
     const startGame = async () => {
         initGame();
-        const interval = setInterval(() => moveSnek(), TICK_SPEED_MS);
+        const interval = setInterval(() => tickSnek(), TICK_SPEED_MS);
         timer.current = interval;
     };
 
     const stopGame = async () => {
         setGameOver(true);
+        gameOverSFX.play();
+        gameMusic.pause();
+        gameMusic.currentTime = 0;
         setPlaying(0);
-        setInvert(false);
         if (timer.current) {
             clearInterval(timer.current);
         }
     };
+
+    useEffect(() => {
+        if (!isPlaying || gameOver) return;
+        gameMusic.play();
+    }, [gameMusic, gameOver, isPlaying])
+
+    // clean up noises when we navigate away
+    useEffect(() => {
+        return () => {
+            gameOverSFX.volume = 0;
+            clickSFX.volume = 0;
+            gameMusic.volume = 0;
+            gameMusic.currentTime = 0;
+        }
+    }, [gameOverSFX, clickSFX, gameMusic]);
 
     const getCell = useCallback(
         (row_idx, col_idx) => {
@@ -188,39 +203,71 @@ export default function Snek() {
             const isHead = headPos === coords;
 
             let className = "cell";
-            if (isFood) {
-                className += " food";
-            }
-            if (isSnekBody) {
-                className += " body";
-            }
-            if (isHead) {
-                className += " head";
-            }
+            if (isFood) className += " food";
+            if (isSnekBody) className += " body";
+            if (isHead) className += " head";
 
             return <div key={col_idx} className={className}></div>;
         }, []
     );
 
+    const onButtonPress = () => {
+        clickSFX.play();
+    }
+
+    const onThumbPadPress = (dir) => nextDirection.current = getNextDirection(dir);
+
+    const ThumbPad = () => {
+        return (
+            <div className="thumb-pad">
+                <div className="thumb-pad-top">
+                    <div onClick={() => onThumbPadPress("ArrowUp")} className="dir-button">⇧</div>
+                </div>
+                <div className="thumb-pad-middle">
+                    <div onClick={() => onThumbPadPress("ArrowLeft")} className="dir-button">⇦</div>
+                    <div className="dir-button middle"></div>
+                    <div onClick={() => onThumbPadPress("ArrowRight")} className="dir-button">⇨</div>
+                </div>
+                <div className="thumb-pad-bottom">
+                    <div onClick={() => onThumbPadPress("ArrowDown")} className="dir-button">⇩</div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        // <div id="app-base">
+        <div id={`${onPage ? 'app-base' : ''}`}>
             <div 
-                className={`game-container${invert ? ' invert' : ''}`}
+                className={
+                    `game-container${onPage ? ' pagified' : ''}`
+                }
             >
                 <h1
-                    className="snek-title"
+                    className={`snek-title${onPage ? ' pagified' : ''}`}
                     style={{display: isPlaying || gameOver ? 'none' : 'block'}}
                 >
                     SNEK
                 </h1>
-                {gameOver && <p className="game-over">GAME OVER</p>}
-                {!isPlaying && !gameOver && <button onClick={startGame}>start game</button>}
-                {gameOver && <button onClick={startGame}>main menu</button>}
+                { 
+                    gameOver && 
+                    <p 
+                        className={`game-over${onPage ? ' pagified' : ''}`}
+                    >
+                            GAME OVER
+                    </p> 
+                }
+                {
+                    !isPlaying && 
+                    <button
+                        className={`${onPage ? 'pagified' : ''}`}
+                        onMouseDown={onButtonPress}
+                        onClick={startGame}
+                    >
+                            {gameOver ? 'main menu' : 'start game'}
+                    </button>}
                 <div 
                     className="board"
-                    style={{
-                        display: isPlaying || gameOver? 'block' : 'none',
-                    }}
+                    style={{display: isPlaying || gameOver? 'block' : 'none'}}
                 >
                     {grid.current?.map((row, row_idx) => (
                         <div key={row_idx} className="row">
@@ -231,13 +278,13 @@ export default function Snek() {
                 <p
                     style={{
                         display: isPlaying || gameOver ? 'block' : 'none',
-                        color: invert ? 'var(--inv-text-color)' : 'inherit'
                     }}
-                    className="score"
+                    className={`score${onPage ? 'pagified' : ''}`}
                 >
                     food eaten: {points}
                 </p>
             </div>
-        // </div>
+            {onPage && <ThumbPad/>}
+        </div>
     );
 }

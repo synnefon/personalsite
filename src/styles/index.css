@@ -8,6 +8,7 @@
 :root {
   --bg-color: rgb(5, 4, 4)!important;
   --text-color: rgb(234, 234, 247);
+  --alt-text-color: rgb(51, 0, 255);
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);
 }

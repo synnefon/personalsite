@@ -48,6 +48,13 @@ export default function Rain({numDrops, showLightning, setDropsFallen}) {
     setTimeout(() => setCanMakeDrops(true), randRange(0, (1_000)));
   }, [makeDrop, numDrops, canMakeDrops]);
 
+  useEffect(() => {    
+    const rain = document.getElementById('rain');
+    while (document.getElementById('drop') != null) {
+      rain.removeChild(document.getElementById('drop'));
+    }
+  }, [showLightning]);
+
   useEffect(() => startRain(), [numDrops, startRain]);
 
   return (

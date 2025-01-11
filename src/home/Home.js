@@ -11,6 +11,7 @@ export default function Home() {
     'have i mentioned software engineer already?', "",
     '...pls look at projects', '...or just click on any link', "is running out of autobiographical subheadings",
   ];
+
   const extractDescription = (descriptor) => {
     return descriptor.constructor === Array 
       ? [descriptor[0], 500, descriptor[1], 3_500] 
@@ -53,7 +54,7 @@ export default function Home() {
             <p className="link-text home-colors">linkedin</p>
             <p className="tooltip-text home-colors">let's network!</p>
           </a>
-          <a href="mailto:connorjhopkins@gmail.com?subject=let's%20collab!%20" className="link bottom right home-colors" >
+          <a className="link bottom right home-colors" href="mailto:connorjhopkins@gmail.com?subject=let's%20collab!%20">
             <p className="link-text home-colors">get in touch</p>
             <p className="tooltip-text home-colors">shoot me an email</p>
           </a>

@@ -1,7 +1,11 @@
 .snek-title {
   margin: 0px;
-  margin-bottom: 5%;
+  margin-bottom: 7%;
   font-size: calc(16px + 2vmin);
+}
+
+.snek-title.pagified {
+  margin-bottom: 40%;
 }
 
 .game-container {
@@ -13,8 +17,9 @@
   height: 100%;
 }
 
-.invert {
-  filter: invert(1)
+.game-container.pagified {
+  width: 50%;
+  height: 50%;
 }
 
 .board {
@@ -70,6 +75,12 @@ button {
   z-index: 999;
 }
 
+button.pagified {
+  position: absolute;
+  top: 34%;
+  height: 3em;
+}
+
 button:hover {
   background-color: #3cff00;
   color: var(--inv-text-color);
@@ -85,6 +96,10 @@ button:hover {
   filter: none!important;
 }
 
+.score.pagified {
+  top: 70%;
+}
+
 .game-over {
   top: 70%;
   font-size: 26px;
@@ -96,11 +111,58 @@ button:hover {
   z-index: 998;
 }
 
+.game-over.pagified { 
+  top: 20%;
+}
+
 @keyframes blinker {
-  80% {
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.8;
-  }
+  0% {opacity: 0.4}
+  15% {opacity: 1.0}
+  40% {opacity: 1.0}
+  80% {opacity: 0.4}
+  100% {opacity: 0.2}
+}
+
+.thumb-pad {
+  background-color: transparent;
+  width: 150px;
+  height: 150px;
+  position: relative;
+  display: grid;  
+  grid-template-columns: 100%;
+  grid-template-rows: repeat(3, 33.3333%);
+  user-select: none!important;
+  text-align: center;
+  align-content: center;
+  align-items: center;
+}
+.thumb-pad-top, .thumb-pad-bottom {
+  /* background-color: red; */
+  height: 100%;
+  width: 33.333%;
+  margin-left: 33.333%;
+}
+.thumb-pad-middle {
+  display: grid;  
+  grid-template-columns: 33.333% 33.333% 33.333%;
+  height: 100%;
+}
+
+.dir-button {
+  height: 100%;
+  text-align: center;
+  align-content: center;
+  align-items: center;
+  border: 1px dashed var(--text-color);
+  font-size: calc(16px + 2vmin);
+}
+
+.dir-button.middle {
+  background-color: var(--bg-color);
+  border: 1px dashed var(--text-color);
+}
+
+.dir-button:hover {
+  background-color: var(--text-color);
+  color: var(--bg-color);
 }

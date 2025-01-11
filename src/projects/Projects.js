@@ -46,7 +46,7 @@ export default function Projects() {
           </Link>
           {
             windowWidth > 1_000 ? 
-              <Snek className="bottom right"/> : 
+              <Snek className="bottom right" onPage={false}/> : 
               <Link className="link bottom right" to="/snek" rel="noreferrer">
                 <p className="link-text">snek</p>
                 <p className="tooltip-text">snek!</p>

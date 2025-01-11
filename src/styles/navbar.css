@@ -49,9 +49,3 @@
     margin: 0.4em;
   }
 }
-
-@media screen and (max-width: 215px) {
-  .navbar {
-    flex-direction: column-reverse;
-  }
-}

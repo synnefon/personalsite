@@ -4,7 +4,7 @@ body {
 }
 
 .home-colors {
-  --bg-color: rgb(51, 0, 255);
+  --bg-color: var(--alt-text-color)!important;
   --inv-text-color: var(--bg-color)!important;
   --inv-bg-color: var(--text-color)!important;
 }
@@ -27,6 +27,7 @@ div#app-base {
 div#app-base.lightning {
   background-image: url('../assets/bolt_backgroud.gif')!important;
   background-size: cover;
+  background-color: transparent;
   height: 100%;
 }
 

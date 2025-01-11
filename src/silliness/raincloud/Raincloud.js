@@ -15,6 +15,15 @@ const FLOWER_SPAWN_DROPS = 60;
 const FLOWER_GROW_DROPS = 100;
 const LIGHTNING_THRESHOLD = FLOWER_SPAWN_DROPS * 13;
 
+const CloudImg = ({showLightning, numDrops}) => {
+  const alt = 'a little cloud'
+  const className = !showLightning && numDrops > 0 
+    ? "cloud-gif" 
+    : showLightning ? "cloud-img"
+    : "cloud-img hoverable-cloud"
+  return <img className={className} alt={alt} draggable={false}/>;
+}
+
 export default function Raincloud({showLightning, setShowLightning}){
   const [numFlowers, setNumFlowers] = useState(0);
   const [numDrops, setNumDrops] = useState(0);
@@ -51,7 +60,7 @@ export default function Raincloud({showLightning, setShowLightning}){
 
   const dribble = () => {
     setNumDrops(1);
-    const t = setTimeout(() => setNumDrops(0), 600);
+    const t = setTimeout(() => setNumDrops(0), 900);
     return () => clearTimeout(t);
   }
 
@@ -93,22 +102,13 @@ export default function Raincloud({showLightning, setShowLightning}){
       toggleLightning(false);
       setDropsFallen(0);
       setNumFlowers(0);
-    }, 7_000);
+    }, 4_000);
 
     return () => {
       clearTimeout(timeoutId1);
       clearTimeout(timeoutId2);
     };
   }, [showLightning, toggleRaining, toggleLightning]);
-
-  const CloudImg = ({showLightning, numDrops}) => {
-    const alt = 'a little cloud'
-    const className = !showLightning && numDrops > 0 
-      ? "cloud-gif" 
-      : showLightning ? "cloud-img"
-      : "cloud-img hoverable-cloud"
-    return <img className={className} alt={alt} draggable={false}/>;
-  }
 
   return (
     <div id="raincloud">
