@@ -42,7 +42,7 @@ export default function Home() {
             <p className="link-text home-colors">projects</p>
             <p className="tooltip-text home-colors">an assortment of web-accessible work</p>
           </Link>
-          <a className="link middle left home-colors" href="https://docs.google.com/document/d/1A77LelAqhLE98pvkOYpHjUAs7l3LW-mcSQr-_MpbP6I/edit?usp=sharing" rel="noreferrer">
+          <a className="link middle left home-colors" href="https://docs.google.com/document/d/1A77LelAqhLE98pvkOYpHjUAs7l3LW-mcSQr-_MpbP6I" rel="noreferrer">
             <p className="link-text home-colors">resume</p>
             <p className="tooltip-text home-colors">the list of stuff i've done professionally</p>
           </a>

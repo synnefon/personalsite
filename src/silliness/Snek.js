@@ -52,7 +52,7 @@ export default function Snek({onPage=true}) {
     }, [direction]);
 
     useEffect(() => {
-        if (onPage) return;
+        // if (onPage) return;
         window.addEventListener("keydown", (e) => {
             nextDirection.current = getNextDirection(e.key);
         });
