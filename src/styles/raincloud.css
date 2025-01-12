@@ -1,37 +1,41 @@
 /* rain drop styles */
 
+:root {
+  --fall-height: 96vh;
+}
+
 .drop {
 	height: 4vh;
 	position: absolute;
-	bottom: 200px;
-  overflow-x: hidden;
-  overflow-y: hidden;
-  top: 85px;
+  /* top: 85px; */
   left: var(--rand);
-  z-index: 1;
-  -webkit-animation: fall 3s linear;
-  -moz-animation: fall 3s linear;
+  z-index: 500;
+  -webkit-animation: fall 3.01s linear;
+  -moz-animation: fall 3..01s linear;
 }
 
 /* drop animation styles */
 @-webkit-keyframes fall {
-	to {margin-top: 100%;}
+  from {margin-top: 95px;}
+  to {margin-top: var(--fall-height);}
 }
 @-moz-keyframes fall {
-	to {margin-top:100%;}
+  from {margin-top: 95px;}
+  to {margin-top: var(--fall-height);}
 }
-
 @keyframes fall {
-  to {margin-top:100vh;}
+  from {margin-top: 95px;}
+  to {margin-top: var(--fall-height);}
 }
 
 div#raincloud {
-  height: 90vh;
-  width: 18vw;
-  left: -23vw;
-  top: 10vh;
+  height: 100vh;
+  width: 20vw;
+  left: -25vw;
+  top: 0vh;
   position: absolute;
-  overflow: hidden;
+  overflow: visible;
+  /* overflow-y: hidden; */
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
@@ -78,10 +82,12 @@ img#lightning {
   top: 10%;
   bottom: 0em;
   left: -50%;
+  z-index: 100;
 }  
 
 img.flower {
   bottom: 0px;
   height: 10vh;
   position: absolute;
+  z-index: 400;
 }

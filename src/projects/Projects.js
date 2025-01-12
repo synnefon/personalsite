@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 import Snek from '../silliness/Snek';
@@ -18,38 +18,43 @@ export default function Projects() {
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
+  useEffect(() => document.getElementById("app-base").setAttribute('class', 'proj-colors'), [])
+  useEffect(() => {
+    document.getElementById("footer").style.backgroundColor = `${showLightning ? 'transparent' : ''}`;
+  }, [showLightning])
+
   return (
-    <div id="app-base" class={`${showLightning ? 'lightning' : ''}`}>
-      <div className="content-wrapper">
-        <h2 className="title">projects</h2>
-        <h5 className="description"> an assortment of web-accessible work </h5>
-        <div className="links">
-          <a className="link top left" href="https://thangs.com/designer/synnefon" rel="noreferrer">
-            <p className="link-text">3d models</p>
-            <p className="tooltip-text">a collection of my 3d-printable work</p>
+    <div id="app-base" className={`proj-colors ${showLightning ? 'lightning' : ''}`}>
+      <div className="content-wrapper proj-colors">
+        <h2 className="title proj-colors">projects</h2>
+        <h5 className="description proj-colors"> an assortment of web-accessible work </h5>
+        <div className="links proj-colors">
+          <a className="link proj-colors top left" href="https://thangs.com/designer/synnefon" rel="noreferrer">
+            <p className="link-text proj-colors">3d models</p>
+            <p className="tooltip-text proj-colors">a collection of my 3d-printable work</p>
           </a>
-          <a className="link top right" href="http://18.190.107.78" rel="noreferrer">
-            <p className="link-text">shufflenator</p>
-            <p className="tooltip-text">gives a card deck's optimal shuffle pattern</p>
+          <a className="link proj-colors top right" href="http://18.190.107.78" rel="noreferrer">
+            <p className="link-text proj-colors">shufflenator</p>
+            <p className="tooltip-text proj-colors">gives a card deck's optimal shuffle pattern</p>
           </a>
-          <Link className="link middle left" to="/wip" rel="noreferrer">
-            <p className="link-text">rpg tabletop</p>
-            <p className="tooltip-text">real-time updating battle maps, world maps, and images</p>
+          <Link className="link proj-colors middle left" to="/wip" rel="noreferrer">
+            <p className="link-text proj-colors">rpg tabletop</p>
+            <p className="tooltip-text proj-colors">real-time updating battle maps, world maps, and images</p>
           </Link>
-          <Link className="link middle right" to="/wip" rel="noreferrer">
-            <p className="link-text">infinite terrain</p>
-            <p className="tooltip-text">a godot module that generates infinite terrains</p>
+          <Link className="link proj-colors middle right" to="/wip" rel="noreferrer">
+            <p className="link-text proj-colors">infinite terrain</p>
+            <p className="tooltip-text proj-colors">a godot module that generates infinite terrains</p>
           </Link>
-          <Link className="link bottom left" to="/wip" rel="noreferrer">
-            <p className="link-text">toolbox</p>
-            <p className="tooltip-text">a set of useful little tools</p>
+          <Link className="link proj-colors bottom left" to="/wip" rel="noreferrer">
+            <p className="link-text proj-colors">toolbox</p>
+            <p className="tooltip-text proj-colors">a set of useful little tools</p>
           </Link>
           {
             windowWidth > 1_000 ? 
-              <Snek className="bottom right" onPage={false}/> : 
-              <Link className="link bottom right" to="/snek" rel="noreferrer">
-                <p className="link-text">snek</p>
-                <p className="tooltip-text">snek!</p>
+              <Snek className="proj-colors bottom right" onPage={false}/> : 
+              <Link className="link proj-colors bottom right" to="/snek" rel="noreferrer">
+                <p className="link-text proj-colors">snek</p>
+                <p className="tooltip-text proj-colors">snek!</p>
               </Link>
           }
         </div>

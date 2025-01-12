@@ -3,7 +3,7 @@ body {
   overflow-y: scroll;
 }
 
-.home-colors {
+.proj-colors {
   --bg-color: var(--alt-text-color)!important;
   --inv-text-color: var(--bg-color)!important;
   --inv-bg-color: var(--text-color)!important;
@@ -24,7 +24,9 @@ div#app-base {
   color: var(--text-color);
 }
 
-div#app-base.lightning {
+
+
+div#app.lightning {
   background-image: url('../assets/bolt_backgroud.gif')!important;
   background-size: cover;
   background-color: transparent;
@@ -58,6 +60,7 @@ div#app-base.lightning {
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  white-space: nowrap;
 }
 
 .description-text::after {
@@ -148,14 +151,33 @@ p.link-text {
     width: 90%;
     margin-top: 50px;
   }
+
+  .description {
+    white-space: wrap;
+  }
 }
 
-div#copyright {
+@media screen and (max-height: 690px) {
+  div#footer {
+    visibility: hidden;
+  }
+}
+
+
+div#footer {
   font-size: calc(6px + 1vmin);
   text-align: right;
+  align-content: center;
+  align-items: center;
   position: absolute;
-  width: 100%;
-  /* left:0; */
-  bottom:10px;
-  right: 10px;
+  width: auto;
+  height: 2.5em;
+  bottom: 0px;
+  right: 15px;
+  z-index: 300;
+  background-color: transparent;
+  color: var(--text-color);
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }

@@ -1,11 +1,11 @@
 import { HashRouter as Router, Routes, Route} from 'react-router-dom';
+import Footer from './Footer';
 
 import Navbar from './Navbar';
 import Home from './home/Home';
 import Projects from './projects/Projects';
-import AboutMe from './about me/AboutMe';
+import AboutMe from './about/AboutMe';
 import Snek from './silliness/Snek';
-import Copyright from './Copyright';
 
 import Wip from './projects/Wip';
 
@@ -20,7 +20,7 @@ function App() {
         <Route path="/snek" element={<Snek />} />
         <Route path="/wip" element={<Wip />} />
       </Routes>
-      <Copyright/>
+      <Footer/>
     </Router> 
   );
 }

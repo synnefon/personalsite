@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { TypeAnimation } from 'react-type-animation';
 
@@ -11,6 +12,8 @@ export default function Home() {
     'have i mentioned software engineer already?', "",
     '...pls look at projects', '...or just click on any link', "is running out of autobiographical subheadings",
   ];
+
+  useEffect(() => {document.getElementById("app-base").setAttribute('class', '')}, [])
 
   const extractDescription = (descriptor) => {
     return descriptor.constructor === Array 

@@ -72,7 +72,7 @@ button {
   top: 90%;
   font-family: inherit;
   font-size: calc(8px + 1vmin)!important;
-  z-index: 999;
+  z-index: 101;
 }
 
 button.pagified {
@@ -108,7 +108,7 @@ button:hover {
   letter-spacing: 8px;
   position: absolute;
   animation: blinker 2s linear infinite;
-  z-index: 998;
+  z-index: 100;
 }
 
 .game-over.pagified { 

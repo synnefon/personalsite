@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { useLongPress } from 'use-long-press';
 
 import Flower from './Flower';
 import Rain from './Rain';
@@ -28,9 +27,7 @@ export default function Raincloud({showLightning, setShowLightning}){
   const [numFlowers, setNumFlowers] = useState(0);
   const [numDrops, setNumDrops] = useState(0);
   const [dropsFallen, setDropsFallen] = useState(0);
-  const [width, setWidth] = useState(window.innerWidth);
 
-  const isMobile = width <= 768;
   const thunderSFX = useMemo(() => new Audio(thunderNoise), []);
   const rainSFX = useMemo(() => new Audio(rainNoise), []);
   rainSFX.loop = true;
@@ -53,17 +50,6 @@ export default function Raincloud({showLightning, setShowLightning}){
      }
   }, [rainSFX, setShowLightning, thunderSFX])
 
-  const onCloudLongPressed = useLongPress(
-    () => toggleRaining(true), 
-    { onFinish: () => toggleRaining(false) }
-  );
-
-  const dribble = () => {
-    setNumDrops(1);
-    const t = setTimeout(() => setNumDrops(0), 900);
-    return () => clearTimeout(t);
-  }
-
   // clean up noises when we navigate away
   useEffect(() => {
     return () => {
@@ -71,13 +57,6 @@ export default function Raincloud({showLightning, setShowLightning}){
       thunderSFX.pause();
     }
   }, [rainSFX, thunderSFX]);
-
-  // update width var when window changes size
-  useEffect(() => {
-    const handleWindowSizeChange = () => setWidth(window.innerWidth);
-      window.addEventListener('resize', handleWindowSizeChange);
-      return () => window.removeEventListener('resize', handleWindowSizeChange);
-  }, [setWidth]);
 
   // make some new flowers
   useEffect(() => {
@@ -118,9 +97,8 @@ export default function Raincloud({showLightning, setShowLightning}){
         setDropsFallen={setDropsFallen}
       />
       <div 
-        id="cloud" 
-        {...onCloudLongPressed()}
-        onClick={isMobile ? () => toggleRaining(!(numDrops > 0)) : dribble}
+        id="cloud"
+        onClick={() => toggleRaining(!(numDrops > 0))}
       >
       <CloudImg showLightning={showLightning} numDrops={numDrops}/>
       </div>
