@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo, useLayoutEffect } from "react";
 
 import clickNoise from '../assets/groovy_click.mp3';
 import gameOverNoise from '../assets/game_over.mp3';
@@ -7,7 +7,7 @@ import gameMusicNoise from '../assets/the_gathering.mp3';
 import '../styles/snek.css'
 
 const COLs = 35;
-const ROWs = 17;
+const ROWs = 20;
 const DEFAULT_SNEK_LENGTH = 6;
 var TICK_SPEED_MS = 125;
 
@@ -16,7 +16,7 @@ const DOWN = Symbol("down");
 const RIGHT = Symbol("right");
 const LEFT = Symbol("left");
 
-export default function Snek({onPage=true}) {
+export default function Snek() {
     const timer = useRef(null);
     const grid = useRef(Array(ROWs).fill(Array(COLs).fill("")));
     const snekCoordinates = useRef([]);
@@ -28,16 +28,19 @@ export default function Snek({onPage=true}) {
     const [gameOver, setGameOver] = useState(false);
     const [isPlaying, setPlaying] = useState(0);
     const [dirKey, setDirKey] = useState("ArrowRight");
+    const [windowWidth, setWindowWidth] = useState(0);
+    const [hueRotateDeg, setHueRotateDeg] = useState(0);
 
-    const gameRef = useRef();
-    
     const clickSFX = useMemo(() => new Audio(clickNoise), []);
     const gameOverSFX = useMemo(() => new Audio(gameOverNoise), []);
     const gameMusic = useMemo(() => new Audio(gameMusicNoise), []);
     gameMusic.loop = true;
 
+    const isMobile = windowWidth <= 768;
+
     const getNextDirection = useCallback((key) => {
         let availableTurns;
+        key = { "w": "ArrowUp", "s": "ArrowDown", "a": "ArrowLeft", "d": "ArrowRight" }[key.toLowerCase()] || key;
         switch(direction.current) {
             case UP: case DOWN: 
                 availableTurns = {"ArrowRight": RIGHT, "ArrowLeft": LEFT};
@@ -50,19 +53,6 @@ export default function Snek({onPage=true}) {
         };
         return availableTurns[key] || direction.current;
     }, [direction]);
-
-    useEffect(() => {
-        // if (onPage) return;
-        window.addEventListener("keydown", (e) => {
-            nextDirection.current = getNextDirection(e.key);
-        });
-    }, [getNextDirection, onPage]);
-
-    useEffect(() => {
-        if (!onPage) return;
-        console.log(dirKey)
-        nextDirection.current = getNextDirection(dirKey);
-    }, [dirKey, getNextDirection, onPage]);
 
     const initGame = useCallback(() => {
         const snek_postions = [];
@@ -83,8 +73,6 @@ export default function Snek({onPage=true}) {
         direction.current = RIGHT;
         nextDirection.current = RIGHT;
     }, [clickSFX, gameMusic, gameOverSFX])
-
-    useEffect(() => initGame(), [initGame]);
 
     const syncSnekCoordinatesMap = () => {
         const snekCoordsSet = new Set(
@@ -163,44 +151,6 @@ export default function Snek({onPage=true}) {
         return collidedWithSelf || collidedWithWall;
     };
 
-    const populateFoodBall = async () => {
-        const row = Math.floor(Math.random() * ROWs);
-        const col = Math.floor(Math.random() * COLs);
-        foodCoords.current = {row, col};
-    };
-
-    const startGame = async () => {
-        initGame();
-        const interval = setInterval(() => tickSnek(), TICK_SPEED_MS);
-        timer.current = interval;
-    };
-
-    const stopGame = async () => {
-        setGameOver(true);
-        gameOverSFX.play();
-        gameMusic.pause();
-        gameMusic.currentTime = 0;
-        setPlaying(0);
-        if (timer.current) {
-            clearInterval(timer.current);
-        }
-    };
-
-    useEffect(() => {
-        if (!isPlaying || gameOver) return;
-        gameMusic.play();
-    }, [gameMusic, gameOver, isPlaying])
-
-    // clean up noises when we navigate away
-    useEffect(() => {
-        return () => {
-            gameOverSFX.volume = 0;
-            clickSFX.volume = 0;
-            gameMusic.volume = 0;
-            gameMusic.currentTime = 0;
-        }
-    }, [gameOverSFX, clickSFX, gameMusic]);
-
     const getCell = useCallback(
         (row_idx, col_idx) => {
             const coords = `${row_idx}:${col_idx}`;
@@ -221,19 +171,90 @@ export default function Snek({onPage=true}) {
         }, []
     );
 
-    const onButtonPress = () => {
-        clickSFX.play();
-    }
+    const populateFoodBall = async () => {
+        const row = Math.floor(Math.random() * ROWs);
+        const col = Math.floor(Math.random() * COLs);
+        foodCoords.current = {row, col};
+    };
 
-    // const onThumbPadPress = (dir) => {
-    //     console.log(dir)
-    //     new KeyboardEvent('keypress', {
-    //         key: dir,
-    //     });
-    //     // gameRef.dispatchEvent(new KeyboardEvent('keypress', { key: dir}));
-    // }
+    const onStartButtonPress = () => clickSFX.play();
+    
+    const rotateHue = useCallback(() => setHueRotateDeg((d) => d + 50), []);
 
-    const ThumbPad = () => {
+    const startGame = async () => {
+        initGame();
+        const interval = setInterval(() => tickSnek(), TICK_SPEED_MS);
+        timer.current = interval;
+    };
+
+    const stopGame = async () => {
+        setGameOver(true);
+        setHueRotateDeg(0);
+        gameOverSFX.play();
+        gameMusic.pause();
+        gameMusic.currentTime = 0;
+        setPlaying(0);
+        if (timer.current) {
+            clearInterval(timer.current);
+        }
+    };
+
+    // update window width to detect mobile
+    useLayoutEffect(() => {
+        const updateSize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', updateSize);
+        updateSize();
+    
+        return () => window.removeEventListener('resize', updateSize);
+    }, []);
+
+    // change snake direction on key press
+    useEffect(() => {
+        const onKeydown = (e) => nextDirection.current = getNextDirection(e.key);
+        window.addEventListener("keydown", onKeydown);
+        // return window.removeEventListener("keydown", onKeydown);
+    }, [getNextDirection, isMobile]);
+
+    // change snake direction on keypad press
+    useEffect(() => {
+        if (!isMobile) return;
+        console.log(dirKey)
+        nextDirection.current = getNextDirection(dirKey);
+    }, [dirKey, getNextDirection, isMobile]);
+
+    // set new hue rotation
+    useEffect(() => {
+        const appBase = document.getElementById('app-base');
+        appBase.style.filter = `hue-rotate(${hueRotateDeg}deg)`;  
+    }, [hueRotateDeg]);
+
+    // trigger hue rotation when the score progresses sufficiently
+    useEffect(() => {
+        if (points % 5 !== 0 || !isPlaying) return;
+        rotateHue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [points, rotateHue]);
+
+    // play game music when game starts
+    useEffect(() => {
+        if (!isPlaying || gameOver) return;
+        gameMusic.play();
+    }, [gameMusic, gameOver, isPlaying])
+
+    // clean up noises when we navigate away
+    useEffect(() => {
+        return () => {
+            gameOverSFX.volume = 0;
+            clickSFX.volume = 0;
+            gameMusic.volume = 0;
+            gameMusic.currentTime = 0;
+        }
+    }, [gameOverSFX, clickSFX, gameMusic]);
+
+    // start up game!
+    useEffect(() => initGame(), [initGame]);
+
+    const thumbPad = useRef(() => {
         return (
             <div className="thumb-pad">
                 <div className="thumb-pad-top">
@@ -249,38 +270,21 @@ export default function Snek({onPage=true}) {
                 </div>
             </div>
         );
-    }
+    });
 
     return (
-        <div id={`${onPage ? 'app-base' : ''}`} ref={gameRef}>
-            <div 
-                className={
-                    `game-container${onPage ? ' pagified' : ''}`
-                }
-            >
-                <h1
-                    className={`snek-title${onPage ? ' pagified' : ''}`}
-                    style={{display: isPlaying || gameOver ? 'none' : 'block'}}
-                >
+        <>
+        <div id='app-base' className={`snek-colors`}>
+            <div className="game-container">
+                <h1 className='snek-title' style={{display: isPlaying || gameOver ? 'none' : 'block'}}>
                     SNEK
                 </h1>
-                { 
-                    gameOver && 
-                    <p 
-                        className={`game-over${onPage ? ' pagified' : ''}`}
-                    >
-                            GAME OVER
-                    </p> 
+                { gameOver && <p className='game-over'>GAME OVER</p> }
+                {!isPlaying && 
+                    <button onMouseDown={onStartButtonPress} onClick={startGame}>
+                        {gameOver ? 'main menu' : 'start game'}
+                    </button>
                 }
-                {
-                    !isPlaying && 
-                    <button
-                        className={`${onPage ? 'pagified' : ''}`}
-                        onMouseDown={onButtonPress}
-                        onClick={startGame}
-                    >
-                            {gameOver ? 'main menu' : 'start game'}
-                    </button>}
                 <div 
                     className="board"
                     style={{display: isPlaying || gameOver? 'block' : 'none'}}
@@ -291,16 +295,12 @@ export default function Snek({onPage=true}) {
                         </div>
                     ))}
                 </div>
-                <p
-                    style={{
-                        display: isPlaying || gameOver ? 'block' : 'none',
-                    }}
-                    className={`score${onPage ? 'pagified' : ''}`}
-                >
+                <p className='score' style={{display: isPlaying || gameOver ? 'block' : 'none'}}>
                     food eaten: {points}
                 </p>
             </div>
-            {onPage && <ThumbPad/>}
+            {isMobile && isPlaying ? <thumbPad.current/> : <></>}
         </div>
+        </>
     );
 }

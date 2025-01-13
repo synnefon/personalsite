@@ -31,7 +31,7 @@ export default function Rain({numDrops, showLightning, setDropsFallen}) {
     try { rain.appendChild(drop) } 
     catch {};
 
-    drop.style.setProperty('--rand', `${(Math.random())*85}%`);    
+    drop.style.setProperty('--rand', `${(Math.random()*90) + 0.5}%`);    
     const t2 = setTimeout(() => fallDrop(rain, drop), 3_000);
 
     return () => clearTimeout(t2);

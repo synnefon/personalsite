@@ -1,51 +1,60 @@
-.snek-title {
-  margin: 0px;
-  margin-bottom: 7%;
-  font-size: calc(16px + 2vmin);
+.snek-colors {
+  --bg-color: rgb(95, 93, 156)!important;
+  --inv-text-color: var(--bg-color)!important;
+  --inv-bg-color: var(--text-color)!important;
+  --hue-rotate: 0deg;
 }
 
-.snek-title.pagified {
-  margin-bottom: 40%;
+.snek-title {
+  margin: 0px;
+  position: absolute;
+  top: 15vh;
+  font-size: calc(16px + 2vmin);
 }
 
 .game-container {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
   width: 100%;
   height: 100%;
+  position: absolute;
+  top: 0px;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 .game-container.pagified {
-  width: 50%;
-  height: 50%;
+  width: min(90vw, 90vh);
+  height: min(50vw, 50vh);
+
 }
 
 .board {
   display: flex;
   flex-direction: column;
   background-color: var(--bg-color);
-  width: 100%;
-  height: 100%;
+  border: 2px solid var(--text-color);
+  position: relative;
+  position: absolute;
+  top: 10vh;
 }
 
 .row {
   display: flex;
   box-sizing: border-box;
-  width: 100%;
   flex-direction: row;
-  width: 100%;
-  height: calc((1/17.3) * 100%);
 }
 
 .cell {
-  width: 100%;
-  height: 100%;
+  width: min(2vh, 2vw);
+  height: min(2vh, 2vw);
   display: flex;
   justify-content: center;
   align-items: center;
-  border: 1px dotted var(--text-color)!important;
+  border: 1px dashed var(--text-color)!important;
 }
 
 .food {
@@ -64,20 +73,14 @@
 button {
   background-color: var(--bg-color);
   border: 3px solid var(--text-color);
-  height: 8%;
   width: fit-content;
   cursor: pointer;
   color: var(--text-color);
-  position: absolute;
-  top: 90%;
   font-family: inherit;
   font-size: calc(8px + 1vmin)!important;
   z-index: 101;
-}
-
-button.pagified {
   position: absolute;
-  top: 34%;
+  top: calc(min(25vh, 35vw) + 10vh);
   height: 3em;
 }
 
@@ -90,29 +93,22 @@ button:hover {
 
 .score {
   position: absolute;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: bold;
-  top: 100%;
+  top: calc(min(45vh, 55vw) + 10vh);
   filter: none!important;
 }
 
-.score.pagified {
-  top: 70%;
-}
-
 .game-over {
-  top: 70%;
-  font-size: 26px;
+  top: calc(min(5vh, 15vw) + 10vh);;
+  font-size: 8vw;
+  margin: 0px;
   font-weight: bold;
   color: red;
   letter-spacing: 8px;
   position: absolute;
   animation: blinker 2s linear infinite;
   z-index: 100;
-}
-
-.game-over.pagified { 
-  top: 20%;
 }
 
 @keyframes blinker {
@@ -127,7 +123,7 @@ button:hover {
   background-color: transparent;
   width: 150px;
   height: 150px;
-  position: relative;
+  position: absolute;
   display: grid;  
   grid-template-columns: 100%;
   grid-template-rows: repeat(3, 33.3333%);
@@ -135,9 +131,9 @@ button:hover {
   text-align: center;
   align-content: center;
   align-items: center;
+  bottom: 5vh;
 }
 .thumb-pad-top, .thumb-pad-bottom {
-  /* background-color: red; */
   height: 100%;
   width: 33.333%;
   margin-left: 33.333%;

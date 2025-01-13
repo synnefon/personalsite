@@ -8,7 +8,7 @@ export default function Flower({id, dropsToGrow, dropsFallen}) {
   const [nextGrowth, setNextGrowth] = useState(dropsFallen + dropsToGrow);
   const [flowerIdx, setFlowerIdx] = useState(1);
 
-  const [left] = useState(`${(Math.random() - 0.15)*100}%`);
+  const [left] = useState(`${(Math.random() - 0.1)*100}%`);
 
   useEffect(() => {
     if (flowerIdx >= 5) return;

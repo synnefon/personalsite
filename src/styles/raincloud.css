@@ -1,7 +1,7 @@
 /* rain drop styles */
 
 :root {
-  --fall-height: 96vh;
+  --fall-height: 100vh;
 }
 
 .drop {
@@ -11,7 +11,7 @@
   left: var(--rand);
   z-index: 500;
   -webkit-animation: fall 3.01s linear;
-  -moz-animation: fall 3..01s linear;
+  -moz-animation: fall 3.01s linear;
 }
 
 /* drop animation styles */
@@ -31,23 +31,29 @@
 div#raincloud {
   height: 100vh;
   width: 20vw;
-  left: -25vw;
+  left: -21vw;
   top: 0vh;
   position: absolute;
   overflow: visible;
-  /* overflow-y: hidden; */
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  z-index: 1;
 }
 
 @media screen and (max-width: 500px) {
   div#raincloud {
     position: relative;
     top: 2vh;
-    width: 90vw;
-    left: -2vw;
-    height: 60vh;
+    width: 80vw;
+    left: 0vw;
+    height: 500px;
+  }
+  :root {
+    --fall-height: 490px;
+  }
+  img.flower { 
+    bottom: 2vh!important;
   }
 }
 
@@ -82,7 +88,7 @@ img#lightning {
   top: 10%;
   bottom: 0em;
   left: -50%;
-  z-index: 100;
+  z-index: 500;
 }  
 
 img.flower {

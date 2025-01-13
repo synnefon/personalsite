@@ -1,24 +1,13 @@
-import { useLayoutEffect, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-import Snek from '../silliness/Snek';
 import Raincloud from '../silliness/raincloud/Raincloud';
 
 import '../styles/app.css';
 
 export default function Projects() {
-  const [windowWidth, setWindowWidth] = useState(0);
   const [showLightning, setShowLightning] = useState(false);
-  
-  useLayoutEffect(() => {
-    const updateSize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', updateSize);
-    updateSize();
 
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
-
-  useEffect(() => document.getElementById("app-base").setAttribute('class', 'proj-colors'), [])
   useEffect(() => {
     document.getElementById("footer").style.backgroundColor = `${showLightning ? 'transparent' : ''}`;
   }, [showLightning])
@@ -50,8 +39,6 @@ export default function Projects() {
             <p className="tooltip-text proj-colors">a set of useful little tools</p>
           </Link>
           {
-            windowWidth > 1_000 ? 
-              <Snek className="proj-colors bottom right" onPage={false}/> : 
               <Link className="link proj-colors bottom right" to="/snek" rel="noreferrer">
                 <p className="link-text proj-colors">snek</p>
                 <p className="tooltip-text proj-colors">snek!</p>
