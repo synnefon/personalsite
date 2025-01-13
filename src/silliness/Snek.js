@@ -24,6 +24,7 @@ export default function Snek() {
     const foodCoords = useRef({row: -1, col: -1});
     const direction = useRef(RIGHT);
     const nextDirection = useRef(RIGHT);
+    const thumbPad = useRef();
     const [points, setPoints] = useState(0);
     const [gameOver, setGameOver] = useState(false);
     const [isPlaying, setPlaying] = useState(0);
@@ -177,12 +178,31 @@ export default function Snek() {
         foodCoords.current = {row, col};
     };
 
+    const makeThumbPad = () => {
+        return (
+            <div className="thumb-pad">
+                <div className="thumb-pad-top">
+                    <div onMouseDown={() => setDirKey("ArrowUp")} className="dir-button">⇧</div>
+                </div>
+                <div className="thumb-pad-middle">
+                    <div onMouseDown={() => setDirKey("ArrowLeft")} className="dir-button">⇦</div>
+                    <div className="dir-button middle"></div>
+                    <div onMouseDown={() => setDirKey("ArrowRight")} className="dir-button">⇨</div>
+                </div>
+                <div className="thumb-pad-bottom">
+                    <div onMouseDown={() => setDirKey("ArrowDown")} className="dir-button">⇩</div>
+                </div>
+            </div>
+        );
+    };
+
     const onStartButtonPress = () => clickSFX.play();
     
     const rotateHue = useCallback(() => setHueRotateDeg((d) => d + 50), []);
 
     const startGame = async () => {
         initGame();
+        thumbPad.current = makeThumbPad;
         const interval = setInterval(() => tickSnek(), TICK_SPEED_MS);
         timer.current = interval;
     };
@@ -254,24 +274,6 @@ export default function Snek() {
     // start up game!
     useEffect(() => initGame(), [initGame]);
 
-    const thumbPad = useRef(() => {
-        return (
-            <div className="thumb-pad">
-                <div className="thumb-pad-top">
-                    <div onClick={() => setDirKey("ArrowUp")} className="dir-button">⇧</div>
-                </div>
-                <div className="thumb-pad-middle">
-                    <div onClick={() => setDirKey("ArrowLeft")} className="dir-button">⇦</div>
-                    <div className="dir-button middle"></div>
-                    <div onClick={() => setDirKey("ArrowRight")} className="dir-button">⇨</div>
-                </div>
-                <div className="thumb-pad-bottom">
-                    <div onClick={() => setDirKey("ArrowDown")} className="dir-button">⇩</div>
-                </div>
-            </div>
-        );
-    });
-
     return (
         <>
         <div id='app-base' className={`snek-colors`}>
@@ -299,7 +301,7 @@ export default function Snek() {
                     food eaten: {points}
                 </p>
             </div>
-            {isMobile && isPlaying ? <thumbPad.current/> : <></>}
+            {isMobile && isPlaying && thumbPad.current ? <thumbPad.current/> : <></>}
         </div>
         </>
     );
