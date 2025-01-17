@@ -1,6 +1,5 @@
 import { HashRouter as Router, Routes, Route} from 'react-router-dom';
 import Footer from './Footer';
-
 import Navbar from './Navbar';
 import Home from './home/Home';
 import Projects from './projects/Projects';
