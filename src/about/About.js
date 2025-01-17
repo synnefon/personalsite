@@ -26,6 +26,9 @@ export default function About() {
   }, [descriptionList]);
 
   useEffect(() => {
+    console.log("here")
+    console.log(descriptionList)
+    console.log(descriptions)
     setTimeout(addDesc, 3_000);
   }, [addDesc]);
 
