@@ -62,6 +62,7 @@ export default function Home() {
             <p className="tooltip-text home-colors">shoot me an email</p>
           </a>
         </div>
+        <br />
       </div>
     </div>
   );

@@ -95,6 +95,7 @@ img#self-gif {
   width: 20em;
   left: 0%;
   bottom: 0%;
+  z-index: 999;
 }
 
 .invisible {
@@ -106,7 +107,7 @@ img#self-gif {
     width: 75%;
   }
   img#person-icon { 
-    left: 1%;
+    left: 0%;
   }
   .about-title { 
     display: flex;
