@@ -1,28 +1,114 @@
 .about-colors {
   --bg-color: rgb(118, 111, 14)!important;
+  /* --bg-color: #607274; */
   --text-color: rgb(234, 234, 247);
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);
+  justify-content: center;
 }
 
-/* div#app-base {
-  text-align: center;
-  display: block;
-} */
+:root {
+  height: 100%;
+}
+
+.about-text-wrapper {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  overflow: hidden;
+  overflow-y: visible;
+  justify-self: center;
+  align-self: center;
+  display: grid;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
 
 .about-text {
-  /* margin-top: 8vh;
-  display: inline-block;
+  margin-top: 8vh;
+  margin-bottom: 8vh;
+  width: 50%;
+  height: 90%;
   text-align: left;
-  width: 60%; */
+  white-space: wrap;
+  position: absolute;
+  justify-self: center;
+  align-self: center;
 }
 
 .about-title {
-  /* font-size: calc(20px + 2vmin);
+  font-size: calc(20px + 2vmin);
   color: var(--text-color);
-  margin-bottom: 2em; */
+  margin-bottom: 1em;
+  text-align: left;
 }
 
 .about-description {
-  /* font-size: calc(9px + 2vmin); */
+  font-size: calc(9px + 1.5vmin);
+  margin-bottom: 2.5em;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.me-fact-wrapper {
+  background: transparent;
+  display: inline-block;
+  transform-style: preserve-3d;
+  padding: 0%;
+}
+.me-fact-wrapper {
+  margin-bottom: -0.2em;
+}
+.me-fact-wrapper:last-child {
+  margin-bottom: 1em;
+}
+
+.flip {
+  animation: flip 0.3s linear;
+}
+
+@keyframes flip {
+  /* 0% { pointer-events: none; } */
+  50% { transform: rotateX(180deg); }
+  100%{ transform: rotateX(360deg); }
+}
+
+img#person-icon {
+  position: absolute;
+  width: min(5em, 11vw);
+  left: 4%;
+  bottom: 0%;
+  transition: left 0.7s ease-in-out;
+  cursor: pointer!important;
+  content: url("../assets/person.png");
+}
+
+img#person-icon:hover {
+  content: url("../assets/blue_person.png");
+}
+
+img#self-gif {
+  position: absolute;
+  width: 20em;
+  left: 0%;
+  bottom: 0%;
+}
+
+.invisible {
+  left: -6em!important;
+}
+
+@media screen and (max-width: 715px) { 
+  .about-text {
+    width: 75%;
+  }
+  img#person-icon { 
+    left: 1%;
+  }
+  .about-title { 
+    display: flex;
+    flex-direction: column;
+  }
 }

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 
 import selfGif from '../assets/self.gif';
 
-import '../styles/self.css'
 
 export default function Self() {
   const [showSelf, setShowSelf] = useState(false);
