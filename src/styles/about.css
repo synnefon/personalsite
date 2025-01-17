@@ -57,10 +57,11 @@
   display: inline-block;
   transform-style: preserve-3d;
   padding: 0%;
-}
-.me-fact-wrapper {
   margin-bottom: -0.2em;
+  color: var(--text-color);
+  z-index: 999;
 }
+
 .me-fact-wrapper:last-child {
   margin-bottom: 1em;
 }
