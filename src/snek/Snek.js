@@ -22,7 +22,6 @@ export default function Snek() {
   const timer = useRef(null);
   const grid = useRef(Array(ROWs).fill(Array(COLs).fill("")));
   const snekCoordinates = useRef([]);
-  const snekCoordinatesMap = useRef(new Set());
   const foodCoords = useRef({ row: -1, col: -1 });
   const direction = useRef(RIGHT);
   const nextDirection = useRef(RIGHT);
@@ -40,6 +39,9 @@ export default function Snek() {
   gameMusic.loop = true;
 
   const isMobile = windowWidth <= 768;
+
+  const cellsEq = (coords1, coords2) => coords1?.row === coords2?.row && coords1?.col === coords2?.col;
+  const isSnekCell = useCallback((cell) => snekCoordinates.current.some((c) => cellsEq(c, cell)), [])
 
   const getNextDirection = useCallback((key) => {
     let availableTurns;
@@ -75,7 +77,6 @@ export default function Snek() {
     gameOverSFX.volume = 1;
     clickSFX.volume = 1;
     gameMusic.volume = 1;
-    syncSnekCoordinatesMap();
     populateFoodBall();
     setGameOver(false);
     setPoints(0);
@@ -83,26 +84,25 @@ export default function Snek() {
     nextDirection.current = RIGHT;
   }, [clickSFX, gameMusic, gameOverSFX])
 
-  const syncSnekCoordinatesMap = () => {
-    const snekCoordsSet = new Set(
-      snekCoordinates.current.map((coord) => `${coord.row}:${coord.col}`)
-    );
-    snekCoordinatesMap.current = snekCoordsSet;
-  };
-
   const eatFood = () => {
     setPoints((points) => points + 1);
     populateFoodBall();
   }
+
+
+  const moveLeft = (snekHead) => { return { ...snekHead, col: snekHead.col - 1 } };
+  const moveRight = (snekHead) => { return { ...snekHead, col: snekHead.col + 1 } };
+  const moveUp = (snekHead) => { return { ...snekHead, row: snekHead.row - 1 } };
+  const moveDown = (snekHead) => { return { ...snekHead, row: snekHead.row + 1 } };
 
   const tickSnek = () => {
     if (gameOver) return;
 
     setPlaying((s) => s + 1);
 
-    const coords = snekCoordinates.current;
+    const coords = structuredClone(snekCoordinates.current);
     const snekTail = coords[0];
-    const snekHead = coords.pop();
+    let snekHead = coords.pop();
     direction.current = nextDirection.current;
 
     const move_dir = nextDirection.current;
@@ -123,27 +123,19 @@ export default function Snek() {
     });
 
     switch (move_dir) {
-      case UP:
-        snekHead.row -= 1;
-        break;
-      case DOWN:
-        snekHead.row += 1;
-        break;
-      case RIGHT:
-        snekHead.col += 1;
-        break;
-      case LEFT:
-        snekHead.col -= 1;
-        break;
-      default:
-        break;
+      case UP: snekHead = moveUp(snekHead); break;
+      case DOWN: snekHead = moveDown(snekHead); break;
+      case RIGHT: snekHead = moveRight(snekHead); break;
+      case LEFT: snekHead = moveLeft(snekHead); break;
+      default: break;
     }
 
-    if (collisionDetected(snekHead)) return stopGame();
+    const collisionType = collisionDetected(snekHead);
+    if (collisionType === 'wall') return stopGame();
+    if (collisionType === 'self') stopGame();
 
     coords.push(snekHead);
     snekCoordinates.current = foodConsumed ? [snekTail, ...coords] : coords;
-    syncSnekCoordinatesMap();
   };
 
   const collisionDetected = (snekHead) => {
@@ -153,31 +145,26 @@ export default function Snek() {
       snekHead.col < 0 ||
       snekHead.row < 0;
 
-    const collidedWithSelf = snekCoordinatesMap.current.has(
-      `${snekHead.row}:${snekHead.col}`
-    );
+    const collidedWithSelf = isSnekCell(snekHead);
 
-    return collidedWithSelf || collidedWithWall;
+    return collidedWithSelf ? 'self' : collidedWithWall ? 'wall' : false;
   };
 
   const getCell = useCallback(
-    (row_idx, col_idx) => {
-      const coords = `${row_idx}:${col_idx}`;
-      const foodPos = `${foodCoords.current.row}:${foodCoords.current.col}`;
-      const head = snekCoordinates.current[snekCoordinates.current.length - 1];
-      const headPos = `${head?.row}:${head?.col}`;
+    (row, col) => {
+      const coords = { row, col };
 
-      const isFood = coords === foodPos;
-      const isSnekBody = snekCoordinatesMap.current.has(coords);
-      const isHead = headPos === coords;
+      const isFood = cellsEq(coords, foodCoords.current);
+      const isHead = cellsEq(snekCoordinates.current[snekCoordinates.current.length - 1], coords);
+      const isSnekBody = isHead || isSnekCell(coords);
 
       let className = "cell";
       if (isFood) className += " food";
       if (isSnekBody) className += " body";
-      if (isHead) className += " head";
+      if (isHead) className += gameOver ? " head-game-over" : " head";
 
-      return <div key={col_idx} className={className}></div>;
-    }, []
+      return <div key={col} className={className}></div>;
+    }, [gameOver, isSnekCell]
   );
 
   const populateFoodBall = async () => {
@@ -228,7 +215,6 @@ export default function Snek() {
   // change snake direction on keypad press
   useEffect(() => {
     if (!isMobile) return;
-    console.log(dirKey)
     nextDirection.current = getNextDirection(dirKey);
   }, [dirKey, getNextDirection, isMobile]);
 
@@ -271,7 +257,6 @@ export default function Snek() {
           <h1 className='snek-title' style={{ display: isPlaying || gameOver ? 'none' : 'block' }}>
             SNEK
           </h1>
-          {gameOver && <p className='game-over'>GAME OVER</p>}
           {!isPlaying &&
             <button onMouseDown={onStartButtonPress} onClick={startGame}>
               {gameOver ? 'main menu' : 'start game'}
@@ -286,6 +271,12 @@ export default function Snek() {
                 {row.map((_, col_idx) => getCell(row_idx, col_idx))}
               </div>
             ))}
+            {gameOver && 
+              <div className='game-over'>
+                <p className='game-over-text'><span>GAME OVER{' '}</span></p>
+                <p className='game-over-text second'><span>GAME OVER{' '}</span></p>
+              </div>
+            }
           </div>
           <p className='score' style={{ display: isPlaying || gameOver ? 'block' : 'none' }}>
             food eaten: {points}

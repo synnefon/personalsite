@@ -30,7 +30,6 @@
 .game-container.pagified {
   width: min(90vw, 90vh);
   height: min(50vw, 50vh);
-
 }
 
 .board {
@@ -61,14 +60,26 @@
 .food {
   background-color: #3cff00;
   z-index: 1;
-  border-color: var(--text-color);
   box-shadow: 0px 0px 2px 2px #3cff00;
-  animation: glowfood 1.5s linear infinite alternate;
-
 }
 
 .body {
   background-color: var(--text-color);
+}
+
+.head-game-over {
+  animation: blinker 1s linear infinite;
+}
+
+@keyframes blinker {
+  0% {
+    background-color: red;
+    box-shadow: 0px 0px 2px 2px red;
+  }
+  75% {
+    background-color: var(--text-color);
+    box-shadow: 0px 0px 2px 2px var(--text-color);
+  }
 }
 
 button {
@@ -101,23 +112,40 @@ button:hover {
 }
 
 .game-over {
-  top: calc(min(5vh, 15vw) + 10vh);;
-  font-size: 8vw;
+  top: 0%;
   margin: 0px;
+  position: absolute;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  overflow: hidden;
+  z-index: 100;
+  white-space: nowrap;
+}
+
+.game-over-text {
+  animation: scroll-text 5s linear infinite;
+  font-size: 8vw;
   font-weight: bold;
   color: red;
   letter-spacing: 8px;
-  position: absolute;
-  animation: blinker 2s linear infinite;
-  z-index: 100;
+  width: 100%!important;
 }
 
-@keyframes blinker {
-  0% {opacity: 0.4}
-  15% {opacity: 1.0}
-  40% {opacity: 1.0}
-  80% {opacity: 0.4}
-  100% {opacity: 0.2}
+.game-over-text.second {
+  animation-delay: 2.5s;
+  visibility: hidden;
+}
+
+@keyframes scroll-text {
+  0% { 
+    transform: translate(100%, 0);
+    visibility: visible;
+  }
+  100% { 
+    transform: translate(-100%, 0);
+    /* visibility: visible; */
+  }
 }
 
 .react-joystick {
@@ -131,10 +159,6 @@ button:hover {
 .react-joystick .react-joystick-controller {
   background: var(--bg-color);
   border: 1px solid var(--inv-bg-color);
-}
-
-.react-joystick .arrows-wrapper {
-  color: green!important;
 }
 
 .dir-button {
