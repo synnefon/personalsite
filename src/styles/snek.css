@@ -21,6 +21,7 @@
   height: 100%;
   position: absolute;
   top: 0px;
+  overflow: hidden;
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
@@ -119,29 +120,21 @@ button:hover {
   100% {opacity: 0.2}
 }
 
-.thumb-pad {
-  background-color: transparent;
-  width: 150px;
-  height: 150px;
+.react-joystick {
   position: absolute;
-  display: grid;  
-  grid-template-columns: 100%;
-  grid-template-rows: repeat(3, 33.3333%);
-  user-select: none!important;
-  text-align: center;
-  align-content: center;
-  align-items: center;
   bottom: 5vh;
+  justify-content: space-around;
+  background-color: var(--inv-bg-color);
+  border: none;
 }
-.thumb-pad-top, .thumb-pad-bottom {
-  height: 100%;
-  width: 33.333%;
-  margin-left: 33.333%;
+
+.react-joystick .react-joystick-controller {
+  background: var(--bg-color);
+  border: 1px solid var(--inv-bg-color);
 }
-.thumb-pad-middle {
-  display: grid;  
-  grid-template-columns: 33.333% 33.333% 33.333%;
-  height: 100%;
+
+.react-joystick .arrows-wrapper {
+  color: green!important;
 }
 
 .dir-button {
@@ -149,7 +142,6 @@ button:hover {
   text-align: center;
   align-content: center;
   align-items: center;
-  border: 1px dashed var(--text-color);
   font-size: calc(16px + 2vmin);
 }
 

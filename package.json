@@ -43,6 +43,7 @@
   "devDependencies": {
     "gh-pages": "^6.3.0",
     "husky": "^9.1.7",
+    "rc-joystick": "^1.0.5",
     "web-vitals": "^4.2.4"
   }
 }

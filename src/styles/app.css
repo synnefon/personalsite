@@ -14,7 +14,6 @@ div#app-base {
   transition: all 2s linear!important;
   justify-content: center;
   display: flex;
-  flex-direction: column;
   overflow-y: hidden;
   top: 0px!important;
   bottom: 0px;

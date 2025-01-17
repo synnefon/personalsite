@@ -1,0 +1,28 @@
+.about-colors {
+  --bg-color: rgb(118, 111, 14)!important;
+  --text-color: rgb(234, 234, 247);
+  --inv-text-color: var(--bg-color);
+  --inv-bg-color: var(--text-color);
+}
+
+/* div#app-base {
+  text-align: center;
+  display: block;
+} */
+
+.about-text {
+  /* margin-top: 8vh;
+  display: inline-block;
+  text-align: left;
+  width: 60%; */
+}
+
+.about-title {
+  /* font-size: calc(20px + 2vmin);
+  color: var(--text-color);
+  margin-bottom: 2em; */
+}
+
+.about-description {
+  /* font-size: calc(9px + 2vmin); */
+}

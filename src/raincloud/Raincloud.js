@@ -3,11 +3,11 @@ import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import Flower from './Flower';
 import Rain from './Rain';
 
-import rainNoise from '../../assets/cloud_mumbles.mp3'
-import thunderNoise from '../../assets/thunder.mp3'
-import lightningBolt from '../../assets/bolt.gif'
+import rainNoise from '../assets/cloud_mumbles.mp3'
+import thunderNoise from '../assets/thunder.mp3'
+import lightningBolt from '../assets/bolt.gif'
 
-import '../../styles/raincloud.css'
+import '../styles/raincloud.css'
 
 const DROPS_PER_SEC = 15;
 const FLOWER_SPAWN_DROPS = 60;

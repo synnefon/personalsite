@@ -6,10 +6,10 @@ import '../styles/app.css';
 
 export default function Home() {
   const descriptors = [
-    'software engineer', 'thing maker', 'dungeon master', 'rock climber', 'cat dad', 'aspiring wood worker', 'crepuscular code creator', '3d printer mechanic',
-    'bike lane survivor', ['slightly dysleixc', 'slightly dyslexic'], 'magic player', 'part-time audiophile', 'full-time wikipedia spelunker', 'human band name generator', 'fast reader, slow typer', 'secretly a gnome',
+    'software engineer', 'thing maker', 'dungeon master', 'rock climber', 'cat dad', 'amateur wood worker', 'crepuscular code creator', '3d printer mechanic',
+    'bike lane survivor', ['mildly dysleixc', 'mildly dyslexic'], 'magic player', 'part-time audiophile', 'full-time wikipedia spelunker', 'human band name generator', 'secretly a gnome',
     'lava lamp enthusiast', 'map fanatic', 'habitual oatmeal eater', 'lower case advocate', 'the ignoble', 'bug fact purveyor', 'list writer', 'rumored fictional character',
-    'have i mentioned software engineer already?', "",
+    'have i mentioned software engineer already?', "   ",
     '...pls look at projects', '...or just click on any link', "is running out of autobiographical subheadings",
   ];
 

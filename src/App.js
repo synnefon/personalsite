@@ -4,8 +4,8 @@ import Footer from './Footer';
 import Navbar from './Navbar';
 import Home from './home/Home';
 import Projects from './projects/Projects';
-import AboutMe from './about/AboutMe';
-import Snek from './silliness/Snek';
+import About from './about/About';
+import Snek from './snek/Snek';
 
 import Wip from './projects/Wip';
 
@@ -16,7 +16,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/projects" element={<Projects />} />
-        <Route path="/about" element={<AboutMe />} />
+        <Route path="/about" element={<About />} />
         <Route path="/snek" element={<Snek />} />
         <Route path="/wip" element={<Wip />} />
       </Routes>

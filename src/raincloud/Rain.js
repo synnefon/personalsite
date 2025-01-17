@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
-import dropImg from '../../assets/drop.png'
+import dropImg from '../assets/drop.png'
 
-import '../../styles/raincloud.css'
+import '../styles/raincloud.css'
 
 export default function Rain({numDrops, showLightning, setDropsFallen}) {
   const [canMakeDrops, setCanMakeDrops] = useState(true)

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { randomChoice } from '../../util/Random';
+import { randomChoice } from '../util/Random';
 
-import '../../styles/raincloud.css'
+import '../styles/raincloud.css'
 
 export default function Flower({id, dropsToGrow, dropsFallen}) {
   const [flowerType] = useState(randomChoice(['a', 'b', 'c', 'd']));
@@ -22,7 +22,7 @@ export default function Flower({id, dropsToGrow, dropsFallen}) {
       className="flower"
       id={`flower${id}`}
       alt="a growing flower"
-      src={require(`../../assets/flower_${flowerType}/flower${flowerIdx}.gif`)}
+      src={require(`../assets/flower_${flowerType}/flower${flowerIdx}.gif`)}
       draggable={false}
       style={{'left': left}}
     />

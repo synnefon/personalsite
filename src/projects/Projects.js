@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-import Raincloud from '../silliness/raincloud/Raincloud';
+import Raincloud from '../raincloud/Raincloud';
 
 import '../styles/app.css';
 
