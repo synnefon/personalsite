@@ -1,10 +1,19 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import Self from "./Self";
 import { TypeAnimation } from 'react-type-animation';
 
 import '../styles/about.css'
 
 export default function About() {
+  const [skip, setSkip] = useState(false);
+  const skipButton = useRef(
+    <button 
+      id='skip-button'
+      onClick={() => setSkip(true)}
+    >
+      skip?
+    </button>
+  );
   const tldr = "i'm a software engineer with 5+ years of experience designing, building, and maintaining cloud-based web apps at scale.";
   const descriptions = useMemo(() => [
     "i'm obessed with the act of creation, and gain fulfillment from seeing people use my work.",
@@ -15,26 +24,35 @@ export default function About() {
     "weaknesses: perfectionistic streak, dislike of beaurocracy, and milk products.",
   ], []);
 
+  const hideSkipButton = () => {
+    document.getElementById('skip-button').style.visibility = 'hidden';
+  }
+
   const TypeIt = ({ idx, desc }) => {
     const [display, setDisplay] = useState(false);
   
     useEffect(() => {
       if (display) return;
-      const t1 = setTimeout(() => setDisplay(true), idx * 6_900);
+      const delayDuration = idx * (skip ? 0 : 6_900);
+      const t1 = setTimeout(() => {
+        setDisplay(true);
+        if (idx === descriptions.length) hideSkipButton();
+      }, delayDuration);
       return () => clearTimeout(t1);
     }, [display, idx]);
 
     const Fact = ({desc}) => {
       return (
-        <TypeAnimation
-          className="me-fact"
-          key={desc}
-          sequence={[desc, 2_000]}
-          wrapper="p"
-          speed={55}
-          repeat={1}
-          cursor={false}
-        />
+        skip ? <p className="me-fact" key={desc}>{desc}</p>
+        : <TypeAnimation
+            className="me-fact"
+            key={desc}
+            sequence={[desc, 55]}
+            wrapper="p"
+            speed={55}
+            repeat={1}
+            cursor={false}
+          />
       );
     }
   
@@ -56,18 +74,21 @@ export default function About() {
 
   return (
     <div id='app-base' className="about-colors">
-      <div className="about-text-wrapper">
-        <div className="about-text">
-          <h1 className="about-title"><span>hello 🖖 </span><span>i'm connor</span></h1>
-          <div id="about-description" className="about-description">
-            <b><MeFact idx={0} desc={tldr} /></b>
-            <br />
-            <br />
-            {descriptions.map((desc, idx) => <MeFact key={desc} idx={idx + 1} desc={desc} />)}
+      <>
+        <div className="about-text-wrapper">
+          <div className="about-text">
+            <h1 className="about-title"><span>hello 🖖 </span><span>i'm connor</span></h1>
+            <div id="about-description" className="about-description">
+              <b><MeFact idx={0} desc={tldr} /></b>
+              <br />
+              <br />
+              {descriptions.map((desc, idx) => <MeFact key={desc} idx={idx + 1} desc={desc} />)}
+              {skipButton.current}
+            </div>
           </div>
         </div>
-      </div>
-      <Self />
+        <Self />
+      </>
     </div>
   );
 };

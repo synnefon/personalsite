@@ -76,6 +76,24 @@
   100%{ transform: rotateX(0deg) rotateY(0deg);}
 }
 
+button#skip-button {
+  display: inline-block;
+  bottom: 0px;
+  visibility: visible;
+  position: relative!important;
+  border: none;
+  margin-bottom: 1em;
+  font-size: calc(12px + 1.5vmin)!important;
+  margin-top: 2em;
+  top: auto!important;
+}
+
+button#skip-button:hover {
+  animation: boing 0.3s linear;
+  background-color: transparent;
+  color: orange;
+}
+
 img#person-icon {
   position: absolute;
   width: min(5em, 11vw);
