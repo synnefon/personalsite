@@ -79,19 +79,29 @@
 button#skip-button {
   display: inline-block;
   bottom: 0px;
-  visibility: visible;
   position: relative!important;
+  align-self: center;
   border: none;
   margin-bottom: 1em;
   font-size: calc(12px + 1.5vmin)!important;
   margin-top: 2em;
   top: auto!important;
+  opacity: 0;
+  visibility: hidden;
+  transition: visibility 0.3s linear, opacity 0.3s linear;
+}
+button#skip-button:before {
+  content: 'v';
 }
 
 button#skip-button:hover {
   animation: boing 0.3s linear;
   background-color: transparent;
   color: orange;
+}
+
+button#skip-button:hover:before {
+  content: "skip?";
 }
 
 img#person-icon {

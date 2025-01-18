@@ -10,9 +10,8 @@ export default function About() {
     <button 
       id='skip-button'
       onClick={() => setSkip(true)}
-    >
-      skip?
-    </button>
+    />
+    // </button>
   );
   const tldr = "i'm a software engineer with 5+ years of experience designing, building, and maintaining cloud-based web apps at scale.";
   const descriptions = useMemo(() => [
@@ -24,8 +23,9 @@ export default function About() {
     "weaknesses: perfectionistic streak, dislike of beaurocracy, and milk products.",
   ], []);
 
-  const hideSkipButton = () => {
-    document.getElementById('skip-button').style.visibility = 'hidden';
+  const toggleSkipButton = (show) => {
+    document.getElementById('skip-button').style.opacity = show ? '1' : '0';
+    document.getElementById('skip-button').style.visibility = show ? 'visible' : 'hidden';
   }
 
   const TypeIt = ({ idx, desc }) => {
@@ -36,7 +36,10 @@ export default function About() {
       const delayDuration = idx * (skip ? 0 : 6_900);
       const t1 = setTimeout(() => {
         setDisplay(true);
-        if (idx === descriptions.length) hideSkipButton();
+        setTimeout(() => { 
+          if (idx === 0) toggleSkipButton(true);
+          if (idx === descriptions.length-1) toggleSkipButton(false);
+        }, 1_000);
       }, delayDuration);
       return () => clearTimeout(t1);
     }, [display, idx]);
