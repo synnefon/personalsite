@@ -46,6 +46,7 @@ export default function Projects() {
           }
         </div>
         <Raincloud showLightning={showLightning} setShowLightning={setShowLightning}/>
+        <br />
       </div>
     </div>
   );

@@ -41,6 +41,13 @@ div#raincloud {
   z-index: 1;
 }
 
+div#rainfall-zone {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  overflow: hidden!important;
+}
+
 @media screen and (max-width: 500px) {
   div#raincloud {
     position: relative;

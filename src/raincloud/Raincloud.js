@@ -91,16 +91,19 @@ export default function Raincloud({showLightning, setShowLightning}){
 
   return (
     <div id="raincloud">
-      <Rain
-        numDrops={numDrops}
-        showLightning={showLightning}
-        setDropsFallen={setDropsFallen}
-      />
-      <div 
-        id="cloud"
-        onClick={() => toggleRaining(!(numDrops > 0))}
-      >
-      <CloudImg showLightning={showLightning} numDrops={numDrops}/>
+      <div id="rainfall-zone">
+        <Rain
+          numDrops={numDrops}
+          showLightning={showLightning}
+          setDropsFallen={setDropsFallen}
+        />
+        <div 
+          id="cloud"
+          onClick={() => toggleRaining(!(numDrops > 0))}
+        >
+          <CloudImg showLightning={showLightning} numDrops={numDrops}/>
+        </div>
+        {showLightning && <img alt='lightning bolt!' id='lightning' src={lightningBolt}/>}
       </div>
       {
         Array.from({ length: numFlowers }, (_, i) => i).map((i) => 
@@ -111,7 +114,6 @@ export default function Raincloud({showLightning, setShowLightning}){
           />
         )
       }
-      {showLightning && <img alt='lightning bolt!' id='lightning' src={lightningBolt}/>}
     </div>
   );
 }
