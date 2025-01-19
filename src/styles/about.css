@@ -60,6 +60,7 @@
   color: var(--text-color);
   z-index: 999;
   font-weight: normal;
+  color: inherit;
 }
 
 .me-fact-wrapper:last-child {
@@ -67,8 +68,8 @@
 }
 
 .me-fact-wrapper:hover {
-  font-weight: bold;
-  color: orange;
+  font-weight: bold!important;
+  color: orange!important;
   animation: wiggle 0.3s linear;
 }
 

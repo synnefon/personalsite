@@ -29,8 +29,10 @@ export default function About() {
   }
 
   const toggleSkipButton = (show) => {
-    document.getElementById('skip-button').style.opacity = show ? '1' : '0';
-    document.getElementById('skip-button').style.visibility = show ? 'visible' : 'hidden';
+    setTimeout(() => {
+      document.getElementById('skip-button').style.opacity = show ? '1' : '0';
+      document.getElementById('skip-button').style.visibility = show ? 'visible' : 'hidden';
+    }, 1_000);
   }
 
   const TypeIt = ({ idx, desc }) => {
@@ -41,10 +43,8 @@ export default function About() {
       const delayDuration = idx * (skip ? 0 : 6_900);
       const t1 = setTimeout(() => {
         setDisplay(true);
-        setTimeout(() => { 
-          if (idx === 0) toggleSkipButton(true);
-          if (idx === descriptions.length-1) toggleSkipButton(false);
-        }, 1_000);
+        if (idx === 0) toggleSkipButton(true);
+        else if (idx === descriptions.length-1) toggleSkipButton(false);
       }, delayDuration);
       return () => clearTimeout(t1);
     }, [display, idx]);
@@ -71,16 +71,38 @@ export default function About() {
     // pause audio when page changes
     useEffect(() => () => sfx.current.pause(), []);
 
+    const applyPlayingEffects = () => {
+      resetPlayingEffects();
+      document.getElementById(`me-fact-wrapper${idx}`).style.color = 'orange';
+      document.getElementById(`me-fact-wrapper${idx}`).style.fontWeight = 'bold';
+    };
+
+    const resetPlayingEffects = () => {
+      Array.from(document.getElementsByClassName("me-fact-wrapper"))?.forEach(element => {
+        element.style.fontWeight = 'normal';
+        element.style.color = 'inherit';
+      });
+    }
+
+    const toggleSfx = () => {
+      const audioSrc = require(`../assets/about_voices/${idx}.m4a`);
+      const playing = isPlaying(audioSrc);
+
+      if (playing) return sfx.current.pause();
+      
+      applyPlayingEffects();
+      sfx.current.src = audioSrc;
+      sfx.current.play();
+      sfx.current.onended = () => resetPlayingEffects();
+      sfx.current.onpause = () => resetPlayingEffects();
+    };
+
     return (
       <span 
-        className="me-fact-wrapper" 
+        className="me-fact-wrapper"
+        id={`me-fact-wrapper${idx}`}
         key={desc}
-        onClick={() => {
-          const audioSrc = require(`../assets/about_voices/${idx}.m4a`);
-          if (isPlaying(audioSrc)) return sfx.current.pause();
-          sfx.current.src = audioSrc;
-          sfx.current.play();
-        }}
+        onClick={toggleSfx}
       >
         <TypeIt idx={idx} desc={desc} />
       </span>
@@ -89,20 +111,18 @@ export default function About() {
 
   return (
     <div id='app-base' className="about-colors">
-      <>
-        <div className="about-text-wrapper">
-          <div className="about-text">
-            <h1 className="about-title"><span>hello 🖖 </span><span>i'm connor</span></h1>
-            <div id="about-description" className="about-description">
-              <MeFact idx={0} desc={tldr} />
-              <br/>
-              {descriptions.map((desc, idx) => <MeFact key={desc} idx={idx + 1} desc={desc} />)}
-              {skipButton.current}
-            </div>
+      <div className="about-text-wrapper">
+        <div className="about-text">
+          <h1 className="about-title"><span>hello 🖖 </span><span>i'm connor</span></h1>
+          <div id="about-description" className="about-description">
+            <MeFact idx={0} desc={tldr} />
+            <br/>
+            {descriptions.map((desc, idx) => <MeFact key={desc} idx={idx + 1} desc={desc} />)}
+            {skipButton.current}
           </div>
         </div>
-        <Self />
-      </>
+      </div>
+      <Self />
     </div>
   );
 };
