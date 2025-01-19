@@ -19,6 +19,15 @@ export default function About() {
   ], []);
   const skipButton = useRef(<button id='skip-button' onClick={() => setSkip(true)}/>);
 
+  const isPlaying = function (audioSrc) {
+    return sfx.current
+        && sfx.current.src?.includes(audioSrc)
+        && sfx.current.currentTime > 0
+        && !sfx.current.paused
+        && !sfx.current.ended
+        && sfx.current.readyState > 2;
+  }
+
   const toggleSkipButton = (show) => {
     document.getElementById('skip-button').style.opacity = show ? '1' : '0';
     document.getElementById('skip-button').style.visibility = show ? 'visible' : 'hidden';
@@ -67,8 +76,9 @@ export default function About() {
         className="me-fact-wrapper" 
         key={desc}
         onClick={() => {
-          sfx.current.pause();
-          sfx.current.src = require(`../assets/about_voices/${idx}.m4a`);
+          const audioSrc = require(`../assets/about_voices/${idx}.m4a`);
+          if (isPlaying(audioSrc)) return sfx.current.pause();
+          sfx.current.src = audioSrc;
           sfx.current.play();
         }}
       >
