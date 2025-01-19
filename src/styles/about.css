@@ -1,6 +1,5 @@
 .about-colors {
   --bg-color: rgb(118, 111, 14)!important;
-  /* --bg-color: #607274; */
   --text-color: rgb(234, 234, 247);
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);
@@ -60,20 +59,25 @@
   margin-bottom: -0.2em;
   color: var(--text-color);
   z-index: 999;
+  font-weight: normal;
 }
 
 .me-fact-wrapper:last-child {
   margin-bottom: 1em;
 }
 
-.wiggle {
+.me-fact-wrapper:hover {
+  font-weight: bold;
+  color: orange;
   animation: wiggle 0.3s linear;
 }
 
 @keyframes wiggle {
-  /* 0% { pointer-events: none; } */
-  50% { transform: rotateX(-10deg) rotateY(-10deg);}
-  100%{ transform: rotateX(0deg) rotateY(0deg);}
+  0% { transform: scale(1.0); }
+  15% { transform: scale(0.97); }
+  40% { transform: scale(1.02); }
+  95% { transform: scale(0.99); }
+  100% { transform: scale(1.0); }
 }
 
 button#skip-button {

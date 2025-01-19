@@ -6,14 +6,9 @@ import '../styles/about.css'
 
 export default function About() {
   const [skip, setSkip] = useState(false);
-  const skipButton = useRef(
-    <button 
-      id='skip-button'
-      onClick={() => setSkip(true)}
-    />
-    // </button>
-  );
-  const tldr = "i'm a software engineer with 5+ years of experience designing, building, and maintaining cloud-based web apps at scale.";
+  
+  const sfx = useRef(new Audio());
+  const tldr = "i'm a software engineer with 5+ years of experience designing, building, and scaling cloud-based systems.";
   const descriptions = useMemo(() => [
     "i'm obessed with the act of creation, and gain fulfillment from seeing people use my work.",
     "i want to feel that the products i create matter to the world beyond myself.",
@@ -22,6 +17,7 @@ export default function About() {
     "strengths: curiosity, strategic thinking, 'jump in', and empathy.",
     "weaknesses: perfectionistic streak, dislike of beaurocracy, and milk products.",
   ], []);
+  const skipButton = useRef(<button id='skip-button' onClick={() => setSkip(true)}/>);
 
   const toggleSkipButton = (show) => {
     document.getElementById('skip-button').style.opacity = show ? '1' : '0';
@@ -63,12 +59,18 @@ export default function About() {
   };
   
   const MeFact = ({ idx, desc }) => {
+    // pause audio when page changes
+    useEffect(() => () => sfx.current.pause(), []);
+
     return (
-      <span
-        className="me-fact-wrapper"
+      <span 
+        className="me-fact-wrapper" 
         key={desc}
-        onMouseEnter={(e) => e.currentTarget.classList.add('wiggle')}
-        onAnimationEnd={(e) => e.currentTarget.classList.remove('wiggle')}
+        onClick={() => {
+          sfx.current.pause();
+          sfx.current.src = require(`../assets/about_voices/${idx}.m4a`);
+          sfx.current.play();
+        }}
       >
         <TypeIt idx={idx} desc={desc} />
       </span>
@@ -82,9 +84,8 @@ export default function About() {
           <div className="about-text">
             <h1 className="about-title"><span>hello 🖖 </span><span>i'm connor</span></h1>
             <div id="about-description" className="about-description">
-              <b><MeFact idx={0} desc={tldr} /></b>
-              <br />
-              <br />
+              <MeFact idx={0} desc={tldr} />
+              <br/>
               {descriptions.map((desc, idx) => <MeFact key={desc} idx={idx + 1} desc={desc} />)}
               {skipButton.current}
             </div>
