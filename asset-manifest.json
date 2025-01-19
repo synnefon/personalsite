@@ -1,22 +1,29 @@
 {
   "files": {
-    "main.css": "/static/css/main.2ba5d322.css",
-    "main.js": "/static/js/main.05f92a86.js",
+    "main.css": "/static/css/main.e1baceec.css",
+    "main.js": "/static/js/main.84757c60.js",
     "static/media/the_gathering.mp3": "/static/media/the_gathering.2d97c4755109d9278151.mp3",
     "static/media/self.gif": "/static/media/self.ad1e6f139233db344487.gif",
     "static/media/cloud_mumbles.mp3": "/static/media/cloud_mumbles.f2a872c3b294e9f1547f.mp3",
     "static/media/thunder.mp3": "/static/media/thunder.0d5bac24bcf6d6c129ba.mp3",
+    "static/media/6.m4a": "/static/media/6.55648fec06194cbd352c.m4a",
+    "static/media/3.m4a": "/static/media/3.eb5d64739184849a4d7a.m4a",
+    "static/media/0.m4a": "/static/media/0.ee79478ac0edab966cc0.m4a",
     "static/media/groovy_click.mp3": "/static/media/groovy_click.5cb6eae90670166005af.mp3",
+    "static/media/2.m4a": "/static/media/2.1669c67d18bc90360482.m4a",
+    "static/media/1.m4a": "/static/media/1.b92d90fb0be4ae994254.m4a",
     "static/media/F25_Bank_Printer.otf": "/static/media/F25_Bank_Printer.07be3c3654876f79f05c.otf",
+    "static/media/5.m4a": "/static/media/5.d458d909df11328cb1e9.m4a",
+    "static/media/4.m4a": "/static/media/4.5e9eada693c815095419.m4a",
     "static/media/bolt.gif": "/static/media/bolt.ea4844b2044da748e4ce.gif",
     "static/media/game_over.mp3": "/static/media/game_over.21c74c34f50a8ecedde0.mp3",
     "static/media/cloud.gif": "/static/media/cloud.060cd4fce2892ba3c328.gif",
     "index.html": "/index.html",
-    "main.2ba5d322.css.map": "/static/css/main.2ba5d322.css.map",
-    "main.05f92a86.js.map": "/static/js/main.05f92a86.js.map"
+    "main.e1baceec.css.map": "/static/css/main.e1baceec.css.map",
+    "main.84757c60.js.map": "/static/js/main.84757c60.js.map"
   },
   "entrypoints": [
-    "static/css/main.2ba5d322.css",
-    "static/js/main.05f92a86.js"
+    "static/css/main.e1baceec.css",
+    "static/js/main.84757c60.js"
   ]
 }
