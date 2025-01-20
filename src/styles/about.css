@@ -138,6 +138,7 @@ img#self-gif {
 }
 
 .invisible {
+  content: url("../assets/orange_person.png")!important;
   left: -6em!important;
 }
 
