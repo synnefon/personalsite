@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 
+import { PersonalAudio } from '../util/Audio';
 import Flower from './Flower';
 import Rain from './Rain';
 
@@ -28,9 +29,8 @@ export default function Raincloud({showLightning, setShowLightning}){
   const [numDrops, setNumDrops] = useState(0);
   const [dropsFallen, setDropsFallen] = useState(0);
 
-  const thunderSFX = useMemo(() => new Audio(thunderNoise), []);
-  const rainSFX = useMemo(() => new Audio(rainNoise), []);
-  rainSFX.loop = true;
+  const thunderSFX = useMemo(() => new PersonalAudio(thunderNoise), []);
+  const rainSFX = useMemo(() => new PersonalAudio(rainNoise, true), []);
 
   const incrNumFlowers = () => setNumFlowers((nf) => nf+1);
 
@@ -45,8 +45,7 @@ export default function Raincloud({showLightning, setShowLightning}){
       rainSFX.pause();
       thunderSFX.play();
      } else {
-      thunderSFX.pause();
-      thunderSFX.currentTime = 0;
+      thunderSFX.reset();
      }
   }, [rainSFX, setShowLightning, thunderSFX])
 

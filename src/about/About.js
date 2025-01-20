@@ -5,23 +5,23 @@ import Self from "./Self";
 
 import '../styles/about.css';
 
+const Description = (initialShowSelf, text) => {
+  const [showSelf, setShowSelf] = useState(initialShowSelf);
+  return { showSelf, setShowSelf, text };
+}
 
 export default function About() {
   const [skip, setSkip] = useState(false);
   
   const sfx = useRef(new PersonalAudio());
-  const MakeDescription = (initialShowSelf, text) => {
-    const [showSelf, setShowSelf] = useState(initialShowSelf);
-    return { showSelf, setShowSelf, text };
-  }
   const descriptions = [
-    MakeDescription(true, "i'm a software engineer with 5+ years of experience designing, building, and scaling cloud-based systems."),
-    MakeDescription(false, "i'm obessed with the act of creation, and gain fulfillment from seeing people use my work."),
-    MakeDescription(false, "i want to feel that the products i create matter to the world beyond myself."),
-    MakeDescription(false, "i operate best when using rapid iteration workflows: dive in and try something, gather the right data, then make it better. repeat."),
-    MakeDescription(false, "i love being on teams of trusting, growth-oriented peers following a shared vision."),
-    MakeDescription(false, "strengths: curiosity, strategic thinking, 'jump in', and empathy."),
-    MakeDescription(false, "weaknesses: perfectionistic streak, dislike of beaurocracy, and milk products."),
+    Description(true, "i'm a software engineer with 5+ years of experience designing, building, and scaling cloud-based systems."),
+    Description(false, "i'm obessed with the act of creation, and gain fulfillment from seeing people use my work."),
+    Description(false, "i want to feel that the products i create matter to the world beyond myself."),
+    Description(false, "i operate best when using rapid iteration workflows: dive in and try something, gather the right data, then make it better. repeat."),
+    Description(false, "i love being on teams of trusting, growth-oriented peers following a shared vision."),
+    Description(false, "strengths: curiosity, strategic thinking, 'jump in', and empathy."),
+    Description(false, "weaknesses: perfectionistic streak, dislike of beaurocracy, and milk products."),
   ];
   const skipButton = useRef(<button id='skip-button' onClick={() => {
     descriptions.forEach((d) => d.setShowSelf(true));
@@ -36,10 +36,9 @@ export default function About() {
     }, 500);
   };
 
-  const TypeIt = ({ idx, desc }) => {
+  const TypeIt = ({ idx, desc, audioSrc }) => {
     const onFinishedTyping = () => {
       setTimeout(() => {
-        const audioSrc = require(`../assets/about_voices/${idx}.m4a`);
         if (sfx.current.isPlayingSrc(audioSrc)) {
           return setTimeout(onFinishedTyping, (sfx.current.timeLeft() * 1_000) - 2_000);
         }
@@ -67,6 +66,7 @@ export default function About() {
   };
   
   const MeFact = ({ idx, desc }) => {
+    const audioSrc = require(`../assets/about_voices/${idx}.m4a`);
     // pause audio when page changes
     useEffect(() => () => sfx.current.pause(), []);
 
@@ -84,10 +84,9 @@ export default function About() {
     }
 
     const toggleSfx = () => {
-      const audioSrc = require(`../assets/about_voices/${idx}.m4a`);
-      const playing = sfx.current.isPlayingSrc(audioSrc);
-      if (playing) return sfx.current.pause();
-      
+      if (sfx.current.isPlayingSrc(audioSrc)) {
+        return sfx.current.pause();
+      }
       applyPlayingEffects();
       sfx.current.src = audioSrc;
       sfx.current.play();
@@ -102,7 +101,7 @@ export default function About() {
         key={desc}
         onClick={toggleSfx}
       >
-        <TypeIt idx={idx} desc={desc} />
+        <TypeIt idx={idx} desc={desc} audioSrc={audioSrc} />
       </span>
     );
   };

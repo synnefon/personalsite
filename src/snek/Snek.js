@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useMemo, useLayoutEffect } from "react";
 import { Direction } from 'rc-joystick';
 import { JoystickControls } from "./JoystickControls";
+import { PersonalAudio } from "../util/Audio"
 
 import clickNoise from '../assets/groovy_click.mp3';
 import gameOverNoise from '../assets/game_over.mp3';
@@ -19,13 +20,6 @@ const RIGHT = Symbol("right");
 const LEFT = Symbol("left");
 
 export default function Snek() {
-  const timer = useRef(null);
-  const grid = useRef(Array(ROWs).fill(Array(COLs).fill("")));
-  const snekCoordinates = useRef([]);
-  const foodCoords = useRef({ row: -1, col: -1 });
-  const direction = useRef(RIGHT);
-  const nextDirection = useRef(RIGHT);
-  const joystick = useRef();
   const [points, setPoints] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [isPlaying, setPlaying] = useState(0);
@@ -33,10 +27,17 @@ export default function Snek() {
   const [windowWidth, setWindowWidth] = useState(0);
   const [hueRotateDeg, setHueRotateDeg] = useState(0);
 
-  const clickSFX = useMemo(() => new Audio(clickNoise), []);
-  const gameOverSFX = useMemo(() => new Audio(gameOverNoise), []);
-  const gameMusic = useMemo(() => new Audio(gameMusicNoise), []);
-  gameMusic.loop = true;
+  const timer = useRef(null);
+  const grid = useRef(Array(ROWs).fill(Array(COLs).fill("")));
+  const snekCoordinates = useRef([]);
+  const foodCoords = useRef({ row: -1, col: -1 });
+  const direction = useRef(RIGHT);
+  const nextDirection = useRef(RIGHT);
+  const joystick = useRef();
+
+  const clickSFX = useMemo(() => new PersonalAudio(clickNoise), []);
+  const gameOverSFX = useMemo(() => new PersonalAudio(gameOverNoise), []);
+  const gameMusic = useMemo(() => new PersonalAudio(gameMusicNoise, true), []);
 
   const isMobile = windowWidth <= 768;
 
@@ -65,35 +66,15 @@ export default function Snek() {
     return availableTurns[key] || direction.current;
   }, [direction]);
 
-  const initGame = useCallback(() => {
-    const snek_postions = [];
-    for (let i = 0; i < DEFAULT_SNEK_LENGTH; i++) {
-      snek_postions.push({ row: 0, col: i, isHead: false });
-    }
-
-    snek_postions[DEFAULT_SNEK_LENGTH - 1].isHead = true;
-    snekCoordinates.current = snek_postions;
-
-    gameOverSFX.volume = 1;
-    clickSFX.volume = 1;
-    gameMusic.volume = 1;
-    populateFoodBall();
-    setGameOver(false);
-    setPoints(0);
-    direction.current = RIGHT;
-    nextDirection.current = RIGHT;
-  }, [clickSFX, gameMusic, gameOverSFX])
+  const moveLeft = (snekHead) => { return { ...snekHead, col: snekHead.col - 1 } };
+  const moveRight = (snekHead) => { return { ...snekHead, col: snekHead.col + 1 } };
+  const moveUp = (snekHead) => { return { ...snekHead, row: snekHead.row - 1 } };
+  const moveDown = (snekHead) => { return { ...snekHead, row: snekHead.row + 1 } };
 
   const eatFood = () => {
     setPoints((points) => points + 1);
     populateFoodBall();
   }
-
-
-  const moveLeft = (snekHead) => { return { ...snekHead, col: snekHead.col - 1 } };
-  const moveRight = (snekHead) => { return { ...snekHead, col: snekHead.col + 1 } };
-  const moveUp = (snekHead) => { return { ...snekHead, row: snekHead.row - 1 } };
-  const moveDown = (snekHead) => { return { ...snekHead, row: snekHead.row + 1 } };
 
   const tickSnek = () => {
     if (gameOver) return;
@@ -177,23 +158,38 @@ export default function Snek() {
 
   const rotateHue = useCallback(() => setHueRotateDeg((d) => d + 50), []);
 
+  const initGame = useCallback(() => {
+    const snek_postions = [];
+    for (let i = 0; i < DEFAULT_SNEK_LENGTH; i++) {
+      snek_postions.push({ row: 0, col: i, isHead: false });
+    }
+
+    snek_postions[DEFAULT_SNEK_LENGTH - 1].isHead = true;
+    snekCoordinates.current = snek_postions;
+
+    gameOverSFX.volume = 1;
+    clickSFX.volume = 1;
+    gameMusic.volume = 1;
+    populateFoodBall();
+    setGameOver(false);
+    setPoints(0);
+    direction.current = RIGHT;
+    nextDirection.current = RIGHT;
+  }, [clickSFX, gameMusic, gameOverSFX])
+
   const startGame = async () => {
     initGame();
     joystick.current = JoystickControls;
-    const interval = setInterval(() => tickSnek(), TICK_SPEED_MS);
-    timer.current = interval;
+    timer.current = setInterval(() => tickSnek(), TICK_SPEED_MS);
   };
 
   const stopGame = async () => {
     setGameOver(true);
     setHueRotateDeg(0);
     gameOverSFX.play();
-    gameMusic.pause();
-    gameMusic.currentTime = 0;
+    gameMusic.reset();
     setPlaying(0);
-    if (timer.current) {
-      clearInterval(timer.current);
-    }
+    if (timer.current) clearInterval(timer.current);
   };
 
   // update window width to detect mobile
