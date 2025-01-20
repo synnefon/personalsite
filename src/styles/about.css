@@ -63,6 +63,11 @@
   color: inherit;
 }
 
+.me-fact-wrapper:first-child { 
+  margin-bottom: 1em;
+  margin-bottom: 0.8em;
+}
+
 .me-fact-wrapper:last-child {
   margin-bottom: 1em;
 }
@@ -76,7 +81,7 @@
 @keyframes wiggle {
   0% { transform: scale(1.0); }
   15% { transform: scale(0.97); }
-  40% { transform: scale(1.02); }
+  40% { transform: scale(1.02) translateY(-2%); }
   95% { transform: scale(0.99); }
   100% { transform: scale(1.0); }
 }
@@ -120,7 +125,8 @@ img#person-icon {
 }
 
 img#person-icon:hover {
-  content: url("../assets/blue_person.png");
+  content: url("../assets/orange_person.png");
+  animation: wiggle 0.3s linear;
 }
 
 img#self-gif {

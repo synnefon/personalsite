@@ -124,16 +124,16 @@ button:hover {
 }
 
 .game-over-text {
-  animation: scroll-text 5s linear infinite;
+  animation: scroll-text 6s linear infinite;
   font-size: 8vw;
   font-weight: bold;
   color: red;
   letter-spacing: 8px;
-  width: 100%!important;
+  width: 135%!important;
 }
 
 .game-over-text.second {
-  animation-delay: 2.5s;
+  animation-delay: 3s;
   visibility: hidden;
 }
 

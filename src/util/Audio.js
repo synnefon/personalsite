@@ -1,8 +1,11 @@
-export const fadeOut = (audio) => {
-  if(audio.volume > 0.1){
-    audio.volume -= 0.1;
-    setTimeout(fadeOut, 20);
-  } else{
-    audio.pause();
+export class PersonalAudio extends Audio {
+  isPlayingSrc = (audioSrc) => {
+    return this.src?.includes(audioSrc)
+        && this.currentTime > 0
+        && !this.paused
+        && !this.ended
+        && this.readyState > 2;
   }
-};
+
+  timeLeft = () => this.duration - this.currentTime;
+}

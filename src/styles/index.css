@@ -16,7 +16,7 @@
 @keyframes boing {
   0% { transform: scale(1.0); }
   15% { transform: scale(0.95); }
-  40% { transform: scale(1.05); }
+  40% { transform: scale(1.05) translateY(-2%); }
   95% { transform: scale(0.99); }
   100% { transform: scale(1.0); }
 }
