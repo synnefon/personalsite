@@ -1,7 +1,6 @@
 const shuffle = (array) => {
   for (let currIndex = array.length-1; currIndex > 0; currIndex--){
     let randIdx = Math.floor(Math.random() * currIndex);
-
     [array[currIndex], array[randIdx]] = [array[randIdx], array[currIndex]];
   }
 }
@@ -9,7 +8,6 @@ const shuffle = (array) => {
 const makeBlankBoard = (dim) => {
   return Array.from({ length: dim }, () => Array.from({ length: dim }, () => '.'));
 }
-
 
 const solveSudoku = ({ board, randomize = false, countSolns = false }) => {
   const DIM = 9;
@@ -79,7 +77,7 @@ const solveSudoku = ({ board, randomize = false, countSolns = false }) => {
   return numSolns;
 };
 
-const unsolveBoard = (board) => {
+const unsolveSudoku = (board) => {
   const cells = [];
   for (let row = 0; row < board.length; row++) {
     for (let col = 0; col < board[row].length; col++) {
@@ -105,7 +103,7 @@ export const makeSudoku = () => {
   const board = makeBlankBoard(9);
   solveSudoku({ board: board, randomize: true });
   const solvedBoard = structuredClone(board);
-  unsolveBoard(board);
+  unsolveSudoku(board);
   return ({
     unsolvedBoard: board,
     solvedBoard: solvedBoard,
