@@ -22,8 +22,8 @@ export default function Sudoku() {
   const [history, setHistory] = useState([]);
   const [takingNotes, setTakingNotes] = useState(false);
   // eslint-disable-next-line no-unused-vars
-  const [_, setUpdateForcer] = useState(0);
-  const forceUpdate = () => setUpdateForcer((u) => !u);
+  const [_, setRefresheForcer] = useState(0);
+  const forceRefresh = () => setRefresheForcer((u) => !u);
 
   const noteSubCell = (cell, n) => {
     const key = `${cell.ridx}-${cell.cidx}-${n}`;
@@ -79,22 +79,25 @@ export default function Sudoku() {
 
   const onUndo = () => {
     if (history.length === 0) return;
+    clearHighlights();
     const cell = history.pop();
     setHistory(history);
     board.current[cell.ridx][cell.cidx] = cell;
-    forceUpdate();
+    forceRefresh();
   }
 
-  const setCell = (newVals, ridx, cidx, update = true) => {
-    history.push(board.current[ridx][cidx]);
-    setHistory(history);
+  const setCell = ({update, ridx, cidx, refresh=true, record=false}) => {
+    if (record) {
+      history.push(board.current[ridx][cidx]);
+      setHistory(history);
+    }
 
     const newBoard = board.current;
     const cell = newBoard[ridx][cidx];
-    newBoard[ridx][cidx] = { ...cell, ...newVals };
+    newBoard[ridx][cidx] = { ...cell, ...update };
     board.current = newBoard;
 
-    if (update) forceUpdate();
+    if (refresh) forceRefresh();
   }
 
   const takeNote = (ridx, cidx) => {
@@ -104,26 +107,29 @@ export default function Sudoku() {
     } else {
       update.notes = board.current[ridx][cidx].notes.concat([selectedNumber]);
     }
-    setCell(update, ridx, cidx);
+    setCell({update, ridx, cidx, record: true});
   }
 
-  const clearHighlights = () => {
-    const update = { highlightColor: null, epicenter: false, textHighlight: null };
+  // does NOT refresh
+  const setAll = (update, conditionFun=()=>true) => {
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
-        setCell(update, r, c, false);
-      }
-    }
-  }
-
-  const highlightAllInstances = (n) => {
-    for (let r=0; r<9; r++) {
-      for (let c=0; c<9; c++) {
-        if(board.current[r][c].value === n) {
-          setCell({textHighlight: "text-highlight"}, r, c, false);
+        if (conditionFun(r, c)) {
+          setCell({update, ridx: r, cidx: c, refresh: false});
         }
       }
     }
+  }
+
+  const clearHighlights = () => {
+    setAll({ highlightColor: null, epicenter: false, textHighlight: null });
+  }
+
+  const highlightAllInstances = (n) => {
+    setAll(
+      {textHighlight: "text-highlight"}, 
+      (r, c) => board.current[r][c].value === n && board.current[r][c].color !== "red",
+    );
   }
 
   const highlightStuff = (ridx, cidx) => {
@@ -133,19 +139,19 @@ export default function Sudoku() {
     clearHighlights();
 
     if (isHighlighted) {
-      setCell({ epicenter: false, highlightColor: null }, ridx, cidx, false);
+      setCell({update: { epicenter: false, highlightColor: null }, ridx, cidx, refresh: false});
       update.highlightColor = null;
     } else {
       highlightAllInstances(board.current[ridx][cidx].value);
-      setCell({ epicenter: true, highlightColor: 'epicenter' }, ridx, cidx, false);
+      setCell({update: { epicenter: true, highlightColor: 'epicenter' }, ridx, cidx, refresh: false});
       update.highlightColor = 'highlight';
     }
 
     for (let i = 0; i < 9; i++) {
-      if (i !== cidx) setCell(update, ridx, i, false);
-      if (i !== ridx) setCell(update, i, cidx, false);
+      if (i !== cidx) setCell({update, ridx, cidx: i, refresh: false});
+      if (i !== ridx) setCell({update, ridx: i, cidx, refresh: false});
     }
-    forceUpdate();
+    forceRefresh();
   }
 
   const onBoardClick = (ridx, cidx) => {
@@ -157,7 +163,7 @@ export default function Sudoku() {
     clearHighlights();
     
     if (selectedNumber === null) {
-      forceUpdate();
+      forceRefresh();
       return;
     }
     if (takingNotes) return takeNote(ridx, cidx);
@@ -171,7 +177,7 @@ export default function Sudoku() {
       update.color = null;
       update.value = ".";
     }
-    setCell(update, ridx, cidx);
+    setCell({update, ridx, cidx, record: true});
   }
 
   return (
