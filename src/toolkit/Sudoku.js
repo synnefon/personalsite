@@ -71,8 +71,10 @@ export default function Sudoku() {
 
   const onSelectorClick = (n) => {
     if (selectedNumber === null || selectedNumber !== n) {
+      setHighlightVal(n);
       setSelectedNumber(n);
     } else {
+      setHighlightVal(null);
       setSelectedNumber(null);
     }
   }
@@ -132,7 +134,6 @@ export default function Sudoku() {
       setCell({ update: { highlightColor: null }, ridx, cidx, refresh: false });
       update.highlightColor = null;
     } else {
-      setHighlightVal(board.current[ridx][cidx].value);
       setCell({ update: { highlightColor: 'epicenter' }, ridx, cidx, refresh: false });
       update.highlightColor = 'highlight';
     }
