@@ -7,7 +7,7 @@ export default function Sudoku() {
   const makeColorBoard = (board) => {
     return board.map((row, ridx) => {
       return row.map((c, cidx) => {
-        return ({ ridx, cidx, value: c, color: 'inherit', notes: [] })
+        return ({ ridx, cidx, value: c, color: null, notes: [] })
       })
     })
   }
@@ -46,14 +46,21 @@ export default function Sudoku() {
         {board.map((row, ridx) => {
           return (
             <div key={ridx} className='sudoku-row'>
-              {row.map((cell, cidx) =>
-                <div
+              {row.map((cell, cidx) => {
+                const color = `
+                  ${cell.color ? cell.color : "inherit"}
+                  ${cell.highlightColor ? " " + cell.highlightColor : ""}
+                  ${cell.textHighlight ? " " + cell.textHighlight : ""}
+                `;
+                return <div
                   key={`${ridx}-${cidx}`}
-                  className={`sudoku-cell ${cell.color} r${ridx} c${cidx}`}
+                  className={`sudoku-cell ${color} r${ridx} c${cidx}`}
                   onClick={() => onBoardClick(ridx, cidx)}
                 >
                   {displayableCell(cell)}
                 </div>
+              }
+
               )}
             </div>
           );
@@ -78,7 +85,7 @@ export default function Sudoku() {
     forceUpdate();
   }
 
-  const setCell = (newVals, ridx, cidx) => {
+  const setCell = (newVals, ridx, cidx, update = true) => {
     history.push(board.current[ridx][cidx]);
     setHistory(history);
 
@@ -86,7 +93,8 @@ export default function Sudoku() {
     const cell = newBoard[ridx][cidx];
     newBoard[ridx][cidx] = { ...cell, ...newVals };
     board.current = newBoard;
-    forceUpdate();
+
+    if (update) forceUpdate();
   }
 
   const takeNote = (ridx, cidx) => {
@@ -99,21 +107,69 @@ export default function Sudoku() {
     setCell(update, ridx, cidx);
   }
 
+  const clearHighlights = () => {
+    const update = { highlightColor: null, epicenter: false, textHighlight: null };
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        setCell(update, r, c, false);
+      }
+    }
+  }
+
+  const highlightAllInstances = (n) => {
+    for (let r=0; r<9; r++) {
+      for (let c=0; c<9; c++) {
+        if(board.current[r][c].value === n) {
+          setCell({textHighlight: "text-highlight"}, r, c, false);
+        }
+      }
+    }
+  }
+
+  const highlightStuff = (ridx, cidx) => {
+    const update = {};
+    const isHighlighted = board.current[ridx][cidx].epicenter;
+
+    clearHighlights();
+
+    if (isHighlighted) {
+      setCell({ epicenter: false, highlightColor: null }, ridx, cidx, false);
+      update.highlightColor = null;
+    } else {
+      highlightAllInstances(board.current[ridx][cidx].value);
+      setCell({ epicenter: true, highlightColor: 'epicenter' }, ridx, cidx, false);
+      update.highlightColor = 'highlight';
+    }
+
+    for (let i = 0; i < 9; i++) {
+      if (i !== cidx) setCell(update, ridx, i, false);
+      if (i !== ridx) setCell(update, i, cidx, false);
+    }
+    forceUpdate();
+  }
+
   const onBoardClick = (ridx, cidx) => {
-    if (selectedNumber === null) return;
     if (board.current[ridx][cidx].value === solvedBoard.current[ridx][cidx].value) {
+      highlightStuff(ridx, cidx);
+      return;
+    }
+    
+    clearHighlights();
+    
+    if (selectedNumber === null) {
+      forceUpdate();
       return;
     }
     if (takingNotes) return takeNote(ridx, cidx);
 
     const update = {};
-    if (selectedNumber === board.current[ridx][cidx].value) {
-      update.color = "inherit";
-      update.value = ".";
-    } else {
+    if (selectedNumber !== board.current[ridx][cidx].value) {
       update.value = selectedNumber;
       update.color = solvedBoard.current[ridx][cidx].value === selectedNumber ? 'green' : 'red';
       update.notes = [];
+    } else if ("." !== board.current[ridx][cidx].value) {
+      update.color = null;
+      update.value = ".";
     }
     setCell(update, ridx, cidx);
   }

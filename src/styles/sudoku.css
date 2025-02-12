@@ -144,6 +144,9 @@
 
 .sudoku-cell.red { background-color: rgb(161, 101, 137); }
 .sudoku-cell.green { color: var(--bg-color); }
+.sudoku-cell.highlight { filter: invert(15%); }
+.sudoku-cell.text-highlight { color: yellow; }
+.sudoku-cell.epicenter { filter: invert(27%); }
 
 *.c0 {
   border-left: none;
