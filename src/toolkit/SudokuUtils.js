@@ -119,7 +119,7 @@ export const makeSudoku = () => {
   const solvedBoard = structuredClone(board);
   unsolveSudoku(board);
   return ({
-    unsolvedBoard: board,
+    board: board,
     solvedBoard: solvedBoard,
   });
 }

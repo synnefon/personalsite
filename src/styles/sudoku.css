@@ -3,45 +3,80 @@
   --inv-text-color: var(--bg-color)!important;
   --inv-bg-color: var(--text-color)!important;
   --hue-rotate: 0deg;
+  --base-dim: min(17vw, 15vh);
 }
 
 .sudoku-container {
+  width: calc(var(--base-dim) * 4.5);
+  height: calc(var(--base-dim) * 6.6);
+  aspect-ratio: 1/1;
   display: flex;
   flex-direction: column;
   position: relative;
-  height: fit-content;
-}
-
-.number-selector {
-  margin-top: 3vh;
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  border: 4px solid var(--text-color)!important;
-}
-
-.sudoku-board {
-  background-color: var(--alt-text-color);
-  color: var(--text-color);
-  margin-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  height: fit-content;
+  align-items: center;
+  justify-content: center;
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
 }
 
+.sudoku-board {
+  margin-top: calc(var(--base-dim)/6);
+  width: 100%;
+  aspect-ratio: 1/1;
+  border: 4px solid var(--text-color);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
 .sudoku-row {
+  width: 100%;
+  height: calc(100%/9);
   display: flex;
   flex-direction: row;
   position: relative;
 }
 
-.sudoku-cell {
-  width: min(7vh, 7vw);
-  height: min(7vh, 7vw);
+.sudoku-selector-panel, .sudoku-control-panel {
+  margin-top: 1%;
+  width: 100%;
+  height: calc(var(--base-dim)*0.5);
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  border: 4px solid var(--text-color);
+}
+
+.sudoku-control-panel { 
+  margin-top: 2%;
+  display: inline-grid;
+  grid-template-columns: 50% 50%;
+  border: none;
+}
+
+.sudoku-control-pane {
+  width: 60%;
+  outline: 4px solid var(--text-color);
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.sudoku-control-pane.right { 
+  align-self: right;
+  justify-self: end;
+}
+.sudoku-control-pane.left { 
+  align-self: left;
+  justify-self:flex-start;
+}
+
+.sudoku-cell, .sudoku-selection {
+  width: calc(100%/9);
+  height: 100%;
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -49,42 +84,68 @@
   transition: all 0.1s ease-in-out;
 }
 
-@media (pointer: coarse)  {
-	/* mobile device */
-  .sudoku-cell {
-    width: min(8.5vh, 9vw);
-    height: min(8.5vh, 9vw);
-  }
-  .sudoku-board {
-    margin-top: 8vh;
-  }
+.sudoku-selection {
+  border: none;
+  border-right: 1px dashed var(--text-color);
 }
 
-@media (pointer: fine), (pointer: none), (pointer: fine) and (any-pointer: coarse)  {
-	/* desktop */
-  .sudoku-cell:hover {
-    background-color: var(--inv-bg-color);
-    color: var(--alt-text-color);
-    cursor: pointer;
-  }
-  .sudoku-cell.selector:hover {
-    color: var(--inv-text-color);
-  }
+.sudoku-selection:last-of-type{
+  border-right: none;
 }
 
-.sudoku-cell.selector.selected {
+.sudoku-cell {
+  background-color: var(--alt-text-color);
+  color: var(--text-color);
+}
+
+.sudoku-cell:hover,
+.sudoku-selection:hover,
+.sudoku-control:hover,
+.sudoku-control-pane:hover {
+  cursor: pointer;
+} 
+
+.sudoku-selection, .sudoku-control {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.sudoku-selection.selected, 
+.sudoku-control.selected, 
+.sudoku-control-pane.selected {
   background-color: var(--inv-bg-color);
   color: var(--inv-text-color);
 }
 
-.sudoku-cell.red { color: red; }
-.sudoku-cell.green { color: green; }
+.note-cell {
+  margin-top: 10%;
+  color: grey;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.note-row {
+  width: 100%;
+  height: 33.33%;
+  display: inline-grid;
+  grid-template-columns: 33.33% 33.33% 33.33%;
+}
+
+.note-sub-cell {
+  text-align: center;
+}
+
+.sudoku-cell.red { background-color: rgb(161, 101, 137); }
+.sudoku-cell.green { color: var(--bg-color); }
 
 *.c0 {
-  border-left: 4px solid var(--text-color)!important;
+  border-left: none;
 }
 *.c8 {
-  border-right: 4px solid var(--text-color)!important;
+  border-right: none;
 }
 
 *.c2, *.c5 {
@@ -95,10 +156,10 @@
 }
 
 *.r0 {
-  border-top: 4px solid var(--text-color)!important;
+  border-top: none;
 }
 *.r8 {
-  border-bottom: 4px solid var(--text-color)!important;
+  border-bottom: none;
 }
 *.r2, *.r5 {
   border-bottom: 1.5px solid var(--text-color)!important;
