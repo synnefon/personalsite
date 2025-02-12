@@ -27,7 +27,7 @@ export default function Sudoku() {
 
   const noteSubCell = (cell, n) => {
     const key = `${cell.ridx}-${cell.cidx}-${n}`;
-    return <div key={key} className='note-sub-cell'>
+    return <div key={key} className={`note-sub-cell ${highlightVal === n && "text-highlight"}`}>
       {cell.notes.includes(n) ? n : <></>}
     </div>;
   }
