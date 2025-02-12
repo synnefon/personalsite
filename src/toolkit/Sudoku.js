@@ -17,13 +17,13 @@ export default function Sudoku() {
 
   const ALL_NUMS = Array.from({ length: 9 }, (_, i) => String(i + 1));
 
-  const [availableNumbers, setAvailableNumbers] = useState(ALL_NUMS);
   const [selectedNumber, setSelectedNumber] = useState(null);
   const [history, setHistory] = useState([]);
   const [takingNotes, setTakingNotes] = useState(false);
+  const [highlightVal, setHighlightVal] = useState(null);
   // eslint-disable-next-line no-unused-vars
-  const [_, setRefresheForcer] = useState(0);
-  const forceRefresh = () => setRefresheForcer((u) => !u);
+  const [_, setRefresh] = useState(0);
+  const forceRefresh = () => setRefresh((u) => !u);
 
   const noteSubCell = (cell, n) => {
     const key = `${cell.ridx}-${cell.cidx}-${n}`;
@@ -50,7 +50,7 @@ export default function Sudoku() {
                 const color = `
                   ${cell.color ? cell.color : "inherit"}
                   ${cell.highlightColor ? " " + cell.highlightColor : ""}
-                  ${cell.textHighlight ? " " + cell.textHighlight : ""}
+                  ${cell.value === highlightVal && cell.color !== "red" ? " text-highlight" : ""}
                 `;
                 return <div
                   key={`${ridx}-${cidx}`}
@@ -86,7 +86,7 @@ export default function Sudoku() {
     forceRefresh();
   }
 
-  const setCell = ({update, ridx, cidx, refresh=true, record=false}) => {
+  const setCell = ({ update, ridx, cidx, refresh = true, record = false }) => {
     if (record) {
       history.push(board.current[ridx][cidx]);
       setHistory(history);
@@ -107,49 +107,39 @@ export default function Sudoku() {
     } else {
       update.notes = board.current[ridx][cidx].notes.concat([selectedNumber]);
     }
-    setCell({update, ridx, cidx, record: true});
+    setCell({ update, ridx, cidx, record: true });
   }
 
   // does NOT refresh
-  const setAll = (update, conditionFun=()=>true) => {
-    for (let r = 0; r < 9; r++) {
-      for (let c = 0; c < 9; c++) {
-        if (conditionFun(r, c)) {
-          setCell({update, ridx: r, cidx: c, refresh: false});
-        }
+  const clearHighlights = () => {
+    setHighlightVal(null);
+
+    const update = { highlightColor: null, textHighlight: null };
+    for (let ridx = 0; ridx < 9; ridx++) {
+      for (let cidx = 0; cidx < 9; cidx++) {
+        setCell({ update, ridx, cidx, refresh: false });
       }
     }
   }
 
-  const clearHighlights = () => {
-    setAll({ highlightColor: null, epicenter: false, textHighlight: null });
-  }
-
-  const highlightAllInstances = (n) => {
-    setAll(
-      {textHighlight: "text-highlight"}, 
-      (r, c) => board.current[r][c].value === n && board.current[r][c].color !== "red",
-    );
-  }
-
   const highlightStuff = (ridx, cidx) => {
     const update = {};
-    const isHighlighted = board.current[ridx][cidx].epicenter;
+    const isHighlighted = board.current[ridx][cidx].highlightColor === 'epicenter';
 
     clearHighlights();
 
     if (isHighlighted) {
-      setCell({update: { epicenter: false, highlightColor: null }, ridx, cidx, refresh: false});
+      setCell({ update: { highlightColor: null }, ridx, cidx, refresh: false });
       update.highlightColor = null;
     } else {
-      highlightAllInstances(board.current[ridx][cidx].value);
-      setCell({update: { epicenter: true, highlightColor: 'epicenter' }, ridx, cidx, refresh: false});
+      setHighlightVal(board.current[ridx][cidx].value);
+      setCell({ update: { highlightColor: 'epicenter' }, ridx, cidx, refresh: false });
       update.highlightColor = 'highlight';
     }
 
     for (let i = 0; i < 9; i++) {
-      if (i !== cidx) setCell({update, ridx, cidx: i, refresh: false});
-      if (i !== ridx) setCell({update, ridx: i, cidx, refresh: false});
+      if (i !== cidx) setCell({ update, ridx, cidx: i, refresh: false });
+      if (i !== ridx) setCell({ update, ridx: i, cidx, refresh: false });
     }
     forceRefresh();
   }
@@ -159,9 +149,9 @@ export default function Sudoku() {
       highlightStuff(ridx, cidx);
       return;
     }
-    
+
     clearHighlights();
-    
+
     if (selectedNumber === null) {
       forceRefresh();
       return;
@@ -177,7 +167,7 @@ export default function Sudoku() {
       update.color = null;
       update.value = ".";
     }
-    setCell({update, ridx, cidx, record: true});
+    setCell({ update, ridx, cidx, record: true });
   }
 
   return (
@@ -185,7 +175,7 @@ export default function Sudoku() {
       <div className='sudoku-container'>
         {displayableBoard(board.current)}
         <div className='sudoku-selector-panel'>
-          {availableNumbers.map((n) =>
+          {ALL_NUMS.map((n) =>
             <div
               key={`selector-${n}`}
               className={`sudoku-selection${selectedNumber === n ? ' selected' : ''}`}
