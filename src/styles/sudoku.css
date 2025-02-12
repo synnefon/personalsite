@@ -4,6 +4,8 @@
   --inv-bg-color: var(--text-color)!important;
   --hue-rotate: 0deg;
   --base-dim: min(17vw, 15vh);
+  --medium-font: calc(9px + 2.5vmin);
+  --small-font: calc(5px + 1.5vmin);
 }
 
 .sudoku-container {
@@ -87,6 +89,7 @@
 .sudoku-selection {
   border: none;
   border-right: 1px dashed var(--text-color);
+  font-size: var(--medium-font);
 }
 
 .sudoku-selection:last-of-type{
@@ -96,6 +99,7 @@
 .sudoku-cell {
   background-color: var(--alt-text-color);
   color: var(--text-color);
+  font-size: var(--medium-font);
 }
 
 .sudoku-cell:hover,
@@ -133,9 +137,9 @@
   display: inline-grid;
   grid-template-columns: 33.33% 33.33% 33.33%;
 }
-
 .note-sub-cell {
   text-align: center;
+  font-size: var(--small-font);
 }
 
 .sudoku-cell.red { background-color: rgb(161, 101, 137); }
