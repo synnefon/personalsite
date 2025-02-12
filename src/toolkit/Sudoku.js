@@ -114,8 +114,6 @@ export default function Sudoku() {
 
   // does NOT refresh
   const clearHighlights = () => {
-    setHighlightVal(null);
-
     const update = { highlightColor: null, textHighlight: null };
     for (let ridx = 0; ridx < 9; ridx++) {
       for (let cidx = 0; cidx < 9; cidx++) {
@@ -129,7 +127,7 @@ export default function Sudoku() {
     const isHighlighted = board.current[ridx][cidx].highlightColor === 'epicenter';
 
     clearHighlights();
-
+    
     if (isHighlighted) {
       setCell({ update: { highlightColor: null }, ridx, cidx, refresh: false });
       update.highlightColor = null;
