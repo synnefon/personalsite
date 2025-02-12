@@ -1,111 +1,91 @@
-const shuffle = (array) => {
-  for (let currIndex = array.length-1; currIndex > 0; currIndex--){
-    let randIdx = Math.floor(Math.random() * currIndex);
-    [array[currIndex], array[randIdx]] = [array[randIdx], array[currIndex]];
+import { makeSudoku } from './SudokuUtils';
+
+import '../styles/sudoku.css'
+import { useMemo, useRef, useState } from 'react';
+
+export default function Sudoku() {
+  const makeColorBoard = (board) => {
+    return board.map((row) => {
+      return row.map((c) => ({value: c, color: 'inherit'}))
+    })
   }
-}
+  const sudoku = useMemo(() => makeSudoku(), []);
+  const unsolvedBoard = useRef(makeColorBoard(sudoku.unsolvedBoard));
+  const solvedBoard = useRef(makeColorBoard(sudoku.solvedBoard));
+  
+  const [availableNumbers, setAvailableNumbers] = useState(
+    Array.from({ length: 9 }, (_, i) => (i + 1))
+  );
+  const [selectedNumber, setSelectedNumber] = useState(null);
+  // eslint-disable-next-line no-unused-vars
+  const [_, setUpdateForcer] = useState(0);
+  const forceUpdate = () => setUpdateForcer((u) => !u);
 
-const makeBlankBoard = (dim) => {
-  return Array.from({ length: dim }, () => Array.from({ length: dim }, () => '.'));
-}
+  const onBoardClick = (ridx, cidx) => {
+    if (selectedNumber === null) return;
+    if (unsolvedBoard.current[ridx][cidx].value === solvedBoard.current[ridx][cidx].value) {
+      return;
+    }
 
-const solveSudoku = ({ board, randomize = false, countSolns = false }) => {
-  const DIM = 9;
-  const CELL_OPTIONS = Array.from({ length: DIM }, (_, i) => (i + 1));
+    const correctNumber = solvedBoard.current[ridx][cidx].value;
+    const newBoard = unsolvedBoard.current;
+    console.log(correctNumber, selectedNumber)
+    newBoard[ridx][cidx] = {
+      value: selectedNumber,
+      color: String(correctNumber) === String(selectedNumber) ? 'green' : 'red'
+    };
+    unsolvedBoard.current = newBoard;
 
-  const rows = Array.from({ length: DIM }, () => Array(DIM + 1).fill(false));
-  const cols = Array.from({ length: DIM }, () => Array(DIM + 1).fill(false));
-  const boxes = Array.from({ length: DIM }, () => Array(DIM + 1).fill(false));
-  const emptyCells = [];
+    forceUpdate();
+  }
 
-  for (let row = 0; row < board.length; row++) {
-    const rowData = board[row];
-    for (let col = 0; col < rowData.length; col++) {
-      const cell = rowData[col];
-      if (cell === ".") {
-        emptyCells.push([row, col]);
-      } else {
-        const num = parseInt(cell);
-        rows[row][num] = true;
-        cols[col][num] = true;
-        boxes[Math.floor(row / 3) * 3 + Math.floor(col / 3)][num] = true;
-      }
+  const writableBoard = (board) => {
+    return (
+      <div className='sudoku-board'>
+        {board.map((row, ridx) => {
+          return (
+            <div key={ridx} className='sudoku-row'>
+              {row.map((cell, cidx) => 
+                <div
+                  key={`${ridx}-${cidx}`}
+                  className={`sudoku-cell ${cell.color} r${ridx} c${cidx}`}
+                  onClick={() => onBoardClick(ridx, cidx)}
+                >
+                  {cell.value === '.' ? " " : cell.value}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  const onSelectorClick = (n) => {
+    if (selectedNumber === null || selectedNumber !== n) {
+      setSelectedNumber(n);
+    } else {
+      setSelectedNumber(null);
     }
   }
 
-  const getCandidates = (row, col) => {
-    const box = Math.floor(row / 3) * 3 + Math.floor(col / 3);
-    const ret = CELL_OPTIONS.filter(num => !rows[row][num] && !cols[col][num] && !boxes[box][num]);
-    if (randomize) {
-      shuffle(ret);
-    }
-    return ret;
-  }
-
-  const updateCache = (row, col, num, val) => {
-    rows[row][num] = val;
-    cols[col][num] = val;
-    boxes[Math.floor(row / 3) * 3 + Math.floor(col / 3)][num] = val;
-  }
-
-  var numSolns = 0;
-
-  const fillBoard = (idx) => {
-    if (emptyCells.length === idx) {
-      numSolns += 1;
-      return true;
-    }
-
-    const [row, col] = emptyCells[idx];
-    const candidates = getCandidates(row, col);
-    for (const num of candidates) {
-      updateCache(row, col, num, true);
-      board[row][col] = num.toString();
-
-      if (fillBoard(idx + 1)) {
-        if (!countSolns || numSolns > 1) return true;
-      }
-
-      updateCache(row, col, num, false);
-    }
-
-    return false;
-  };
-
-  fillBoard(0);
-
-  return numSolns;
-};
-
-const unsolveSudoku = (board) => {
-  const cells = [];
-  for (let row = 0; row < board.length; row++) {
-    for (let col = 0; col < board[row].length; col++) {
-      cells.push([row, col]);
-    }
-  }
-
-  shuffle(cells);
-
-  for (let cellIdx = 0; cellIdx < cells.length; cellIdx++) {
-    const [row, col] = cells[cellIdx];
-    const savedCell = board[row][col];
-    board[row][col] = ".";
-
-    const numSolns = solveSudoku({ board: structuredClone(board), countSolns: true });
-    if (numSolns > 1) {
-      board[row][col] = savedCell;
-    }
-  }
-}
-
-export const makeSudoku = () => {
-  const board = makeBlankBoard(9);
-  solveSudoku({ board: board, randomize: true });
-  const solvedBoard = structuredClone(board);
-  unsolveSudoku(board);
-  return ({
-    unsolvedBoard: board,
-    solvedBoard: solvedBoard,
-  });
+  return (
+    <div id='app-base' className={`sudoku-colors`}>
+      <div className='sudoku-container'>
+        {writableBoard(unsolvedBoard.current)}
+        {/* {writableBoard(solvedBoard)} */}
+        <div className='number-selector'>
+          {availableNumbers.map((n) => 
+            <div 
+              key={`selector-${n}`}
+              className={`sudoku-cell selector${selectedNumber === n ? ' selected' : ''}`}
+              onClick={() => onSelectorClick(n)}
+            >
+              {n}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }

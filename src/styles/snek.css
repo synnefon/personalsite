@@ -37,7 +37,6 @@
   flex-direction: column;
   background-color: var(--bg-color);
   border: 2px solid var(--text-color);
-  position: relative;
   position: absolute;
   top: 10vh;
 }

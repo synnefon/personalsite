@@ -1,0 +1,108 @@
+.sudoku-colors {
+  --bg-color: rgb(94, 154, 118)!important;
+  --inv-text-color: var(--bg-color)!important;
+  --inv-bg-color: var(--text-color)!important;
+  --hue-rotate: 0deg;
+}
+
+.sudoku-container {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: fit-content;
+}
+
+.number-selector {
+  margin-top: 3vh;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  border: 4px solid var(--text-color)!important;
+}
+
+.sudoku-board {
+  background-color: var(--alt-text-color);
+  color: var(--text-color);
+  margin-top: 10vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: fit-content;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.sudoku-row {
+  display: flex;
+  flex-direction: row;
+  position: relative;
+}
+
+.sudoku-cell {
+  width: min(7vh, 7vw);
+  height: min(7vh, 7vw);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px dashed var(--text-color);
+  transition: all 0.1s ease-in-out;
+}
+
+@media (pointer: coarse)  {
+	/* mobile device */
+  .sudoku-cell {
+    width: min(8.5vh, 9vw);
+    height: min(8.5vh, 9vw);
+  }
+  .sudoku-board {
+    margin-top: 8vh;
+  }
+}
+
+@media (pointer: fine), (pointer: none), (pointer: fine) and (any-pointer: coarse)  {
+	/* desktop */
+  .sudoku-cell:hover {
+    background-color: var(--inv-bg-color);
+    color: var(--alt-text-color);
+    cursor: pointer;
+  }
+  .sudoku-cell.selector:hover {
+    color: var(--inv-text-color);
+  }
+}
+
+.sudoku-cell.selector.selected {
+  background-color: var(--inv-bg-color);
+  color: var(--inv-text-color);
+}
+
+.sudoku-cell.red { color: red; }
+.sudoku-cell.green { color: green; }
+
+*.c0 {
+  border-left: 4px solid var(--text-color)!important;
+}
+*.c8 {
+  border-right: 4px solid var(--text-color)!important;
+}
+
+*.c2, *.c5 {
+  border-right: 1.5px solid var(--text-color)!important;
+}
+*.c3, *.c6 {
+  border-left: 1.5px solid var(--text-color)!important;
+}
+
+*.r0 {
+  border-top: 4px solid var(--text-color)!important;
+}
+*.r8 {
+  border-bottom: 4px solid var(--text-color)!important;
+}
+*.r2, *.r5 {
+  border-bottom: 1.5px solid var(--text-color)!important;
+}
+*.r3, *.r6 {
+  border-top: 1.5px solid var(--text-color)!important;
+}

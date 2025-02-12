@@ -34,9 +34,9 @@ export default function Projects() {
             <p className="link-text proj-colors">infinite terrain</p>
             <p className="tooltip-text proj-colors">a godot module that generates infinite terrains</p>
           </Link>
-          <Link className="link proj-colors bottom left" to="/wip" rel="noreferrer">
-            <p className="link-text proj-colors">toolbox</p>
-            <p className="tooltip-text proj-colors">a set of useful little tools</p>
+          <Link className="link proj-colors bottom left" to="/sudoku" rel="noreferrer">
+            <p className="link-text proj-colors">sudoku</p>
+            <p className="tooltip-text proj-colors">an eternal classic</p>
           </Link>
           {
               <Link className="link proj-colors bottom right" to="/snek" rel="noreferrer">
