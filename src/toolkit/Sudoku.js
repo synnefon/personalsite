@@ -7,18 +7,18 @@ export default function Sudoku() {
   const makeColorBoard = (board) => {
     return board.map((row, ridx) => {
       return row.map((c, cidx) => {
-        return ({ ridx, cidx, value: c, color: null, notes: [] })
+        return ({ ridx, cidx, value: c, color: null, notes: [], ignorable: false })
       })
     })
   }
   const sudoku = useMemo(() => makeSudoku(), []);
   const board = useRef(makeColorBoard(sudoku.board));
   const solvedBoard = useRef(makeColorBoard(sudoku.solvedBoard));
+  const history = useRef([]);
 
   const ALL_NUMS = Array.from({ length: 9 }, (_, i) => String(i + 1));
 
   const [selectedVal, setSelectedVal] = useState(null);
-  const [history, setHistory] = useState([]);
   const [takingNotes, setTakingNotes] = useState(false);
   const [highlightVal, setHighlightVal] = useState(null);
   // eslint-disable-next-line no-unused-vars
@@ -81,23 +81,35 @@ export default function Sudoku() {
   }
 
   const onUndo = () => {
-    if (history.length === 0) return;
+    if (history.current.length === 0) return;
+
     clearHighlights();
-    const cell = history.pop();
-    setHistory(history);
+    
+    let cell = history.current.pop();
     board.current[cell.ridx][cell.cidx] = cell;
+
+    while (history.current.length > 0) {
+      cell = history.current.pop();
+      if (cell.ignorable) {
+        board.current[cell.ridx][cell.cidx] = cell;
+      } else {
+        history.current.push(cell);
+        break;
+      }
+    }
+
     forceRefresh();
   }
 
   const setCell = ({ update, ridx, cidx, refresh = true, record = false }) => {
-    if (record) {
-      history.push(board.current[ridx][cidx]);
-      setHistory(history);
-    }
-
     const newBoard = board.current;
     const cell = newBoard[ridx][cidx];
-    newBoard[ridx][cidx] = { ...cell, ...update };
+
+    if (record) {
+      history.current.push({ ...cell, ignorable: update.ignorable });
+    }
+
+    newBoard[ridx][cidx] = { ...cell, ...update, ignorable: false };
     board.current = newBoard;
 
     if (refresh) forceRefresh();
@@ -113,6 +125,26 @@ export default function Sudoku() {
     setCell({ update, ridx, cidx, record: true });
   }
 
+  // does NOT refresh
+  const updateNeighbors = (update, ridx, cidx, record=false) => {
+    const cellsToUpdate = new Set();
+    for (let i = 0; i < 9; i++) {
+      // sub grid
+      const gridRow = (Math.floor(ridx / 3)*3) + Math.floor(i / 3);
+      const gridCol = (Math.floor(cidx / 3)*3) + (i % 3);
+      if (ridx !== gridRow && cidx !== gridCol) {
+        cellsToUpdate.add({ridx: gridRow, cidx: gridCol});
+      }
+      // row and col
+      if (i !== cidx) cellsToUpdate.add({ridx, cidx: i});
+      if (i !== ridx) cellsToUpdate.add({ridx: i, cidx});
+    }
+
+    for (let {ridx, cidx} of cellsToUpdate) {
+      setCell({ update, ridx, cidx, record, refresh: false });
+    }
+  }
+  
   // does NOT refresh
   const clearHighlights = () => {
     setHighlightVal(null);
@@ -139,10 +171,8 @@ export default function Sudoku() {
       update.highlightColor = 'highlight';
     }
 
-    for (let i = 0; i < 9; i++) {
-      if (i !== cidx) setCell({ update, ridx, cidx: i, refresh: false });
-      if (i !== ridx) setCell({ update, ridx: i, cidx, refresh: false });
-    }
+    updateNeighbors(update, ridx, cidx);
+
     forceRefresh();
   }
 
@@ -162,9 +192,18 @@ export default function Sudoku() {
 
     const update = {};
     if (selectedVal !== board.current[ridx][cidx].value) {
+      const isCorrect = solvedBoard.current[ridx][cidx].value === selectedVal;
       update.value = selectedVal;
-      update.color = solvedBoard.current[ridx][cidx].value === selectedVal ? 'new-text' : 'incorrect';
+      update.color = isCorrect ? 'new-text' : 'incorrect';
       update.notes = [];
+      
+      if (isCorrect) {
+        const neighborUpdate = {
+          notes: board.current[ridx][cidx].notes.filter(n => n !== selectedVal),
+          ignorable: true
+        };
+        updateNeighbors(neighborUpdate, ridx, cidx, true);
+      }
     } else if ("." !== board.current[ridx][cidx].value) {
       update.color = null;
       update.value = ".";
