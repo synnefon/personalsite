@@ -7,7 +7,7 @@ export default function Sudoku() {
   const makeColorBoard = (board) => {
     return board.map((row, ridx) => {
       return row.map((c, cidx) => {
-        return ({ ridx, cidx, value: c, color: null, notes: [], ignorable: false })
+        return ({ ridx, cidx, val: c, color: null, notes: [], ignorable: false })
       })
     })
   }
@@ -34,7 +34,7 @@ export default function Sudoku() {
     </div>;
   }
   const displayableCell = (cell) => {
-    if (cell.value !== ".") return cell.value;
+    if (cell.val !== ".") return cell.val;
     return <div className='note-cell'>
       <div className='note-row'>{["1", "2", "3"].map(n => noteSubCell(cell, n))}</div>
       <div className='note-row'>{["4", "5", "6"].map(n => noteSubCell(cell, n))}</div>
@@ -50,7 +50,7 @@ export default function Sudoku() {
             <div key={ridx} className='sudoku-row'>
               {row.map((cell, cidx) => {
                 const shouldHighlightText = cell.color !== "incorrect"
-                  && cell.value === (highlightVal ? highlightVal : selectedVal);
+                  && cell.val === (highlightVal ? highlightVal : selectedVal);
                 const color = `
                   ${cell.color ? cell.color : "inherit"}
                   ${cell.highlightColor ? " " + cell.highlightColor : ""}
@@ -127,22 +127,22 @@ export default function Sudoku() {
   }
 
   // does NOT refresh
-  const updateNeighbors = (update, ridx, cidx, record = false) => {
+  const updateNeighbors = (makeUpdate, r, c, record = false) => {
     const cellsToUpdate = new Set();
     for (let i = 0; i < 9; i++) {
       // sub grid
-      const gridRow = (Math.floor(ridx / 3) * 3) + Math.floor(i / 3);
-      const gridCol = (Math.floor(cidx / 3) * 3) + (i % 3);
-      if (ridx !== gridRow && cidx !== gridCol) {
+      const gridRow = (Math.floor(r / 3) * 3) + Math.floor(i / 3);
+      const gridCol = (Math.floor(c / 3) * 3) + (i % 3);
+      if (r !== gridRow && c !== gridCol) {
         cellsToUpdate.add({ ridx: gridRow, cidx: gridCol });
       }
       // row and col
-      if (i !== cidx) cellsToUpdate.add({ ridx, cidx: i });
-      if (i !== ridx) cellsToUpdate.add({ ridx: i, cidx });
+      if (i !== c) cellsToUpdate.add({ ridx: r, cidx: i });
+      if (i !== r) cellsToUpdate.add({ ridx: i, cidx: c });
     }
 
     for (let { ridx, cidx } of cellsToUpdate) {
-      setCell({ update, ridx, cidx, record, refresh: false });
+      setCell({ update: makeUpdate(ridx, cidx), ridx, cidx, record, refresh: false });
     }
   }
 
@@ -167,18 +167,18 @@ export default function Sudoku() {
       setCell({ update: { highlightColor: null }, ridx, cidx, refresh: false });
       update.highlightColor = null;
     } else {
-      setHighlightVal(board.current[ridx][cidx].value);
+      setHighlightVal(board.current[ridx][cidx].val);
       setCell({ update: { highlightColor: 'epicenter' }, ridx, cidx, refresh: false });
       update.highlightColor = 'highlight';
     }
 
-    updateNeighbors(update, ridx, cidx);
+    updateNeighbors(() => update, ridx, cidx);
 
     forceRefresh();
   }
 
   const onBoardClick = (ridx, cidx) => {
-    if (board.current[ridx][cidx].value === solvedBoard.current[ridx][cidx].value) {
+    if (board.current[ridx][cidx].val === solvedBoard.current[ridx][cidx].val) {
       highlightStuff(ridx, cidx);
       return;
     }
@@ -192,24 +192,26 @@ export default function Sudoku() {
     if (takingNotes) return takeNote(ridx, cidx);
 
     const update = {};
-    if (selectedVal !== board.current[ridx][cidx].value) {
-      const isCorrect = solvedBoard.current[ridx][cidx].value === selectedVal;
-      update.value = selectedVal;
+    if (selectedVal !== board.current[ridx][cidx].val) {
+      const isCorrect = solvedBoard.current[ridx][cidx].val === selectedVal;
+      update.val = selectedVal;
       update.color = isCorrect ? 'new-text' : 'incorrect';
       update.notes = [];
 
       if (isCorrect) {
-        const neighborUpdate = {
-          notes: board.current[ridx][cidx].notes.filter(n => n !== selectedVal),
-          ignorable: true
-        };
-        updateNeighbors(neighborUpdate, ridx, cidx, true);
+        const makeUpdate = (r, c) => {
+          return ({
+            notes: board.current[r][c].notes.filter(n => n !== selectedVal),
+            ignorable: true
+          });
+        }
+        updateNeighbors(makeUpdate, ridx, cidx, true);
       } else {
         setMistakes(m => m + 1);
       }
-    } else if ("." !== board.current[ridx][cidx].value) {
+    } else if ("." !== board.current[ridx][cidx].val) {
       update.color = null;
-      update.value = ".";
+      update.val = ".";
     }
     setCell({ update, ridx, cidx, record: true });
   }
@@ -245,7 +247,6 @@ export default function Sudoku() {
               <p className='control big'>✎</p>
               <p className='control'>notes</p>
             </div>
-            {/* <div className='sudoku-control-content'>notes</div> */}
           </div>
         </div>
       </div>
