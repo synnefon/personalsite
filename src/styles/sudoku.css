@@ -67,40 +67,61 @@
   margin-top: 5px;
   margin-bottom: 20px;
   display: inline-grid;
-  grid-template-columns: 50% 50%;
+  grid-template-columns: 33.33% 33.33% 33.33%;
   border: none;
 }
 
 .sudoku-control-pane {
-  width: 60%;
+  width: fit-content;
   height: fit-content;
-  /* outline: 4px solid var(--alt-text-color); */
   border: none;
   vertical-align: middle;
   position: relative;
 }
-.sudoku-control-pane.right { 
-  justify-self: end;
-}
-.sudoku-control-pane.left { 
+
+.sudoku-control-pane.undo { 
   align-self: left;
 }
-.sudoku-control-content {
-  position: relative;
-  height: fit-content;
+.sudoku-control-pane.timer { 
+  justify-self: center;
+  width: 100%;
+  justify-content: center;
+  text-align: center;
 }
+.sudoku-control-pane.pencil { 
+  justify-self: end;
+  border: 2px solid var(--bg-color);
+}
+
 p.control {
   margin-block-start: 0em;
   margin-block-end: 0em;
+  height: 100%;
   unicode-bidi: normal;
   display: flex;
   position: relative;
   text-align: center;
   justify-content: center;
-  vertical-align: middle;
 }
-p.control.big {
-  font-size: 8vmin;
+p.control.timer.selected {
+  color: var(--alt-text-color);
+}
+
+img.control {
+  display: block;
+  justify-self: center;
+  margin-bottom: 5px;
+  height: calc(6.2vmin);
+  aspect-ratio: 1/1;
+}
+img.control.undo {
+  content: url('../assets/sudoku/undo.svg');
+}
+img.control.timer {
+  content: url('../assets/sudoku/timer.svg');
+}
+img.control.pencil {
+  content: url('../assets/sudoku/pencil.svg');
 }
 
 .sudoku-cell, .sudoku-selection {
@@ -146,10 +167,17 @@ p.control.big {
 }
 
 .sudoku-selection.selected, 
-.sudoku-control.selected, 
-.sudoku-control-pane.selected {
+.sudoku-control.selected,
+.sudoku-control-pane.pencil.selected {
   background-color: var(--alt-text-color);
   color: var(--inv-text-color)!important;
+}
+.sudoku-control-pane.pencil.selected {
+  border-radius: 10%;
+  border: 2px solid var(--alt-text-color);
+}
+.sudoku-control-pane.pencil.selected > img.control.pencil { 
+  content: url('../assets/sudoku/bg-pencil.svg');
 }
 
 .note-cell {
@@ -194,6 +222,22 @@ p.control.big {
 @media screen and (min-width: 501px) {
   .sudoku-control-pane:hover {
     color: var(--alt-text-color);
+  }
+
+  .sudoku-control-pane.undo:hover > img.undo {
+    content: url('../assets/sudoku/undo-alt.svg');
+  }
+  .sudoku-control-pane.timer:hover > img.timer {
+    content: url('../assets/sudoku/timer-alt.svg');
+  }
+  .sudoku-control-pane.pencil:hover > img.pencil {
+    content: url('../assets/sudoku/pencil-alt.svg');
+  }
+  .sudoku-control-pane.pencil.selected:hover > img.pencil {
+    content: url('../assets/sudoku/pencil.svg');
+  }
+  .sudoku-control-pane.pencil.selected:hover > p.control.pencil {
+    color: var(--text-color);
   }
 
   .sudoku-selection:hover {

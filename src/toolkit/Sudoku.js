@@ -1,7 +1,13 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+
 import { makeSudoku } from './SudokuUtils';
 
+import undo from "../assets/sudoku/undo.svg"
+import timer from "../assets/sudoku/timer.svg"
+import pencil from "../assets/sudoku/pencil.svg"
+
 import '../styles/sudoku.css'
-import { useMemo, useRef, useState } from 'react';
+
 
 export default function Sudoku() {
   const makeColorBoard = (board) => {
@@ -15,6 +21,7 @@ export default function Sudoku() {
   const board = useRef(makeColorBoard(sudoku.board));
   const solvedBoard = useRef(makeColorBoard(sudoku.solvedBoard));
   const history = useRef([]);
+  const START_TIME =  useRef(Date.now());
 
   const ALL_NUMS = Array.from({ length: 9 }, (_, i) => String(i + 1));
 
@@ -22,6 +29,8 @@ export default function Sudoku() {
   const [takingNotes, setTakingNotes] = useState(false);
   const [highlightVal, setHighlightVal] = useState(null);
   const [mistakes, setMistakes] = useState(0);
+  const [timerMillis, setTimerMillis] = useState(0);
+  const [runTimer, setRunTimer] = useState(true);
   // eslint-disable-next-line no-unused-vars
   const [_, setRefresh] = useState(0);
   const forceRefresh = () => setRefresh((u) => !u);
@@ -216,6 +225,24 @@ export default function Sudoku() {
     setCell({ update, ridx, cidx, record: true });
   }
 
+  const toggleTime = () => {
+    if (runTimer) {
+      setRunTimer(false);
+    } else {
+      START_TIME.current = Date.now() - timerMillis;
+      setRunTimer(true);
+    }
+  }
+
+  useEffect(() => {
+    const delta = 1_000;
+    const timeout = setTimeout(() => {
+      if (runTimer) setTimerMillis(Date.now() - START_TIME.current);
+    }, delta);
+
+    return () => clearTimeout(timeout);
+  }, [timerMillis, runTimer])
+
   return (
     <div id='app-base' className={`sudoku-colors`}>
       <div className='sudoku-container'>
@@ -233,20 +260,22 @@ export default function Sudoku() {
           )}
         </div>
         <div className='sudoku-control-panel'>
-          <div className={`sudoku-control-pane left`} onClick={onUndo}>
-            <div className='sudoku-control-content'>
-              <p className='control big'>⟲</p>
-              <p className='control'>undo</p>
-            </div>
+          <div className={`sudoku-control-pane undo`} onClick={onUndo}>
+            <img alt="timer icon" className='control img undo'/>
+            <p className='control undo'>undo</p>
+          </div>
+          <div className={`sudoku-control-pane timer`} onClick={toggleTime}>
+            <img alt="timer icon" className='control timer'/>
+            <p className={`control timer${runTimer ? "" : " selected"}`}>
+              {Math.floor(timerMillis / 1_000)}
+            </p>
           </div>
           <div
-            className={`sudoku-control-pane right${takingNotes ? ' selected' : ''}`}
+            className={`sudoku-control-pane pencil${takingNotes ? " selected" : ""}`}
             onClick={() => setTakingNotes(b => !b)}
           >
-            <div className='sudoku-control-content'>
-              <p className='control big'>✎</p>
-              <p className='control'>notes</p>
-            </div>
+            <img alt="timer icon" className="control pencil"/>
+            <p className='control pencil'>notes</p>
           </div>
         </div>
       </div>
