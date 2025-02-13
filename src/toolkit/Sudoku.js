@@ -17,7 +17,7 @@ export default function Sudoku() {
 
   const ALL_NUMS = Array.from({ length: 9 }, (_, i) => String(i + 1));
 
-  const [selectedNumber, setSelectedNumber] = useState(null);
+  const [selectedVal, setSelectedVal] = useState(null);
   const [history, setHistory] = useState([]);
   const [takingNotes, setTakingNotes] = useState(false);
   const [highlightVal, setHighlightVal] = useState(null);
@@ -27,7 +27,8 @@ export default function Sudoku() {
 
   const noteSubCell = (cell, n) => {
     const key = `${cell.ridx}-${cell.cidx}-${n}`;
-    return <div key={key} className={`note-sub-cell ${highlightVal === n && "text-highlight"}`}>
+    const shouldHighlightText = n === (highlightVal ? highlightVal : selectedVal);
+    return <div key={key} className={`note-sub-cell ${shouldHighlightText && "text-highlight"}`}>
       {cell.notes.includes(n) ? n : <></>}
     </div>;
   }
@@ -47,10 +48,12 @@ export default function Sudoku() {
           return (
             <div key={ridx} className='sudoku-row'>
               {row.map((cell, cidx) => {
+                const shouldHighlightText = cell.color !== "incorrect" 
+                  && cell.value === (highlightVal ? highlightVal : selectedVal);
                 const color = `
                   ${cell.color ? cell.color : "inherit"}
                   ${cell.highlightColor ? " " + cell.highlightColor : ""}
-                  ${cell.value === highlightVal && cell.color !== "red" ? " text-highlight" : ""}
+                  ${shouldHighlightText ? " text-highlight" : ""}
                 `;
                 return <div
                   key={`${ridx}-${cidx}`}
@@ -70,12 +73,10 @@ export default function Sudoku() {
   }
 
   const onSelectorClick = (n) => {
-    if (selectedNumber === null || selectedNumber !== n) {
-      setHighlightVal(n);
-      setSelectedNumber(n);
+    if (selectedVal === null || selectedVal !== n) {
+      setSelectedVal(n);
     } else {
-      setHighlightVal(null);
-      setSelectedNumber(null);
+      setSelectedVal(null);
     }
   }
 
@@ -104,16 +105,17 @@ export default function Sudoku() {
 
   const takeNote = (ridx, cidx) => {
     const update = {};
-    if (board.current[ridx][cidx].notes.includes(selectedNumber)) {
-      update.notes = board.current[ridx][cidx].notes.filter(n => n !== selectedNumber);
+    if (board.current[ridx][cidx].notes.includes(selectedVal)) {
+      update.notes = board.current[ridx][cidx].notes.filter(n => n !== selectedVal);
     } else {
-      update.notes = board.current[ridx][cidx].notes.concat([selectedNumber]);
+      update.notes = board.current[ridx][cidx].notes.concat([selectedVal]);
     }
     setCell({ update, ridx, cidx, record: true });
   }
 
   // does NOT refresh
   const clearHighlights = () => {
+    setHighlightVal(null);
     const update = { highlightColor: null, textHighlight: null };
     for (let ridx = 0; ridx < 9; ridx++) {
       for (let cidx = 0; cidx < 9; cidx++) {
@@ -127,11 +129,12 @@ export default function Sudoku() {
     const isHighlighted = board.current[ridx][cidx].highlightColor === 'epicenter';
 
     clearHighlights();
-    
+
     if (isHighlighted) {
       setCell({ update: { highlightColor: null }, ridx, cidx, refresh: false });
       update.highlightColor = null;
     } else {
+      setHighlightVal(board.current[ridx][cidx].value);
       setCell({ update: { highlightColor: 'epicenter' }, ridx, cidx, refresh: false });
       update.highlightColor = 'highlight';
     }
@@ -151,16 +154,16 @@ export default function Sudoku() {
 
     clearHighlights();
 
-    if (selectedNumber === null) {
+    if (selectedVal === null) {
       forceRefresh();
       return;
     }
     if (takingNotes) return takeNote(ridx, cidx);
 
     const update = {};
-    if (selectedNumber !== board.current[ridx][cidx].value) {
-      update.value = selectedNumber;
-      update.color = solvedBoard.current[ridx][cidx].value === selectedNumber ? 'green' : 'red';
+    if (selectedVal !== board.current[ridx][cidx].value) {
+      update.value = selectedVal;
+      update.color = solvedBoard.current[ridx][cidx].value === selectedVal ? 'new-text' : 'incorrect';
       update.notes = [];
     } else if ("." !== board.current[ridx][cidx].value) {
       update.color = null;
@@ -177,7 +180,7 @@ export default function Sudoku() {
           {ALL_NUMS.map((n) =>
             <div
               key={`selector-${n}`}
-              className={`sudoku-selection${selectedNumber === n ? ' selected' : ''}`}
+              className={`sudoku-selection${selectedVal === n ? ' selected' : ''}`}
               onClick={() => onSelectorClick(n)}
             >
               {n}
@@ -186,15 +189,20 @@ export default function Sudoku() {
         </div>
         <div className='sudoku-control-panel'>
           <div className={`sudoku-control-pane left`} onClick={onUndo}>
-            <div style={{ fontSize: "min(5vw, 6vh)" }}>⟲</div>
-            <div>undo</div>
+            <div className='sudoku-control-content'>
+              <p className='control big'>⟲</p>
+              <p className='control'>undo</p>
+            </div>
           </div>
           <div
             className={`sudoku-control-pane right${takingNotes ? ' selected' : ''}`}
             onClick={() => setTakingNotes(b => !b)}
           >
-            <div style={{ fontSize: "min(5vw, 6vh)" }}>✎</div>
-            <div>notes</div>
+            <div className='sudoku-control-content'>
+              <p className='control big'>✎</p>
+              <p className='control'>notes</p>
+            </div>
+            {/* <div className='sudoku-control-content'>notes</div> */}
           </div>
         </div>
       </div>
