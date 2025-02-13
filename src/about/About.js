@@ -31,8 +31,10 @@ export default function About() {
 
   const toggleSkipButton = (shouldShow) => {
     setTimeout(() => {
-      document.getElementById('skip-button').style.opacity = shouldShow ? '1' : '0';
-      document.getElementById('skip-button').style.visibility = shouldShow ? 'visible' : 'hidden';
+      const skipButton = document.getElementById('skip-button');
+      if (!skipButton) return;
+      skipButton.style.opacity = shouldShow ? '1' : '0';
+      skipButton.style.visibility = shouldShow ? 'visible' : 'hidden';
     }, 500);
   };
 
@@ -53,7 +55,7 @@ export default function About() {
       key={desc}
       sequence={[desc, onFinishedTyping, 55]}
       wrapper="p"
-      speed={55}
+      speed={65}
       repeat={1}
       cursor={false}
     />;
