@@ -247,7 +247,7 @@ export default function Sudoku() {
         if (savedBoard) {
           for (let ridx in savedBoard) {
             for (let cidx in savedBoard[ridx]) {
-              setCell({update: savedBoard[ridx][cidx], ridx, cidx})
+              setCell({ update: savedBoard[ridx][cidx], ridx, cidx })
             }
           };
           solvedBoard.current = savedSolvedBoard;
