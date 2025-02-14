@@ -123,7 +123,7 @@ export const encryptBoardState = (board, solvedBoard, time, mistakes) => {
 }
 
 export const decryptBoardState = (encrypted) => {
-  const str = decryptString(encrypted).split("+");
+  const str = decryptString(encrypted);
   const { board, solvedBoard, time, mistakes } = JSON.parse(str);
   return [board, solvedBoard, Number(time), Number(mistakes)];
 }
