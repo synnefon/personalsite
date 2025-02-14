@@ -235,12 +235,10 @@ export default function Sudoku() {
   }
 
   const authUser = async () => {
-    if (!userId.current) {
-      return await signInUser()
-        .then(async (uid) => {
-          userId.current = uid;
-        });
-    }
+    return await signInUser()
+      .then(async (uid) => {
+        userId.current = uid;
+      });
   }
 
   const saveBoard = async () => {
