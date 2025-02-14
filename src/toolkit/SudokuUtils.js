@@ -117,20 +117,31 @@ export const makeSudoku = () => {
   });
 }
 
-export const encryptBoardState = (board, time, mistakes) => {
+export const encryptBoardState = (board, solvedBoard, time, mistakes) => {
   const boardStr = board.map(row => {
     return row.map(cell => JSON.stringify(cell)).join("~")
   }).join("|");
-  const encrypted = encryptString(boardStr + "+" + String(time) + "+" + String(mistakes));
+  const solvedBoardStr = solvedBoard.map(row => {
+    return row.map(cell => JSON.stringify(cell)).join("~")
+  }).join("|");
+  const encrypted = encryptString(boardStr + "+" + solvedBoardStr + "+" + String(time) + "+" + String(mistakes));
   return encrypted;
 }
 
 export const decryptBoardState = (encrypted) => {
-  const [boardStr, timeStr, mistakesStr] = decryptString(encrypted).split("+");
+  const [boardStr, solvedBoardStr, timeStr, mistakesStr] = decryptString(encrypted).split("+");
+
   const rows = boardStr.split("|");
   const board = rows.map(rowStr => {
     const cells = rowStr.split("~");
     return cells.map(cell => JSON.parse(cell));
   });
-  return [board, Number(timeStr), Number(mistakesStr)];
+
+  const solvedRows = solvedBoardStr.split("|");
+  const solvedBoard = solvedRows.map(rowStr => {
+    const cells = rowStr.split("~");
+    return cells.map(cell => JSON.parse(cell));
+  });
+  
+  return [board, solvedBoard, Number(timeStr), Number(mistakesStr)];
 }

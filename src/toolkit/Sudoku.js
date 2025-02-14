@@ -245,7 +245,7 @@ export default function Sudoku() {
 
   const saveBoard = async () => {
     await authUser().then(async () => {
-      const boardString = encryptBoardState(board.current, timerMillis, mistakes);
+      const boardString = encryptBoardState(board.current, solvedBoard.current, timerMillis, mistakes);
       await writeBoard(userId.current, boardString);
     });
   }
@@ -253,11 +253,11 @@ export default function Sudoku() {
   const loadBoard = async () => {
     await authUser().then(async () => {
       await getBoard(userId.current).then(b => {
-        const [savedBoard, savedTime, savedMistakes] = decryptBoardState(b);
+        const [savedBoard, savedSolvedBoard, savedTime, savedMistakes] = decryptBoardState(b);
         if (savedBoard && savedTime && savedMistakes) {
           board.current = savedBoard;
+          solvedBoard.current = savedSolvedBoard;
           START_TIME.current = Date.now() - savedTime;
-          setTimerMillis(START_TIME.current);
           setMistakes(savedMistakes);
           forceRefresh();
         };
