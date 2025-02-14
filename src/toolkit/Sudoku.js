@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { signInUser, writeBoard, getBoard } from "../util/Database";
+// import Popup from 'reactjs-popup'; TODO for confirmation
 
-import { makeSudoku } from './SudokuUtils';
-
-import undo from "../assets/sudoku/undo.svg"
-import timer from "../assets/sudoku/timer.svg"
-import pencil from "../assets/sudoku/pencil.svg"
+import { makeSudoku, encryptBoardState, decryptBoardState } from './SudokuUtils';
 
 import '../styles/sudoku.css'
+import 'reactjs-popup/dist/index.css';
 
 
 export default function Sudoku() {
@@ -21,7 +20,8 @@ export default function Sudoku() {
   const board = useRef(makeColorBoard(sudoku.board));
   const solvedBoard = useRef(makeColorBoard(sudoku.solvedBoard));
   const history = useRef([]);
-  const START_TIME =  useRef(Date.now());
+  const START_TIME = useRef(Date.now());
+  const userId = useRef(null);
 
   const ALL_NUMS = Array.from({ length: 9 }, (_, i) => String(i + 1));
 
@@ -234,6 +234,36 @@ export default function Sudoku() {
     }
   }
 
+  const authUser = async () => {
+    if (!userId.current) {
+      return await signInUser()
+        .then(async (uid) => {
+          userId.current = uid;
+        });
+    }
+  }
+
+  const saveBoard = async () => {
+    await authUser().then(async () => {
+      const boardString = encryptBoardState(board.current, timerMillis, mistakes);
+      await writeBoard(userId.current, boardString);
+    });
+  }
+
+  const loadBoard = async () => {
+    await authUser().then(async () => {
+      await getBoard(userId.current).then(b => {
+        const [savedBoard, savedTime, savedMistakes] = decryptBoardState(b);
+        if (savedBoard && savedTime && savedMistakes) {
+          board.current = savedBoard;
+          START_TIME.current = Date.now() - savedTime;
+          setMistakes(savedMistakes);
+          forceRefresh();
+        };
+      });
+    });
+  }
+
   useEffect(() => {
     const delta = 1_000;
     const timeout = setTimeout(() => {
@@ -246,7 +276,11 @@ export default function Sudoku() {
   return (
     <div id='app-base' className={`sudoku-colors`}>
       <div className='sudoku-container'>
-        <div>mistakes: {mistakes}</div>
+        <div className='save-load'>
+          <button className="save-load-button" onClick={loadBoard}>load game</button>
+          <div className='mistakes'>mistakes: {mistakes}</div>
+          <button className="save-load-button" onClick={saveBoard}>save game</button>
+        </div>
         {displayableBoard(board.current)}
         <div className='sudoku-selector-panel'>
           {ALL_NUMS.map((n) =>
@@ -261,11 +295,11 @@ export default function Sudoku() {
         </div>
         <div className='sudoku-control-panel'>
           <div className={`sudoku-control-pane undo`} onClick={onUndo}>
-            <img alt="timer icon" className='control img undo'/>
+            <img alt="timer icon" className='control img undo' />
             <p className='control undo'>undo</p>
           </div>
           <div className={`sudoku-control-pane timer`} onClick={toggleTime}>
-            <img alt="timer icon" className='control timer'/>
+            <img alt="timer icon" className='control timer' />
             <p className={`control timer${runTimer ? "" : " selected"}`}>
               {Math.floor(timerMillis / 1_000)}
             </p>
@@ -274,7 +308,7 @@ export default function Sudoku() {
             className={`sudoku-control-pane pencil${takingNotes ? " selected" : ""}`}
             onClick={() => setTakingNotes(b => !b)}
           >
-            <img alt="timer icon" className="control pencil"/>
+            <img alt="timer icon" className="control pencil" />
             <p className='control pencil'>notes</p>
           </div>
         </div>

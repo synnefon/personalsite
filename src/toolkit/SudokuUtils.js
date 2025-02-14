@@ -1,5 +1,7 @@
 import seedrandom from 'seedrandom';
 
+import { encryptString, decryptString } from '../util/Encryption';
+
 const shuffle = (array, rng) => {
   for (let currIndex = array.length - 1; currIndex > 0; currIndex--) {
     const randIdx = Math.floor(rng() * currIndex);
@@ -101,20 +103,6 @@ const unsolveSudoku = (board, rng) => {
   }
 }
 
-// const printBoard = (board) => {
-//   console.log();
-//   for (let row = 0; row < board.length; row++) {
-//     const rowData = board[row];
-//     const loggable = [
-//       rowData.slice(0, 3).join(" "),
-//       rowData.slice(3, 6).join(" "),
-//       rowData.slice(6, 9).join(" ")
-//     ].join("  ");
-//     console.log(loggable);
-//     if (row % 3 === 2) console.log();
-//   }
-// }
-
 export const makeSudoku = () => {
   const seed = Math.random() * 1_000;
   const rng = seedrandom(seed);
@@ -129,6 +117,20 @@ export const makeSudoku = () => {
   });
 }
 
-// const { unsolvedBoard, solvedBoard } = makeSudoku();
-// printBoard(unsolvedBoard);
-// printBoard(solvedBoard);
+export const encryptBoardState = (board, time, mistakes) => {
+  const boardStr = board.map(row => {
+    return row.map(cell => JSON.stringify(cell)).join("~")
+  }).join("|");
+  const encrypted = encryptString(boardStr + "+" + String(time) + "+" + String(mistakes));
+  return encrypted;
+}
+
+export const decryptBoardState = (encrypted) => {
+  const [boardStr, timeStr, mistakesStr] = decryptString(encrypted).split("+");
+  const rows = boardStr.split("|");
+  const board = rows.map(rowStr => {
+    const cells = rowStr.split("~");
+    return cells.map(cell => JSON.parse(cell));
+  });
+  return [board, Number(timeStr), Number(mistakesStr)];
+}
