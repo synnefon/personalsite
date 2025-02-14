@@ -235,10 +235,7 @@ export default function Sudoku() {
   }
 
   const authUser = async () => {
-    return await signInUser()
-      .then(async (uid) => {
-        userId.current = uid;
-      });
+    return await signInUser();
   }
 
   const saveBoard = async () => {
