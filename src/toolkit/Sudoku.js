@@ -257,6 +257,7 @@ export default function Sudoku() {
         if (savedBoard && savedTime && savedMistakes) {
           board.current = savedBoard;
           START_TIME.current = Date.now() - savedTime;
+          setTimerMillis(START_TIME.current);
           setMistakes(savedMistakes);
           forceRefresh();
         };
