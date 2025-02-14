@@ -21,7 +21,6 @@ export default function Sudoku() {
   const solvedBoard = useRef(makeColorBoard(sudoku.solvedBoard));
   const history = useRef([]);
   const START_TIME = useRef(Date.now());
-  const userId = useRef(null);
 
   const ALL_NUMS = Array.from({ length: 9 }, (_, i) => String(i + 1));
 
@@ -234,23 +233,23 @@ export default function Sudoku() {
     }
   }
 
-  const authUser = async () => {
-    return await signInUser();
-  }
-
   const saveBoard = async () => {
-    await authUser().then(async (uid) => {
+    await signInUser().then(async (uid) => {
       const boardString = encryptBoardState(board.current, solvedBoard.current, timerMillis, mistakes);
       await writeBoard(uid, boardString);
     });
   }
 
   const loadBoard = async () => {
-    await authUser().then(async (uid) => {
+    await signInUser().then(async (uid) => {
       await getBoard(uid).then(b => {
         const [savedBoard, savedSolvedBoard, savedTime, savedMistakes] = decryptBoardState(b);
-        if (savedBoard && savedTime && savedMistakes) {
-          board.current = savedBoard;
+        if (savedBoard) {
+          for (let ridx in savedBoard) {
+            for (let cidx in savedBoard[ridx]) {
+              setCell({update: savedBoard[ridx][cidx], ridx, cidx})
+            }
+          };
           solvedBoard.current = savedSolvedBoard;
           START_TIME.current = Date.now() - savedTime;
           setMistakes(savedMistakes);
