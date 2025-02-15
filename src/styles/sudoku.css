@@ -31,6 +31,27 @@
   -ms-user-select: none;
   user-select: none;
 }
+.sudoku-container.win {
+  font-size: var(--medium-font);
+  display: flex;
+  width: fit-content;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.sudoku-win-text {
+  display: flex;
+  flex-direction: row;
+}
+.again-button {
+  color: var(--alt-text-color);
+  cursor: pointer;
+  transition-duration: 0.1s;
+}
+.again-button:hover {
+  color: orange;
+  animation: boing 0.3s ease-in-out alternate;
+}
 
 .confirmation-popup {
   position: absolute;
@@ -69,6 +90,7 @@
   text-align: center;
   width: fit-content;
   height: fit-content;
+  transition: all 0.3s ease-in-out!important;
 }
 .choice-button:first-child {
   justify-self: left;

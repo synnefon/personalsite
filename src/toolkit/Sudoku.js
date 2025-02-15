@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { signInUser, writeBoard, getBoard } from "../util/Database";
 
 import { makeSudoku, encryptBoardState, decryptBoardState } from './SudokuUtils';
+import dancer from '../assets/sudoku/dancer.gif'
 
 import '../styles/sudoku.css'
 
@@ -53,6 +54,7 @@ export default function Sudoku() {
   }
 
   const onSelectorClick = (n) => {
+    clearHighlights();
     if (selectedVal === null || selectedVal !== n) {
       setSelectedVal(n);
     } else {
@@ -169,7 +171,7 @@ export default function Sudoku() {
       setMistakes(m => m + 1);
     }
 
-    const update = {val: selectedVal, color:  isCorrect ? 'new-text' : 'incorrect', notes: []};
+    const update = {val: selectedVal, color:  isCorrect ? 'new-text' : 'incorrect'};
     setCell({ update, ridx, cidx, record: true });
   }
 
@@ -232,7 +234,7 @@ export default function Sudoku() {
     const key = `${cell.ridx}-${cell.cidx}-${n}`;
     const shouldHighlightText = n === (highlightCell?.val ? highlightCell.val : selectedVal);
     return <div key={key} className={`note-sub-cell ${shouldHighlightText && "text-highlight"}`}>
-      {cell.notes.includes(n) ? n : <></>}
+      {cell.notes.includes(n) && cell.val === "." ? n : <></>}
     </div>;
   };
 
@@ -285,56 +287,68 @@ export default function Sudoku() {
         {showPopup && <div className='confirmation-popup'>
           load previously saved data into board? 
           <div className='choice-button-row'>
-            <button onClick={() => togglePopup(false)} className='choice-button'>N</button>
-            <button onClick={loadAndClose} className='choice-button'>Y</button>
+            <button onClick={() => togglePopup(false)} className='choice-button'>nay</button>
+            <button onClick={loadAndClose} className='choice-button'>yea</button>
           </div>
         </div>}
       </>
     );
   }
 
+  const valCounts = valsLeft.current.map(n => countInstances(board.current, n));
+
   return (
     <div id='app-base' className={`sudoku-colors`}>
-      <Popup/>
       <div className='sudoku-container'>
-        <div className='save-load'>
-          <button className="save-load-button" onClick={() => togglePopup(true)}>load game</button>
-          <div className='mistakes'>mistakes: {mistakes}</div>
-          <button className="save-load-button" onClick={saveBoard}>save game</button>
-        </div>
-        {displayableBoard(board.current)}
-        <div className='sudoku-selector-panel'>
-          {valsLeft.current.map(n => {
-            return countInstances(board.current, n) === 9 
-            ? <div key={`selector-empty-${n}`} className="sudoku-selection empty"/> 
-            : <div
-              key={`selector-${n}`}
-              className={`sudoku-selection${selectedVal === n ? ' selected' : ''}`}
-              onClick={() => onSelectorClick(n)}
-            >
-              {n}
+        <Popup/>
+        {valCounts.some(n => n !== 9) ? <>
+          <div className='save-load'>
+            <button className="save-load-button" onClick={() => togglePopup(true)}>load game</button>
+            <div className='mistakes'>mistakes: {mistakes}</div>
+            <button className="save-load-button" onClick={saveBoard}>save game</button>
+          </div>
+          {displayableBoard(board.current)}
+          <div className='sudoku-selector-panel'>
+            {valsLeft.current.map(n => {
+              return valCounts[n-1] === 9 
+              ? <div key={`selector-empty-${n}`} className="sudoku-selection empty"/> 
+              : <div
+                key={`selector-${n}`}
+                className={`sudoku-selection${selectedVal === n ? ' selected' : ''}`}
+                onClick={() => onSelectorClick(n)}
+              >
+                {n}
+              </div>
+            })}
+          </div>
+          <div className='sudoku-control-panel'>
+            <div className={`sudoku-control-pane undo`} onClick={onUndo}>
+              <img alt="undo icon" className='control img undo' />
+              <p className='control undo'>undo</p>
             </div>
-          })}
+            <div className={`sudoku-control-pane timer`} onClick={() => toggleTime(runTimer)}>
+              <img alt="timer icon" className='control timer' />
+              <p className={`control timer${runTimer ? "" : " selected"}`}>
+                {Math.floor(timerMillis / 1_000)}
+              </p>
+            </div>
+            <div
+              className={`sudoku-control-pane pencil${takingNotes ? " selected" : ""}`}
+              onClick={() => setTakingNotes(b => !b)}
+            >
+              <img alt="pencil icon" className="control pencil" />
+              <p className='control pencil'>notes</p>
+            </div>
+          </div>
+        </>
+        : <div className='sudoku-container win'>
+          <div className='sudoku-win-text'>
+          <p>you win! play</p>
+          <p className="again-button" onClick={() => window.location.reload()}>&nbsp;again?</p>
+          </div>
+          <img alt="dancer man" src={dancer}/>
         </div>
-        <div className='sudoku-control-panel'>
-          <div className={`sudoku-control-pane undo`} onClick={onUndo}>
-            <img alt="undo icon" className='control img undo' />
-            <p className='control undo'>undo</p>
-          </div>
-          <div className={`sudoku-control-pane timer`} onClick={() => toggleTime(runTimer)}>
-            <img alt="timer icon" className='control timer' />
-            <p className={`control timer${runTimer ? "" : " selected"}`}>
-              {Math.floor(timerMillis / 1_000)}
-            </p>
-          </div>
-          <div
-            className={`sudoku-control-pane pencil${takingNotes ? " selected" : ""}`}
-            onClick={() => setTakingNotes(b => !b)}
-          >
-            <img alt="pencil icon" className="control pencil" />
-            <p className='control pencil'>notes</p>
-          </div>
-        </div>
+        }
       </div>
     </div>
   );
