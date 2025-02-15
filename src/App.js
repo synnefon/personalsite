@@ -6,7 +6,7 @@ import Projects from './projects/Projects';
 import About from './about/About';
 import Snek from './snek/Snek';
 import Wip from './projects/Wip';
-import Sudoku from './toolkit/Sudoku';
+import Sudoku from './sudoku/Sudoku';
 
 function App() {
   return (

@@ -52,11 +52,31 @@
   color: orange;
   animation: boing 0.3s ease-in-out alternate;
 }
+.game-stats {
+  margin-top: 30px;
+  justify-self: left;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  font-size: var(--small-font);
+  height: fit-content;
+}
+.game-stat-wrapper {
+  display: inline-grid;
+  grid-template-columns: 45% 1% 54%;
+  height: fit-content;
+  margin: 5px;
+}
+.game-stat.colon {
+  justify-self: right;
+}
 
 .confirmation-popup {
   position: absolute;
   z-index: 102;
-  top: 50%;
+  top: 30%;
+  justify-self: center;
   font-size: var(--small-font);
   color: var(--alt-text-color);
   background-color: var(--text-color);
