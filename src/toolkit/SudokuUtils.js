@@ -117,13 +117,13 @@ export const makeSudoku = () => {
   });
 }
 
-export const encryptBoardState = (board, solvedBoard, time, mistakes) => {
-  const str = JSON.stringify({ board, solvedBoard, time, mistakes });
+export const encryptBoardState = (savedBoard, savedSolvedBoard, savedTime, savedMistakes) => {
+  const str = JSON.stringify({ savedBoard, savedSolvedBoard, savedTime, savedMistakes });
   return encryptString(str);
 }
 
 export const decryptBoardState = (encrypted) => {
   const str = decryptString(encrypted);
-  const { board, solvedBoard, time, mistakes } = JSON.parse(str);
-  return [board, solvedBoard, Number(time), Number(mistakes)];
+  const { savedBoard, savedSolvedBoard, savedTime, savedMistakes } = JSON.parse(str);
+  return ({ savedBoard, savedSolvedBoard, savedTime, savedMistakes });
 }
