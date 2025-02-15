@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/static/css/main.ef289fb6.css",
-    "main.js": "/static/js/main.37bed737.js",
+    "main.css": "/static/css/main.4608430f.css",
+    "main.js": "/static/js/main.df3a3cc6.js",
     "static/media/the_gathering.mp3": "/static/media/the_gathering.2d97c4755109d9278151.mp3",
     "static/media/self.gif": "/static/media/self.ad1e6f139233db344487.gif",
     "static/media/cloud_mumbles.mp3": "/static/media/cloud_mumbles.f2a872c3b294e9f1547f.mp3",
@@ -13,6 +13,7 @@
     "static/media/2.m4a": "/static/media/2.82f010c0650b1bf5c326.m4a",
     "static/media/1.m4a": "/static/media/1.ce9cb5a92753b706726f.m4a",
     "static/media/4.m4a": "/static/media/4.647692296e8cfc60be80.m4a",
+    "static/media/dancer.gif": "/static/media/dancer.80f8815957c142cb926a.gif",
     "static/media/groovy_click.mp3": "/static/media/groovy_click.5cb6eae90670166005af.mp3",
     "static/media/F25_Bank_Printer.otf": "/static/media/F25_Bank_Printer.07be3c3654876f79f05c.otf",
     "static/media/bolt.gif": "/static/media/bolt.ea4844b2044da748e4ce.gif",
@@ -26,11 +27,11 @@
     "index.html": "/index.html",
     "static/media/timer-alt.svg": "/static/media/timer-alt.d327c9b5fbc0f95907ff.svg",
     "static/media/timer.svg": "/static/media/timer.9b4428eb6133edea970f.svg",
-    "main.ef289fb6.css.map": "/static/css/main.ef289fb6.css.map",
-    "main.37bed737.js.map": "/static/js/main.37bed737.js.map"
+    "main.4608430f.css.map": "/static/css/main.4608430f.css.map",
+    "main.df3a3cc6.js.map": "/static/js/main.df3a3cc6.js.map"
   },
   "entrypoints": [
-    "static/css/main.ef289fb6.css",
-    "static/js/main.37bed737.js"
+    "static/css/main.4608430f.css",
+    "static/js/main.df3a3cc6.js"
   ]
 }
