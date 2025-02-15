@@ -295,6 +295,12 @@ export default function Sudoku() {
     );
   }
 
+  const formatTime = (millis) => {
+    let seconds = Math.floor(millis / 1_000);
+    const minutes =  Math.floor(seconds / 60);
+    seconds -= minutes*60;
+    return (minutes > 0 ? `${minutes}:` : "") + `${seconds < 10 ? 0 : ""}${seconds}`;
+  }
   const valCounts = valsLeft.current.map(n => countInstances(board.current, n));
 
   return (
@@ -329,7 +335,7 @@ export default function Sudoku() {
             <div className={`sudoku-control-pane timer`} onClick={() => toggleTime(runTimer)}>
               <img alt="timer icon" className='control timer' />
               <p className={`control timer${runTimer ? "" : " selected"}`}>
-                {Math.floor(timerMillis / 1_000)}
+                {formatTime(timerMillis)}
               </p>
             </div>
             <div
