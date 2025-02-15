@@ -5,22 +5,33 @@ import { makeSudoku, encryptBoardState, decryptBoardState } from './SudokuUtils'
 
 import '../styles/sudoku.css'
 
+const makeColorBoard = (board) => {
+  return board.map((row, ridx) => {
+    return row.map((c, cidx) => {
+      return ({ ridx, cidx, val: c, color: null, notes: [], ignorable: false })
+    })
+  })
+};
+
+const countInstances = (board, n) => {
+  let count = 0;
+  for (let row of board) {
+    for (let cell of row) {
+      if (cell.val === n && cell.color !== "incorrect") count++;
+    }
+  }
+  return count;
+};
 
 export default function Sudoku() {
-  const makeColorBoard = (board) => {
-    return board.map((row, ridx) => {
-      return row.map((c, cidx) => {
-        return ({ ridx, cidx, val: c, color: null, notes: [], ignorable: false })
-      })
-    })
-  }
+  const ALL_NUMS = Array.from({ length: 9 }, (_, i) => String(i + 1));
+
   const sudoku = useMemo(() => makeSudoku(), []);
   const board = useRef(makeColorBoard(sudoku.board));
   const solvedBoard = useRef(makeColorBoard(sudoku.solvedBoard));
   const history = useRef([]);
-  const START_TIME = useRef(Date.now());
-
-  const ALL_NUMS = Array.from({ length: 9 }, (_, i) => String(i + 1));
+  const startTime = useRef(Date.now());
+  const valsLeft = useRef(ALL_NUMS);
 
   const [selectedVal, setSelectedVal] = useState(null);
   const [takingNotes, setTakingNotes] = useState(false);
@@ -152,6 +163,7 @@ export default function Sudoku() {
     if (isCorrect) {
       const filterNotes = (notes) => notes.filter(n => n !== selectedVal);
       const makeUpdate = (r, c) => ({ notes: filterNotes(board.current[r][c].notes), ignorable: true });
+
       updateNeighbors(makeUpdate, ridx, cidx, true);
     } else {
       setMistakes(m => m + 1);
@@ -179,7 +191,7 @@ export default function Sudoku() {
     if (b) {
       setRunTimer(false);
     } else {
-      START_TIME.current = Date.now() - timerMillis;
+      startTime.current = Date.now() - timerMillis;
       setRunTimer(true);
     }
   }
@@ -199,8 +211,8 @@ export default function Sudoku() {
         
         board.current = savedBoard;
         solvedBoard.current = savedSolvedBoard;
-        START_TIME.current = Date.now() - savedTime;
-        setTimerMillis(Date.now() - START_TIME.current);
+        startTime.current = Date.now() - savedTime;
+        setTimerMillis(Date.now() - startTime.current);
         setMistakes(savedMistakes);
         forceRefresh();
       });
@@ -210,7 +222,7 @@ export default function Sudoku() {
   useEffect(() => {
     const delta = 1_000;
     const timeout = setTimeout(() => {
-      if (runTimer) setTimerMillis(Date.now() - START_TIME.current);
+      if (runTimer) setTimerMillis(Date.now() - startTime.current);
     }, delta);
 
     return () => clearTimeout(timeout);
@@ -292,15 +304,17 @@ export default function Sudoku() {
         </div>
         {displayableBoard(board.current)}
         <div className='sudoku-selector-panel'>
-          {ALL_NUMS.map((n) =>
-            <div
+          {valsLeft.current.map(n => {
+            return countInstances(board.current, n) === 9 
+            ? <div key={`selector-empty-${n}`} className="sudoku-selection empty"/> 
+            : <div
               key={`selector-${n}`}
               className={`sudoku-selection${selectedVal === n ? ' selected' : ''}`}
               onClick={() => onSelectorClick(n)}
             >
               {n}
             </div>
-          )}
+          })}
         </div>
         <div className='sudoku-control-panel'>
           <div className={`sudoku-control-pane undo`} onClick={onUndo}>
