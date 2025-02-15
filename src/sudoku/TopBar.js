@@ -1,25 +1,29 @@
 import { useState } from "react";
 
-export default function TopBar({mistakes, saveBoard, toggleTime, loadBoard}) {
+export default function TopBar({mistakes, saveBoard, toggleTime, runTimer, loadBoard}) {
   const [showPopup, setShowPopup] = useState(false);
-  const loadAndClose = () => {
-    loadBoard();
-    togglePopup(false);
-    toggleTime(true);
+  const [savedRunTimer, setSavedRunTimer] = useState(runTimer);
+
+  const closePopup = async ({refreshBoard = false}) => {
+    setShowPopup(false);
+    toggleTime(savedRunTimer);
+    if (refreshBoard) loadBoard();
   };
-  const togglePopup = (b) => {
-    setShowPopup(b);
-    toggleTime(b);
+  const closeAndLoad = () => closePopup({refreshBoard: true});
+  const openPopup = () => {
+    setSavedRunTimer(runTimer);
+    toggleTime(false);
+    setShowPopup(true);
   };
 
-  const ConfirmationPopup = ({loadAndClose}) => {
+  const ConfirmationPopup = () => {
     return (
       <>
         {showPopup && <div className='confirmation-popup'>
           load previously saved data into board? 
           <div className='choice-button-row'>
-            <button onClick={() => togglePopup(false)} className='choice-button'>nay</button>
-            <button onClick={loadAndClose} className='choice-button'>yea</button>
+            <button onClick={closePopup} className='choice-button'>nay</button>
+            <button onClick={closeAndLoad} className='choice-button'>yea</button>
           </div>
         </div>}
       </>
@@ -28,8 +32,8 @@ export default function TopBar({mistakes, saveBoard, toggleTime, loadBoard}) {
 
   return (
     <div className='save-load'>
-      <button className="save-load-button" onClick={() => togglePopup(true)}>load game</button>
-      <ConfirmationPopup loadAndClose={loadAndClose}/>
+      <button className="save-load-button" onClick={openPopup}>load game</button>
+      <ConfirmationPopup/>
       <div className='mistakes'>mistakes: {mistakes}</div>
       <button className="save-load-button" onClick={saveBoard}>save game</button>
     </div>

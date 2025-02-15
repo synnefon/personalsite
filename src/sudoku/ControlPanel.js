@@ -7,7 +7,7 @@ export default function ControlPanel({onUndo, runTimer, toggleTime, timerMillis,
         <img alt="undo icon" className='control img undo' />
         <p className='control undo'>undo</p>
       </div>
-      <div className={`sudoku-control-pane timer`} onClick={() => toggleTime(runTimer)}>
+      <div className={`sudoku-control-pane timer`} onClick={() => toggleTime(!runTimer)}>
         <img alt="timer icon" className='control timer' />
         <p className={`control timer${runTimer ? "" : " selected"}`}>
           {formatTime(timerMillis)}

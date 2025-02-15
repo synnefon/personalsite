@@ -190,7 +190,7 @@ export default function Sudoku() {
   }
 
   const toggleTime = (b) => {
-    if (b) {
+    if (!b) {
       setRunTimer(false);
     } else {
       startTime.current = Date.now() - timerMillis;
@@ -245,6 +245,7 @@ export default function Sudoku() {
               mistakes={mistakes}
               saveBoard={saveBoard}
               toggleTime={toggleTime}
+              runTimer={runTimer}
               loadBoard={loadBoard}
             />
             <DisplayableBoard 
