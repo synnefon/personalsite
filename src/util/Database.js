@@ -17,11 +17,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const signInUser = async () => {
-  const provider = new GoogleAuthProvider();
   const auth = getAuth();
+  const user = auth.currentUser;
+  if (user) return user.uid;
+
+  const provider = new GoogleAuthProvider();
   return await signInWithPopup(auth, provider)
-    .then((result) => result.user.uid)
-    .catch((error) => console.log(error));
+    .then(result => result.user.uid)
+    .catch(error => console.log(error));
 }
 
 export const writeBoard = async (userId, boardStr) => {
