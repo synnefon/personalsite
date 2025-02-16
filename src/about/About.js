@@ -122,12 +122,18 @@ export default function About() {
         <div className="about-text">
           <h1 className="about-title"><span>hello, i'm connor</span></h1>
           <div id="about-description" className="about-description">
-            {descriptions.map((desc, idx) => <MeFact key={desc.text} idx={idx} desc={desc.text} />)}
+            {descriptions.map((desc, idx) => {
+              return <MeFact
+                key={desc.text}
+                idx={idx}
+                desc={desc.text}
+              />
+            })}
             {skipButton.current}
           </div>
         </div>
       </div>
-      <Self />
+      <Self listExpanded={skip || descriptions.every(d => d.showSelf)}/>
     </div>
   );
 };

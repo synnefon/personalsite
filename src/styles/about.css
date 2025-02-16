@@ -75,14 +75,14 @@
   margin-bottom: 1em;
 }
 
-.me-fact-wrapper:hover {
-  font-weight: bold!important;
-  color: orange!important;
-  animation: wiggle 0.3s linear;
-}
 p.me-fact {
   margin: 0px;
   margin-bottom: 1.9em;
+}
+p.me-fact:hover {
+  font-weight: bold!important;
+  color: orange!important;
+  animation: wiggle 0.3s linear;
 }
 
 @keyframes wiggle {
@@ -137,8 +137,13 @@ img#person-icon {
   cursor: var(--pointer);
 }
 
-img#person-icon:hover {
+/* img#person-icon:hover {
   content: url("../assets/orange_person.png");
+  animation: wiggle 0.3s linear;
+  pointer-events: auto;
+} */
+*.hovered-person {
+  content: url("../assets/orange_person.png")!important;
   animation: wiggle 0.3s linear;
   pointer-events: auto;
 }

@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import selfGif from '../assets/self.gif';
 
 
-export default function Self() {
+export default function Self({listExpanded}) {
   const [showSelf, setShowSelf] = useState(false);
+  const hasWiggled = useRef(false);
 
   const toggleShowSelf = () => {
     restartGif();
@@ -23,6 +24,18 @@ export default function Self() {
     }
   }
 
+  useEffect(() => {
+    const personIcon = document.getElementById('person-icon');
+    const toggleWiggle = () =>  personIcon.classList.toggle('hovered-person');
+    personIcon.addEventListener("mouseover", toggleWiggle);
+    personIcon.addEventListener("mouseleave", toggleWiggle);
+
+    return () => {
+      personIcon.removeEventListener("mouseover", toggleWiggle);
+      personIcon.removeEventListener("mouseleave", toggleWiggle);
+    };
+  }, []);
+
   // handle showing the gif of the author waving
   useEffect(() => {
     if (!showSelf) return;
@@ -31,6 +44,31 @@ export default function Self() {
     return () => clearTimeout(timeoutId);
   }, [showSelf]);
 
+  useEffect(() => {
+    const toggleWiggle = () => {
+      if (!listExpanded || hasWiggled.current) return;
+      const personIcon = document.getElementById('person-icon');
+      personIcon?.classList.toggle('hovered-person');
+    };
+
+    if (!listExpanded || hasWiggled.current) return;
+
+    for (let t of [3, 6, 15, 25]) {
+      const first = t * 1_000;
+      const second = first + 450;
+      const duration = 410;
+      for (let t of [first, first+duration, second, second+duration]) {
+        setTimeout(toggleWiggle, t);
+      }
+    }
+
+    setTimeout(() => {
+      if (!listExpanded || hasWiggled.current) return;
+      hasWiggled.current = true;
+      setShowSelf(true);
+    }, 45_000);
+  }, [listExpanded, hasWiggled]);
+
   return (
     <>
       <img 
@@ -38,12 +76,14 @@ export default function Self() {
         className={`${showSelf ? 'invisible' : ''}`}
         alt="a pixelated person"
         onClick={toggleShowSelf}
+        onMouseEnter={() => hasWiggled.current = true}
       />
       <img 
         id="self-gif"
         alt="a gif of the author waving"
         src={selfGif} 
         style={{display: showSelf ? 'block' : 'none'}}
+        onMouseEnter={() => hasWiggled.current = true}
       />
     </>
   );
