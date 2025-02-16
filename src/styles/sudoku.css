@@ -16,7 +16,7 @@
 }
 
 .sudoku-container {
-  margin-top: 1em;
+  margin-top: 0.6em;
   width: calc(var(--base-dim) * 4.5);
   height: fit-content;
   overflow-y: visible;
@@ -132,10 +132,15 @@
 
 .save-load-button {
   top: inherit;
-  border: 3px solid var(--text-color);
+  border: none;
   border-radius: 10%;
   position: relative;
   width: fit-content;
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: color, background-color, display 0.8s ease-in!important;
 }
 .save-load-button:first-child {
   justify-self: start;
@@ -151,18 +156,33 @@
 .save-load-button:active {
   background-color: var(--text-color)!important;
   color: var(--alt-text-color)!important;
-  border: 3px solid var(--text-color);
   transition: all 0.5s cubic-bezier(0.1, 0.6, 0.1, 0.6);
 
 }
+img.database {
+  height: 2.5em;
+  transition-duration: 0.5s;
+}
+img.database.download {
+  content: url('../assets/sudoku/download.svg');
+}
+img.database.upload {
+  content: url('../assets/sudoku/upload.svg');
+}
+
+.save-load-text {
+  margin-bottom: 5px;
+  font-size: calc(8px + 1vmin) !important;
+}
+
 .mistakes {
   text-align: center;
-  margin-top: 10%;
+  margin-top: 20%;
   font-size: var(--small-font)
 }
 
 .sudoku-board {
-  margin-top: calc(var(--base-dim)/10);
+  margin-top: calc(var(--base-dim)/20);
   width: 100%;
   aspect-ratio: 1/1;
   border: 4px solid var(--alt-text-color);
@@ -310,7 +330,7 @@ img.control.pencil {
   border: 2px solid var(--alt-text-color);
 }
 .sudoku-control-pane.pencil.selected > img.control.pencil { 
-  content: url('../assets/sudoku/bg-pencil.svg');
+  content: url('../assets/sudoku/pencil_selected.svg');
 }
 
 .note-cell {
@@ -336,7 +356,7 @@ img.control.pencil {
 
 .save-key-button {
   background-color: var(--bg-color);
-  border: 3px solid var(--text-color);
+  /* border: 3px solid var(--text-color); */
   width: fit-content;
   cursor: var(--pointer);
   color: var(--text-color);
@@ -371,7 +391,13 @@ img.control.pencil {
   .save-load-button:hover {
     color: var(--bg-color);
     background-color: var(--alt-text-color);
-    border-color: var(--alt-text-color);
+    border: none;
+  }
+  .save-load-button:hover > .database.upload {
+    content: url('../assets/sudoku/upload_bg.svg');
+  }
+  .save-load-button:hover > .database.download {
+    content: url('../assets/sudoku/upload_bg.svg');
   }
 
   .sudoku-control-pane:hover {
@@ -379,13 +405,13 @@ img.control.pencil {
   }
 
   .sudoku-control-pane.undo:hover > img.undo {
-    content: url('../assets/sudoku/undo-alt.svg');
+    content: url('../assets/sudoku/undo_focus.svg');
   }
   .sudoku-control-pane.timer:hover > img.timer {
-    content: url('../assets/sudoku/timer-alt.svg');
+    content: url('../assets/sudoku/timer_focus.svg');
   }
   .sudoku-control-pane.pencil:hover > img.pencil {
-    content: url('../assets/sudoku/pencil-alt.svg');
+    content: url('../assets/sudoku/pencil_focus.svg');
   }
   .sudoku-control-pane.pencil.selected:hover > img.pencil {
     content: url('../assets/sudoku/pencil.svg');

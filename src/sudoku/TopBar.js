@@ -22,8 +22,12 @@ export default function TopBar({mistakes, saveBoard, toggleTime, runTimer, loadB
         {showPopup && <div className='confirmation-popup'>
           load previously saved data into board? 
           <div className='choice-button-row'>
-            <button onClick={closePopup} className='choice-button'>nay</button>
-            <button onClick={closeAndLoad} className='choice-button'>yea</button>
+            <button onClick={closePopup} className='choice-button'>
+              nay
+            </button>
+            <button onClick={closeAndLoad} className='choice-button'>
+              yea
+            </button>
           </div>
         </div>}
       </>
@@ -32,10 +36,16 @@ export default function TopBar({mistakes, saveBoard, toggleTime, runTimer, loadB
 
   return (
     <div className='save-load'>
-      <button className="save-load-button" onClick={openPopup}>load game</button>
+      <button className="save-load-button" onClick={openPopup}>
+        <img alt="download" className="database download"/>
+        <div className="save-load-text">load game</div>
+      </button>
       <ConfirmationPopup/>
       <div className='mistakes'>mistakes: {mistakes}</div>
-      <button className="save-load-button" onClick={saveBoard}>save game</button>
+      <button className="save-load-button" onClick={saveBoard}>
+        <img alt="upload" className="database upload"/>
+        <div className="save-load-text">save game</div>
+      </button>
     </div>
   );
 };
