@@ -48,19 +48,31 @@ div#rainfall-zone {
   overflow: hidden!important;
 }
 
-@media screen and (max-width: 500px) {
+@media screen and (max-width: 1255px) {
   div#raincloud {
+    margin-top: 10px;
     position: relative;
-    top: 2vh;
-    width: 80vw;
-    right: 0vw;
-    height: 500px;
+    bottom: 2vh;
+    width: 75%;
+    left: 12.5%;
+    height: 80vw;
   }
   :root {
-    --fall-height: 490px;
+    --fall-height: 80vw;
   }
   img.flower { 
     bottom: 2vh!important;
+  }
+}
+
+@media screen and (max-width: 500px) {
+  div#raincloud {
+    width: 90%;
+    left: 5%;
+    height: 100vw;
+  }
+  :root {
+    --fall-height: 100vw;
   }
 }
 

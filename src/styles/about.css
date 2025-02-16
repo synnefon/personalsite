@@ -156,12 +156,13 @@ img#self-gif {
   left: -6em!important;
 }
 
-@media screen and (max-width: 715px) { 
+@media screen and (max-width: 1200px) { 
   .about-text {
     width: 75%;
+    left: 20%;
   }
   img#person-icon { 
-    left: 0%;
+    left: 2%;
   }
   .about-title { 
     display: flex;

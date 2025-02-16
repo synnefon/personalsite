@@ -35,7 +35,6 @@
 }
 .nav-link:last-child {
   border-right: none;
-  margin-right: 0.6em;
 }
 
 .nav-link:hover {
@@ -82,7 +81,32 @@
     left: auto;
   }
   .nav-link {
-    margin-right: 1.2em;
+    margin-left: 0.4em;
+    flex-direction: column;
+    pointer-events: all;
+    cursor: var(--pointer)!important;
+  }
+  .nav-link-text {
+    margin-top: 0.4em;
+    margin-left: 0px;
+    color: var(--text-color);
+  }
+  .nav-link:hover > .nav-link-text {
+    color: orange;
+  }
+  .nav-link:hover > .nav-icon.home {
+    content: url('../assets/nav_icons/house_focus.svg');
+  }
+  .nav-link:hover > .nav-icon.projects {
+    content: url('../assets/nav_icons/pen_focus.svg');
+  }
+  .nav-link:hover > .nav-icon.about {
+    content: url('../assets/nav_icons/info_focus.svg');
+  }
+  .nav-icon {
+    align-self: center;
+    justify-self: center;
+    margin-right: 0px!important;
   }
 }
 

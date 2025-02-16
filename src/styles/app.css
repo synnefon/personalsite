@@ -17,17 +17,9 @@ div#app-base {
   color: var(--text-color);
 }
 
-div#app.lightning {
-  background-image: url('../assets/bolt_backgroud.gif')!important;
-  background-size: cover;
-  background-color: transparent;
-  height: 100%;
-  overflow-y: hidden;
-}
-
 .content-wrapper {
   font-size: calc(12px + 2vmin);
-  top: 0px;
+  top: 20px;
   width: 45%;
   display: flex;
   flex-direction: column;
@@ -69,7 +61,7 @@ div#app.lightning {
   position: relative;
   display: grid;  
   grid-template-columns: repeat(2, 50%);
-  grid-template-rows: repeat(3, 7.5em);
+  grid-template-rows: repeat(3, 5.5em);
   user-select: none!important;
 }
 
@@ -133,7 +125,7 @@ p.link-text {
 
 @media screen and (max-width: 1255px) {
   .content-wrapper { 
-    width: 50%;
+    width: 70%;
   }
 }
 
@@ -143,10 +135,16 @@ p.link-text {
   }
 }
 
+@media screen and (max-width: 600px) {
+  .content-wrapper { 
+    width: 80%;
+    margin-top: 50px;
+  }
+}
+
 @media screen and (max-width: 500px) {
   .content-wrapper { 
     width: 90%;
-    margin-top: 50px;
     overflow-y: hidden;
   }
 

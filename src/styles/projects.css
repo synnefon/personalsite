@@ -3,3 +3,11 @@
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);
 }
+
+div#app.lightning {
+  background-image: url('../assets/bolt_backgroud.gif')!important;
+  background-size: cover;
+  background-color: transparent;
+  height: 100%;
+  overflow-y: hidden;
+}
