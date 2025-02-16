@@ -13,6 +13,7 @@
 .about-text-wrapper {
   width: 100%;
   height: 100%;
+  left: calc(-3.2vmin);
   position: absolute;
   overflow: hidden;
   overflow-y: visible;
@@ -53,18 +54,20 @@
 
 .me-fact-wrapper {
   background: transparent;
-  display: inline-block;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   transform-style: preserve-3d;
   padding: 0%;
   margin-bottom: -0.2em;
   color: var(--text-color);
-  z-index: 999;
+  z-index: 1;
   font-weight: normal;
   color: inherit;
+  cursor: var(--pointer);
 }
 
 .me-fact-wrapper:first-child { 
-  margin-bottom: 1em;
   margin-bottom: 0.8em;
 }
 
@@ -77,6 +80,10 @@
   color: orange!important;
   animation: wiggle 0.3s linear;
 }
+p.me-fact {
+  margin: 0px;
+  margin-bottom: 1.9em;
+}
 
 @keyframes wiggle {
   0% { transform: scale(1.0); }
@@ -84,6 +91,12 @@
   40% { transform: scale(1.02) translateY(-2%); }
   95% { transform: scale(0.99); }
   100% { transform: scale(1.0); }
+}
+
+.speaker-icon {
+  height: calc(3.2vmin);
+  margin-right: 0.6em;
+  align-self: flex-start;
 }
 
 button#skip-button {
@@ -120,13 +133,14 @@ img#person-icon {
   left: 4%;
   bottom: 0%;
   transition: left 0.7s ease-in-out;
-  cursor: pointer!important;
   content: url("../assets/person.png");
+  cursor: var(--pointer);
 }
 
 img#person-icon:hover {
   content: url("../assets/orange_person.png");
   animation: wiggle 0.3s linear;
+  pointer-events: auto;
 }
 
 img#self-gif {

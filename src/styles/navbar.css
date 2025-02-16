@@ -1,36 +1,41 @@
 .navbar {
   position: absolute!important;
   background-color: transparent;
-  overflow: hidden;
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
   font-size: calc(16px + 1vmin);
   display: flex;
-  flex-direction: row;
-  right: 0em;
-  margin-top: 0.2em;
-  margin-right: 0.2em;
+  flex-direction: column;
+  left: 0em;
+  margin-top: 0.5em;
+  margin-left: 0.4em;
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
-  z-index: 1;
+  z-index: 999;
 }
 
 .hamburger-react {
   position: relative;
   background-color: transparent;
   color: var(--text-color);
-  z-index: 1;
+  z-index: 999;
 }
 
 .nav-link {
   color: var(--text-color);
   text-decoration: none; /* no underlined link text */
   transition-duration: 0.4s;
+  transition: color, display  0.4s;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 1em;
+  color: transparent;
+  cursor: var(--arrow)!important;
+  pointer-events: none;
 }
 .nav-link:last-child {
   border-right: none;
+  margin-right: 0.6em;
 }
 
 .nav-link:hover {
@@ -39,9 +44,46 @@
 }
 
 .nav-link-text {
-  margin: 0.6em;
-  margin-top: 0.5em;
-  margin-bottom: 0.5em;
+  height: fit-content;
+  margin-left: 0.3em;
+  pointer-events: none;
+}
+
+.nav-icon {
+  display: block;
+  height: calc(5.2vmin);
+  margin-right: 0.2em;
+  cursor: var(--pointer);
+  pointer-events: all;
+}
+.nav-icon.projects {
+  content: url('../assets/nav_icons/pen.svg');
+}
+.nav-icon.home {
+  content: url('../assets/nav_icons/house.svg');
+}
+.nav-icon.about {
+  content: url('../assets/nav_icons/info.svg');
+}
+.nav-icon.home:hover {
+  content: url('../assets/nav_icons/house_focus.svg');
+}
+.nav-icon.projects:hover {
+  content: url('../assets/nav_icons/pen_focus.svg');
+}
+.nav-icon.about:hover {
+  content: url('../assets/nav_icons/info_focus.svg');
+}
+
+@media screen and (max-width: 500px) {
+  .navbar {
+    flex-direction: row!important;
+    right: 0px!important;
+    left: auto;
+  }
+  .nav-link {
+    margin-right: 1.2em;
+  }
 }
 
 @media screen and (max-width: 230px) {

@@ -8,7 +8,7 @@ const Navbar=()=>{
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [width, setWidth] = useState(window.innerWidth);
 
-  const isMobile = width <= 768;
+  const isMobile = width <= 500;
 
   useEffect(() => {
     const handleWindowSizeChange = () => setWidth(window.innerWidth);
@@ -16,20 +16,23 @@ const Navbar=()=>{
       return () => window.removeEventListener('resize', handleWindowSizeChange);
   }, [setWidth]);
 
+  const NavItem = ({title, to}) => {
+    return (
+      <Link className={`nav-link ${title}`} to={to}>
+        <img className={`nav-icon ${title}`} alt="home icon"></img>
+        <div className='nav-link-text'>{title}</div>
+      </Link>
+    );
+  }
+
   return (    
     <div className='navbar'>
       {
         (hamburgerOpen || !isMobile) && 
         <>
-          <Link className='nav-link' to="/">
-            <div className='nav-link-text'>home</div>
-          </Link>
-          <Link className='nav-link' to="/projects">
-            <div className='nav-link-text'>projects</div>
-          </Link>
-          <Link className='nav-link' to="/about">
-            <div className='nav-link-text'>about</div>
-          </Link>
+          <NavItem title={"home"} to={"/"}/>
+          <NavItem title={"projects"} to={"/projects"}/>
+          <NavItem title={"about"} to={"/about"}/>
         </>
       }
       { isMobile && <Hamburger toggled={hamburgerOpen} toggle={setHamburgerOpen}/> }

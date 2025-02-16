@@ -85,7 +85,7 @@ button {
   background-color: var(--bg-color);
   border: 3px solid var(--text-color);
   width: fit-content;
-  cursor: pointer;
+  cursor: var(--pointer);
   color: var(--text-color);
   font-family: inherit;
   font-size: calc(12px + 1vmin)!important;

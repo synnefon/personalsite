@@ -16,7 +16,7 @@
 }
 
 .sudoku-container {
-  margin-top: 45px;
+  margin-top: 1em;
   width: calc(var(--base-dim) * 4.5);
   height: fit-content;
   overflow-y: visible;
@@ -45,7 +45,7 @@
 }
 .again-button {
   color: var(--alt-text-color);
-  cursor: pointer;
+  cursor: var(--pointer);
   transition-duration: 0.1s;
 }
 .again-button:hover {
@@ -64,7 +64,7 @@
 }
 .game-stat-wrapper {
   display: inline-grid;
-  grid-template-columns: 50% 1% 49%;
+  grid-template-columns: 45% 1% 54%;
   height: fit-content;
   margin: 5px;
 }
@@ -169,6 +169,7 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  font-family: F25_Bank_Printer;
 }
 
 .sudoku-row {
@@ -190,6 +191,7 @@
 
 .sudoku-selector-panel {
   border: 4px solid var(--alt-text-color);
+  font-family: F25_Bank_Printer;
 }
 
 .sudoku-control-panel { 
@@ -273,7 +275,7 @@ img.control.pencil {
   align-items: center;
 }
 .sudoku-selection.empty {
-  cursor: default!important;
+  cursor: var(--pointer);
 }
 .sudoku-selection:last-of-type{
   border-right: none;
@@ -289,7 +291,7 @@ img.control.pencil {
 .sudoku-selection:hover,
 .sudoku-control:hover,
 .sudoku-control-pane:hover {
-  cursor: pointer;
+  cursor: var(--pointer);
 }
 
 .sudoku-selection, .sudoku-control {
@@ -336,13 +338,12 @@ img.control.pencil {
   background-color: var(--bg-color);
   border: 3px solid var(--text-color);
   width: fit-content;
-  cursor: pointer;
+  cursor: var(--pointer);
   color: var(--text-color);
   font-family: inherit;
   font-size: calc(8px + 1vmin) !important;
   z-index: 101;
   position: relative;
-  /* top: calc(min(25vh, 35vw) + 10vh); */
   height: 3em;
 }
 

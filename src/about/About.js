@@ -3,6 +3,8 @@ import { TypeAnimation } from 'react-type-animation';
 import { PersonalAudio } from "../util/Audio";
 import Self from "./Self";
 
+import speaker from '../assets/about/speaker.svg';
+
 import '../styles/about.css';
 
 const Description = (initialShowSelf, text) => {
@@ -59,16 +61,22 @@ export default function About() {
       repeat={1}
       cursor={false}
     />;
-  
+
+    const Speaker = () => <></>
+    // <img alt={"speaker"} className="speaker-icon" src={speaker}/>
+    
     return (
       descriptions.at(idx+1)?.showSelf || skip 
-        ? <p className="me-fact" key={desc}>{desc}</p>
-        : descriptions[idx].showSelf ? anim : <></>
+        ? <>
+            {/* <Speaker/> */}
+            <p className="me-fact" key={desc}>{desc}</p>
+          </>
+        : descriptions[idx].showSelf ? <><Speaker/>{anim}</> : <></>
     );
   };
   
   const MeFact = ({ idx, desc }) => {
-    const audioSrc = require(`../assets/about_voices/${idx}.m4a`);
+    const audioSrc = require(`../assets/about/voices/${idx}.m4a`);
     // pause audio when page changes
     useEffect(() => () => sfx.current.pause(), []);
 
@@ -112,7 +120,7 @@ export default function About() {
     <div id='app-base' className="about-colors">
       <div className="about-text-wrapper">
         <div className="about-text">
-          <h1 className="about-title"><span>hello 🖖 </span><span>i'm connor</span></h1>
+          <h1 className="about-title"><span>hello, i'm connor</span></h1>
           <div id="about-description" className="about-description">
             {descriptions.map((desc, idx) => <MeFact key={desc.text} idx={idx} desc={desc.text} />)}
             {skipButton.current}

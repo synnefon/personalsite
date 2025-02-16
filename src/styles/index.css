@@ -1,8 +1,13 @@
 @font-face {
-  /* font-family: 'F25_Bank_Printer';
-  src: local('F25'), url('../fonts/F25_Bank_Printer.otf') format('opentype'); */
   font-family: 'Pixelon';
   src: local('pixeloid'), url('../fonts/Pixelon.ttf') format('truetype');
+  font-weight: 100;
+  font-style: monospace;
+}
+
+@font-face {
+  font-family: 'F25_Bank_Printer';
+  src: local('F25'), url('../fonts/F25_Bank_Printer.otf') format('opentype');
   font-weight: 100;
   font-style: monospace;
 }
@@ -13,6 +18,8 @@
   --alt-text-color: rgb(5, 4, 4);
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);
+  --pointer: url('../assets/cursors/Dark/Hands/Hand2.png'), auto;
+  --arrow: url('../assets/cursors/Dark/Arrows/Arrow2.png'), auto;
 }
 
 @keyframes boing {
@@ -37,6 +44,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-color);
   color: var(--text-color);
+  cursor: var(--arrow);
 }
 
 code {

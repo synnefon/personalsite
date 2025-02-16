@@ -8,7 +8,7 @@
 	height: 4vh;
 	position: absolute;
   /* top: 85px; */
-  left: var(--rand);
+  right: var(--rand);
   z-index: 500;
   -webkit-animation: fall 3.01s linear;
   -moz-animation: fall 3.01s linear;
@@ -31,7 +31,7 @@
 div#raincloud {
   height: 100vh;
   width: 20vw;
-  left: -21vw;
+  right: -21vw;
   top: 0vh;
   position: absolute;
   overflow: visible;
@@ -53,7 +53,7 @@ div#rainfall-zone {
     position: relative;
     top: 2vh;
     width: 80vw;
-    left: 0vw;
+    right: 0vw;
     height: 500px;
   }
   :root {
@@ -75,7 +75,7 @@ div#cloud {
   width: 100%;
   z-index: 999;
   position: absolute;
-  cursor: pointer;
+  cursor: var(--pointer);
 }
 
 .cloud-gif {
@@ -94,7 +94,7 @@ img#lightning {
   width: 200%;
   top: 10%;
   bottom: 0em;
-  left: -50%;
+  right: -50%;
   z-index: 500;
 }  
 

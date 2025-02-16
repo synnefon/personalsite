@@ -40,7 +40,7 @@ div#app.lightning {
   position: relative;
   top: 0px;
   margin: 1px;
-  margin-top: 1em;
+  margin-top: 0.5em;
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
@@ -81,13 +81,15 @@ div#app.lightning {
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  cursor: var(--pointer);
 }
-
+a.link {
+  cursor: var(--pointer);
+}
 a.link:hover {
   color: var(--inv-text-color);
   background-color: var(--inv-bg-color);
 }
-
 a.link:hover > p.link-text {
   animation: boing 0.3s ease-in-out alternate;
 }
@@ -126,6 +128,7 @@ p.link-text {
   margin-left: 0.6em;
   margin-top: 0em;
   margin-right: 0.4em;
+  cursor: var(--pointer);
 }
 
 @media screen and (max-width: 1255px) {
