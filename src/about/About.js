@@ -109,9 +109,8 @@ export default function About() {
         className="me-fact-wrapper"
         id={`me-fact-wrapper${idx}`}
         key={desc}
-        onClick={toggleSfx}
       >
-        <TypeIt idx={idx} desc={desc} audioSrc={audioSrc} />
+        <TypeIt idx={idx} desc={desc} audioSrc={audioSrc} onClick={toggleSfx}/>
       </span>
     );
   };

@@ -64,7 +64,6 @@
   z-index: 1;
   font-weight: normal;
   color: inherit;
-  cursor: var(--pointer);
 }
 
 .me-fact-wrapper:first-child { 
@@ -78,6 +77,7 @@
 p.me-fact {
   margin: 0px;
   margin-bottom: 1.9em;
+  cursor: var(--pointer);
 }
 p.me-fact:hover {
   font-weight: bold!important;
