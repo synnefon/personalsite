@@ -1,8 +1,11 @@
 import { formatTime } from './Util';
 
 import dancer from '../assets/sudoku/dancer.gif'
+import { useEffect } from 'react';
 
-export default function WinScreen ({timerMillis, mistakes, notesTaken}) {
+export default function WinScreen ({timerMillis, toggleTime, mistakes, notesTaken}) {
+  useEffect(() => toggleTime(false), [toggleTime]);
+
   const GameStat = ({title, value}) => {
     return (
       <div className='game-stat-wrapper'>

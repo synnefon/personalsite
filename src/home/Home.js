@@ -2,9 +2,11 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { TypeAnimation } from 'react-type-animation';
 
+import '../styles/home.css';
 import '../styles/app.css';
 
 export default function Home() {
+
   const descriptors = [
     'software engineer', 'thing maker', 'dungeon master', 'rock climber', 'cat dad', 'amateur wood worker', 'crepuscular code creator', '3d printer mechanic',
     'bike lane survivor', ['mildly dysleixc', 'mildly dyslexic'], 'magic player', 'part-time audiophile', 'full-time wikipedia spelunker', 'human band name generator', 'secretly a gnome',
@@ -37,13 +39,13 @@ export default function Home() {
           <span className="bracket home-colors">{'}'}</span>
         </h5>
         <div className="links home-colors">
-          <Link className="link home-colors top left" to="/about" rel="noreferrer">
-            <p className="link-text home-colors">about</p>
-            <p className="tooltip-text home-colors">$ whois connorhopkins.dev</p>
-          </Link>
-          <Link className="link top right home-colors" to="/projects" rel="noreferrer">
+          <Link className="link top left home-colors" to="/projects" rel="noreferrer">
             <p className="link-text home-colors">projects</p>
             <p className="tooltip-text home-colors">an assortment of web-accessible work</p>
+          </Link>
+          <Link className="link home-colors top right" to="/about" rel="noreferrer">
+            <p className="link-text home-colors">about</p>
+            <p className="tooltip-text home-colors">$ whois connorhopkins.dev</p>
           </Link>
           <a className="link middle left home-colors" href="https://docs.google.com/document/d/1A77LelAqhLE98pvkOYpHjUAs7l3LW-mcSQr-_MpbP6I" rel="noreferrer">
             <p className="link-text home-colors">resume</p>

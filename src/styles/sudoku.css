@@ -64,7 +64,7 @@
 }
 .game-stat-wrapper {
   display: inline-grid;
-  grid-template-columns: 45% 1% 54%;
+  grid-template-columns: 50% 1% 49%;
   height: fit-content;
   margin: 5px;
 }
@@ -213,7 +213,6 @@
 }
 .sudoku-control-pane.timer { 
   justify-self: center;
-  width: 100%;
   justify-content: center;
   text-align: center;
 }
@@ -231,13 +230,14 @@ p.control {
   position: relative;
   text-align: center;
   justify-content: center;
+  align-items: center;
 }
 p.control.timer.selected {
   color: var(--alt-text-color);
 }
 
 img.control {
-  display: block;
+  display: flex;
   justify-self: center;
   margin-bottom: 5px;
   height: calc(6.2vmin);

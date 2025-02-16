@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import Raincloud from '../raincloud/Raincloud';
 
+import '../styles/projects.css';
 import '../styles/app.css';
 
 export default function Projects() {
@@ -22,14 +23,14 @@ export default function Projects() {
             <p className="link-text proj-colors">3d models</p>
             <p className="tooltip-text proj-colors">a collection of my 3d-printable work</p>
           </a>
-          <a className="link proj-colors top right" href="http://18.190.107.78" rel="noreferrer">
-            <p className="link-text proj-colors">shufflenator</p>
-            <p className="tooltip-text proj-colors">gives a card deck's optimal shuffle pattern</p>
-          </a>
-          <Link className="link proj-colors middle left" to="/sudoku" rel="noreferrer">
+          <Link className="link proj-colors top right" to="/sudoku" rel="noreferrer">
             <p className="link-text proj-colors">sudoku</p>
             <p className="tooltip-text proj-colors">an eternal classic</p>
           </Link>
+          <a className="link proj-colors middle left" href="http://18.190.107.78" rel="noreferrer">
+            <p className="link-text proj-colors">shufflenator</p>
+            <p className="tooltip-text proj-colors">gives a card deck's optimal shuffle pattern</p>
+          </a>
           {
               <Link className="link proj-colors middle right" to="/snek" rel="noreferrer">
                 <p className="link-text proj-colors">snek</p>

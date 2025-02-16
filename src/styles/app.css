@@ -3,18 +3,11 @@ body {
   overflow-y: scroll;
 }
 
-.proj-colors {
-  --bg-color: var(--alt-text-color)!important;
-  --inv-text-color: var(--bg-color)!important;
-  --inv-bg-color: var(--text-color)!important;
-}
-
 div#app-base {
   overflow-x: hidden;
   transition: all 2s linear!important;
   justify-content: center;
   display: flex;
-  /* overflow-y: hidden; */
   top: 0px!important;
   bottom: 0px;
   position: absolute;
@@ -33,7 +26,7 @@ div#app.lightning {
 }
 
 .content-wrapper {
-  font-size: calc(10px + 2vmin);
+  font-size: calc(12px + 2vmin);
   top: 0px;
   width: 45%;
   display: flex;
@@ -128,7 +121,7 @@ p.link-text {
 }
 
 .tooltip-text { 
-  font-size: calc(8px + 1vmin);
+  font-size: calc(10px + 1vmin);
   color: var(--inv-text-color);
   margin-left: 0.6em;
   margin-top: 0em;
@@ -143,7 +136,7 @@ p.link-text {
 
 @media screen and (max-width: 975px) {
   p.link-text {
-    font-size: calc(10px + 1vmin);
+    font-size: calc(12px + 1vmin);
   }
 }
 
@@ -170,7 +163,7 @@ p.link-text {
 }
 
 div#footer {
-  font-size: calc(6px + 1vmin);
+  font-size: calc(8px + 1vmin);
   text-align: right;
   align-content: center;
   align-items: center;

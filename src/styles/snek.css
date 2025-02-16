@@ -9,7 +9,7 @@
   margin: 0px;
   position: absolute;
   top: 15vh;
-  font-size: calc(16px + 2vmin);
+  font-size: calc(60px + 2vmin);
 }
 
 .game-container {
@@ -88,7 +88,7 @@ button {
   cursor: pointer;
   color: var(--text-color);
   font-family: inherit;
-  font-size: calc(8px + 1vmin)!important;
+  font-size: calc(12px + 1vmin)!important;
   z-index: 101;
   position: absolute;
   top: calc(min(25vh, 35vw) + 10vh);
@@ -120,6 +120,8 @@ button:hover {
   overflow: hidden;
   z-index: 100;
   white-space: nowrap;
+  z-index: 999;
+  pointer-events: none;
 }
 
 .game-over-text {

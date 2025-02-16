@@ -271,6 +271,7 @@ export default function Sudoku() {
           </>
           : <WinScreen
               timerMillis={timerMillis}
+              toggleTime={toggleTime}
               mistakes={mistakes}
               notesTaken={notesTaken}
             />
