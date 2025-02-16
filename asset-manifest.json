@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/static/css/main.96560245.css",
-    "main.js": "/static/js/main.9fe12e62.js",
+    "main.css": "/static/css/main.1d9ff8b1.css",
+    "main.js": "/static/js/main.c166c7e1.js",
     "static/media/the_gathering.mp3": "/static/media/the_gathering.2d97c4755109d9278151.mp3",
     "static/media/self.gif": "/static/media/self.ad1e6f139233db344487.gif",
     "static/media/cloud_mumbles.mp3": "/static/media/cloud_mumbles.f2a872c3b294e9f1547f.mp3",
@@ -39,11 +39,11 @@
     "static/media/undo_focus.svg": "/static/media/undo_focus.276760595ad2ace70111.svg",
     "static/media/timer.svg": "/static/media/timer.4ee7cd0799986c827fe0.svg",
     "static/media/timer_focus.svg": "/static/media/timer_focus.d078fce01e3307044491.svg",
-    "main.96560245.css.map": "/static/css/main.96560245.css.map",
-    "main.9fe12e62.js.map": "/static/js/main.9fe12e62.js.map"
+    "main.1d9ff8b1.css.map": "/static/css/main.1d9ff8b1.css.map",
+    "main.c166c7e1.js.map": "/static/js/main.c166c7e1.js.map"
   },
   "entrypoints": [
-    "static/css/main.96560245.css",
-    "static/js/main.9fe12e62.js"
+    "static/css/main.1d9ff8b1.css",
+    "static/js/main.c166c7e1.js"
   ]
 }
