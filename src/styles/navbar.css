@@ -75,16 +75,23 @@
 }
 
 @media screen and (max-width: 500px) {
+  .hamburger-react {
+    width: 100%;
+    justify-self: center;
+  }
   .navbar {
-    flex-direction: row!important;
-    right: 0px!important;
-    left: auto;
+    display: inline-grid;
+    grid-template-columns: 14% 28% 28% 28% 2%;
+    left: 0px!important;
+    width: 100%;
+    margin-left: 0px;
+    justify-content: right;
   }
   .nav-link {
-    margin-left: 0.4em;
     flex-direction: column;
     pointer-events: all;
     cursor: var(--pointer)!important;
+    width: 100%;
   }
   .nav-link-text {
     margin-top: 0.4em;
@@ -104,8 +111,6 @@
     content: url('../assets/nav_icons/info_focus.svg');
   }
   .nav-icon {
-    align-self: center;
-    justify-self: center;
     margin-right: 0px!important;
   }
 }

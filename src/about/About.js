@@ -3,8 +3,6 @@ import { TypeAnimation } from 'react-type-animation';
 import { PersonalAudio } from "../util/Audio";
 import Self from "./Self";
 
-import speaker from '../assets/about/speaker.svg';
-
 import '../styles/about.css';
 
 const Description = (initialShowSelf, text) => {
@@ -52,6 +50,7 @@ export default function About() {
       }, 2_000);
     }
 
+    const fixed = <p className="me-fact" key={desc}>{desc}</p>;
     const anim = <TypeAnimation
       className="me-fact"
       key={desc}
@@ -61,17 +60,11 @@ export default function About() {
       repeat={1}
       cursor={false}
     />;
-
-    const Speaker = () => <></>
-    // <img alt={"speaker"} className="speaker-icon" src={speaker}/>
     
     return (
       descriptions.at(idx+1)?.showSelf || skip 
-        ? <>
-            {/* <Speaker/> */}
-            <p className="me-fact" key={desc}>{desc}</p>
-          </>
-        : descriptions[idx].showSelf ? <><Speaker/>{anim}</> : <></>
+        ? fixed
+        : descriptions[idx].showSelf ? anim : <></>
     );
   };
   
@@ -110,7 +103,9 @@ export default function About() {
         id={`me-fact-wrapper${idx}`}
         key={desc}
       >
-        <TypeIt idx={idx} desc={desc} audioSrc={audioSrc} onClick={toggleSfx}/>
+        <div className="" onClick={toggleSfx}>
+          <TypeIt idx={idx} desc={desc} audioSrc={audioSrc}/>
+        </div>
       </span>
     );
   };

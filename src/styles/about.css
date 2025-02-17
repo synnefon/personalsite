@@ -74,12 +74,12 @@
   margin-bottom: 1em;
 }
 
-p.me-fact {
+.me-fact {
   margin: 0px;
   margin-bottom: 1.9em;
   cursor: var(--pointer);
 }
-p.me-fact:hover {
+.me-fact:hover {
   font-weight: bold!important;
   color: orange!important;
   animation: wiggle 0.3s linear;
@@ -172,5 +172,6 @@ img#self-gif {
   .about-title { 
     display: flex;
     flex-direction: column;
+    margin-top: 40px;
   }
 }

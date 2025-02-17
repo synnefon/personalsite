@@ -27,6 +27,7 @@ const Navbar=()=>{
 
   return (    
     <div className='navbar'>
+      { isMobile && <Hamburger toggled={hamburgerOpen} toggle={setHamburgerOpen}/> }
       {
         (hamburgerOpen || !isMobile) && 
         <>
@@ -35,7 +36,6 @@ const Navbar=()=>{
           <NavItem title={"about"} to={"/about"}/>
         </>
       }
-      { isMobile && <Hamburger toggled={hamburgerOpen} toggle={setHamburgerOpen}/> }
     </div>
   );
 }
