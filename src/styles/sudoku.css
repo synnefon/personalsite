@@ -13,7 +13,7 @@
   --base-dim: min(17vw, 15vh);
   --large-font: calc(13px + 3.5vmin);
   --medium-font: calc(9px + 2.5vmin);
-  --small-font: calc(5px + 1.5vmin);
+  --small-font: max(calc(5px + 1.5vmin), 14px);
 }
 
 .sudoku-container {
@@ -175,13 +175,13 @@ img.database.upload {
 
 .save-load-text {
   margin-bottom: 5px;
-  font-size: calc(8px + 1vmin) !important;
+  font-size: var(--small-font)!important;
 }
 
 .mistakes {
   text-align: center;
   margin-top: 20%;
-  font-size: var(--small-font)
+  font-size: var(--small-font);
 }
 
 .sudoku-board {
@@ -268,7 +268,7 @@ img.control {
   display: flex;
   justify-self: center;
   margin-bottom: 5px;
-  height: calc(6.2vmin);
+  height: min(3.5em, 10vw);
   aspect-ratio: 1/1;
 }
 img.control.undo {
@@ -365,7 +365,6 @@ img.control.pencil {
 
 .save-key-button {
   background-color: var(--bg-color);
-  /* border: 3px solid var(--text-color); */
   width: fit-content;
   cursor: var(--pointer);
   color: var(--text-color);
