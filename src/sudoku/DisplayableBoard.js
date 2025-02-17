@@ -2,7 +2,7 @@ const noteSubCell = (cell, highlightCell, selectedVal, n) => {
   const key = `${cell.ridx}-${cell.cidx}-${n}`;
   const shouldHighlightText = n === (highlightCell?.val ? highlightCell.val : selectedVal);
   return <div key={key} className={`note-sub-cell ${shouldHighlightText && "text-highlight"}`}>
-    {cell.notes.includes(n) && cell.val === "." ? n : <></>}
+    {<div className={`${cell.notes.includes(n) && cell.val === "." ? "" : "invisible-num"}`}>{n}</div>}
   </div>;
 };
 

@@ -362,6 +362,9 @@ img.control.pencil {
   text-align: center;
   font-size: var(--small-font);
 }
+.invisible-num {
+  color: transparent;
+}
 
 .save-key-button {
   background-color: var(--bg-color);
