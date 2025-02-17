@@ -5,3 +5,7 @@
 body {
   background-color: var(--bg-color);
 }
+
+div#app-base {
+  transition: none!important;
+}

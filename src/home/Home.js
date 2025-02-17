@@ -1,11 +1,38 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TypeAnimation } from 'react-type-animation';
+import chroma from "chroma-js"
 
 import '../styles/home.css';
 import '../styles/app.css';
 
 export default function Home() {
+  const colors = ["#201658", "#1D24CA"];
+  const [color, setColor] = useState(colors[0]);
+  // const maxX = useRef(window.innerWidth);
+  const maxY = useRef(window.innerHeight);
+  const scale = chroma.scale([colors[0], colors[1]]);
+
+  const onMouseMove = useCallback(e => {
+    if (maxY.current > 0) {
+      // const percentX = e.clientX / maxX.current;
+      const percentY = e.clientY / maxY.current;
+      // const average = (percentX + percentY) / 2;
+
+      setColor(scale(percentY).hex());
+    }
+  }, [scale]);
+
+  const onResize = () => {
+    // maxX.current = window.innerWidth;
+    maxY.current = window.innerHeight;
+  }
+
+  useEffect(() => {
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("mousemove", onMouseMove);
+  }, [onMouseMove]);
 
   const descriptors = [
     'software engineer', 'thing maker', 'dungeon master', 'rock climber', 'cat dad', 'amateur wood worker', 'crepuscular code creator', '3d printer mechanic',
@@ -15,16 +42,22 @@ export default function Home() {
     '...pls look at projects', '...or just click on any link', "is running out of autobiographical subheadings",
   ];
 
-  useEffect(() => {document.getElementById("app-base").setAttribute('class', '')}, [])
+  useEffect(() => { document.getElementById("app-base").setAttribute('class', '') }, [])
 
   const extractDescription = (descriptor) => {
-    return descriptor.constructor === Array 
-      ? [descriptor[0], 500, descriptor[1], 3_500] 
+    return descriptor.constructor === Array
+      ? [descriptor[0], 500, descriptor[1], 3_500]
       : [descriptor, 3_000]
   }
 
   return (
-    <div id="app-base" className='home-colors'>
+    <div id="app-base"
+      className='home-colors'
+      style={{
+        "--bg-color": color,
+        "--inv-text-color": color
+      }}
+    >
       <div className="content-wrapper home-colors">
         <h2 className="title">connor hopkins</h2>
         <h5 className="description home-colors">

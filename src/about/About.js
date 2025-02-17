@@ -21,7 +21,7 @@ export default function About() {
     Description(false, "i operate best when using rapid iteration workflows: dive in and try something, gather the right data, then make it better. repeat."),
     Description(false, "i love being on teams of trusting, growth-oriented peers following a shared vision."),
     Description(false, "strengths: curiosity, strategic thinking, 'jump in', and empathy."),
-    Description(false, "weaknesses: perfectionistic streak, dislike of beaurocracy, and milk products."),
+    Description(false, "weaknesses: perfectionistic streak, impatience with beaurocracy, and milk products."),
   ];
   const skipButton = useRef(<button id='skip-button' onClick={() => {
     descriptions.forEach((d) => d.setShowSelf(true));
