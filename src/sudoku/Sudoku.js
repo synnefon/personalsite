@@ -13,7 +13,7 @@ import '../styles/sudoku.css'
 const makeColorBoard = (board) => {
   return board.map((row, ridx) => {
     return row.map((c, cidx) => {
-      return ({ ridx, cidx, val: c, color: null, notes: [], ignorable: false })
+      return ({ ridx, cidx, val: c, color: null, notes: [], ignorable: null })
     })
   })
 };
@@ -106,6 +106,19 @@ export default function Sudoku() {
     }
   }
 
+  const clearLikeNotes = (ridx, cidx, filterVal, record=true) => {
+    const filterNotes = (notes) => notes.filter(n => n !== filterVal);
+    const makeUpdate = (r, c) => {
+      const neighborUpdate = { 
+        notes: filterNotes(board.current[r][c].notes),
+        ignorable: true
+      };
+      return board.current[r][c].val === '.' ? neighborUpdate : false; 
+    };
+
+    updateNeighbors(makeUpdate, ridx, cidx, record);
+  }
+
   const updateCell = (ridx, cidx) => {
     if (selectedVal === board.current[ridx][cidx].val) {
       setCell({ update: { color: null, val: "." }, ridx, cidx, record: true });
@@ -114,16 +127,7 @@ export default function Sudoku() {
 
     const isCorrect = solvedBoard.current[ridx][cidx].val === selectedVal;
     if (isCorrect) {
-      const filterNotes = (notes) => notes.filter(n => n !== selectedVal);
-      const makeUpdate = (r, c) => {
-        const neighborUpdate = { 
-          notes: filterNotes(board.current[r][c].notes),
-          ignorable: true
-        };
-        return board.current[r][c].val === '.' ? neighborUpdate : false; 
-      };
-
-      updateNeighbors(makeUpdate, ridx, cidx, true);
+      clearLikeNotes(ridx, cidx, selectedVal);
     } else {
       setMistakes(m => m + 1);
     }
@@ -184,20 +188,27 @@ export default function Sudoku() {
     }
   }
 
-  const travelThroughTime = (dst, src) => {
+  const travelThroughTime = (dst, src, writeIgnorable=true) => {
     if (src.current.length === 0) return;
 
     clearHighlights();
 
     let cell = src.current.pop();
     dst.current.push({...board.current[cell.ridx][cell.cidx], ignorable: cell.ignorable });
-    board.current[cell.ridx][cell.cidx] = cell;
+    // board.current[cell.ridx][cell.cidx] = cell;
+    setCell({update: {...cell}, ridx: cell.ridx, cidx: cell.cidx, refresh: false});
+    if (!writeIgnorable) {
+      clearLikeNotes(cell.ridx, cell.cidx, cell.val, false);
+    }
 
     while (src.current.length > 0) {
       cell = src.current.pop();
       if (cell?.ignorable) {
         dst.current.push({...board.current[cell.ridx][cell.cidx], ignorable: cell.ignorable });
-        board.current[cell.ridx][cell.cidx] = cell;
+        if (writeIgnorable) {
+          setCell({update: {...cell}, ridx: cell.ridx, cidx: cell.cidx, refresh: false});
+        }
+        // board.current[cell.ridx][cell.cidx] = cell;
       } else {
         src.current.push(cell);
         break;
@@ -207,8 +218,8 @@ export default function Sudoku() {
     forceRefresh();
   }
 
-  const onUndo = () => travelThroughTime(future, history);
-  const onRedo = () => travelThroughTime(history, future);
+  const onUndo = () => travelThroughTime(future, history, true);
+  const onRedo = () => travelThroughTime(history, future, false);
 
   const toggleTime = (b) => {
     if (!b) {
