@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/static/css/main.36be28ae.css",
-    "main.js": "/static/js/main.d359eec9.js",
+    "main.css": "/static/css/main.3d8a28be.css",
+    "main.js": "/static/js/main.faa87ebc.js",
     "static/media/the_gathering.mp3": "/static/media/the_gathering.2d97c4755109d9278151.mp3",
     "static/media/self.gif": "/static/media/self.ad1e6f139233db344487.gif",
     "static/media/cloud_mumbles.mp3": "/static/media/cloud_mumbles.f2a872c3b294e9f1547f.mp3",
@@ -26,7 +26,6 @@
     "static/media/info_focus.svg": "/static/media/info_focus.2522e3d364aaed33ec2b.svg",
     "static/media/house.svg": "/static/media/house.4bae503015a7f88e8d6c.svg",
     "static/media/house_focus.svg": "/static/media/house_focus.9001ebacaa429eb26577.svg",
-    "static/media/speaker.svg": "/static/media/speaker.5b39f754750c7abc9f7dbc32e586cceb.svg",
     "index.html": "/index.html",
     "static/media/download.svg": "/static/media/download.92ba899f818fbf2a35a1.svg",
     "static/media/download_bg.svg": "/static/media/download_bg.22035fc07c36d7a02872.svg",
@@ -39,11 +38,11 @@
     "static/media/undo_focus.svg": "/static/media/undo_focus.276760595ad2ace70111.svg",
     "static/media/timer.svg": "/static/media/timer.4ee7cd0799986c827fe0.svg",
     "static/media/timer_focus.svg": "/static/media/timer_focus.d078fce01e3307044491.svg",
-    "main.36be28ae.css.map": "/static/css/main.36be28ae.css.map",
-    "main.d359eec9.js.map": "/static/js/main.d359eec9.js.map"
+    "main.3d8a28be.css.map": "/static/css/main.3d8a28be.css.map",
+    "main.faa87ebc.js.map": "/static/js/main.faa87ebc.js.map"
   },
   "entrypoints": [
-    "static/css/main.36be28ae.css",
-    "static/js/main.d359eec9.js"
+    "static/css/main.3d8a28be.css",
+    "static/js/main.faa87ebc.js"
   ]
 }
