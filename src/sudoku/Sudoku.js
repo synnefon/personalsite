@@ -35,6 +35,7 @@ export default function Sudoku() {
   const board = useRef(makeColorBoard(sudoku.board));
   const solvedBoard = useRef(makeColorBoard(sudoku.solvedBoard));
   const history = useRef([]);
+  const future = useRef([]);
   const startTime = useRef(Date.now());
 
   const [selectedVal, setSelectedVal] = useState(null);
@@ -52,15 +53,20 @@ export default function Sudoku() {
     return c1?.val === c2?.val && c1?.ridx === c2?.ridx && c1?.cidx === c2?.cidx;
   }
 
+  const updateTimeline = (cell, update) => {
+    history.current.push({ ...cell, ignorable: update.ignorable });
+    future.current = [];
+  }
+
   const setCell = ({ update, ridx, cidx, refresh = true, record = false }) => {
     const newBoard = board.current;
     const cell = newBoard[ridx][cidx];
 
     if (record) {
-      history.current.push({ ...cell, ignorable: update.ignorable });
+      updateTimeline(cell, update);
     }
 
-    newBoard[ridx][cidx] = { ...cell, ...update, ignorable: false };
+    newBoard[ridx][cidx] = { ...cell, ignorable: false, ...update };
     board.current = newBoard;
 
     if (refresh) forceRefresh();
@@ -72,7 +78,7 @@ export default function Sudoku() {
       update.notes = board.current[ridx][cidx].notes.filter(n => n !== selectedVal);
     } else {
       update.notes = board.current[ridx][cidx].notes.concat([selectedVal]);
-      setNotesTaken(nt => nt+1);
+      setNotesTaken(nt => nt + 1);
     }
     setCell({ update, ridx, cidx, record: true });
   }
@@ -88,12 +94,15 @@ export default function Sudoku() {
         cellsToUpdate.add({ ridx: gridRow, cidx: gridCol });
       }
       // row and col
-      if (i !== c) cellsToUpdate.add({ ridx: r, cidx: i });
-      if (i !== r) cellsToUpdate.add({ ridx: i, cidx: c });
+      if (i !== r) cellsToUpdate.add({ ridx: r, cidx: i });
+      if (i !== c) cellsToUpdate.add({ ridx: i, cidx: c });
     }
 
     for (let { ridx, cidx } of cellsToUpdate) {
-      setCell({ update: makeUpdate(ridx, cidx), ridx, cidx, record, refresh: false });
+      const update = makeUpdate(ridx, cidx);
+      if (update) {
+        setCell({ update: makeUpdate(ridx, cidx), ridx, cidx, record, refresh: false });
+      }
     }
   }
 
@@ -106,19 +115,26 @@ export default function Sudoku() {
     const isCorrect = solvedBoard.current[ridx][cidx].val === selectedVal;
     if (isCorrect) {
       const filterNotes = (notes) => notes.filter(n => n !== selectedVal);
-      const makeUpdate = (r, c) => ({ notes: filterNotes(board.current[r][c].notes), ignorable: true });
+      const makeUpdate = (r, c) => {
+        const neighborUpdate = { 
+          notes: filterNotes(board.current[r][c].notes),
+          ignorable: true
+        };
+        return board.current[r][c].val === '.' ? neighborUpdate : false; 
+      };
 
       updateNeighbors(makeUpdate, ridx, cidx, true);
     } else {
       setMistakes(m => m + 1);
     }
 
-    const update = {val: selectedVal, color:  isCorrect ? 'new-text' : 'incorrect'};
+    const update = { val: selectedVal, color: isCorrect ? 'new-text' : 'incorrect' };
     setCell({ update, ridx, cidx, record: true });
   }
 
   // does NOT refresh
   const clearHighlights = () => {
+    if (!highlightCell) return;
     setHighlightCell(null);
     const update = { highlightColor: null, textHighlight: null };
     for (let ridx = 0; ridx < 9; ridx++) {
@@ -168,26 +184,31 @@ export default function Sudoku() {
     }
   }
 
-  const onUndo = () => {
-    if (history.current.length === 0) return;
+  const travelThroughTime = (dst, src) => {
+    if (src.current.length === 0) return;
 
     clearHighlights();
 
-    let cell = history.current.pop();
+    let cell = src.current.pop();
+    dst.current.push({...board.current[cell.ridx][cell.cidx], ignorable: cell.ignorable });
     board.current[cell.ridx][cell.cidx] = cell;
 
-    while (history.current.length > 0) {
-      cell = history.current.pop();
-      if (cell.ignorable) {
+    while (src.current.length > 0) {
+      cell = src.current.pop();
+      if (cell?.ignorable) {
+        dst.current.push({...board.current[cell.ridx][cell.cidx], ignorable: cell.ignorable });
         board.current[cell.ridx][cell.cidx] = cell;
       } else {
-        history.current.push(cell);
+        src.current.push(cell);
         break;
       }
     }
 
     forceRefresh();
   }
+
+  const onUndo = () => travelThroughTime(future, history);
+  const onRedo = () => travelThroughTime(history, future);
 
   const toggleTime = (b) => {
     if (!b) {
@@ -210,7 +231,7 @@ export default function Sudoku() {
       await getBoard(uid).then(b => {
         const { savedBoard, savedSolvedBoard, savedTime, savedMistakes, savedNotesTaken } = decryptBoardState(b);
         if (!savedBoard) return;
-        
+
         board.current = savedBoard;
         solvedBoard.current = savedSolvedBoard;
         startTime.current = Date.now() - savedTime;
@@ -221,6 +242,8 @@ export default function Sudoku() {
         setSelectedVal(null);
         clearHighlights();
         forceRefresh();
+        history.current = [];
+        future.current = [];
       });
     });
   }
@@ -239,7 +262,7 @@ export default function Sudoku() {
   return (
     <div id='app-base' className={`sudoku-colors`}>
       <div className='sudoku-container'>
-        {valCounts.some(n => n !== 9) 
+        {valCounts.some(n => n !== 9)
           ? <>
             <TopBar
               mistakes={mistakes}
@@ -248,7 +271,7 @@ export default function Sudoku() {
               runTimer={runTimer}
               loadBoard={loadBoard}
             />
-            <DisplayableBoard 
+            <DisplayableBoard
               onBoardClick={onBoardClick}
               board={board.current}
               highlightCell={highlightCell}
@@ -262,6 +285,7 @@ export default function Sudoku() {
             />
             <ControlPanel
               onUndo={onUndo}
+              onRedo={onRedo}
               runTimer={runTimer}
               toggleTime={toggleTime}
               timerMillis={timerMillis}
@@ -270,11 +294,11 @@ export default function Sudoku() {
             />
           </>
           : <WinScreen
-              timerMillis={timerMillis}
-              toggleTime={toggleTime}
-              mistakes={mistakes}
-              notesTaken={notesTaken}
-            />
+            timerMillis={timerMillis}
+            toggleTime={toggleTime}
+            mistakes={mistakes}
+            notesTaken={notesTaken}
+          />
         }
       </div>
     </div>

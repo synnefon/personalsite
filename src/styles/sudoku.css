@@ -221,7 +221,7 @@ img.database.upload {
   margin-top: 5px;
   margin-bottom: 20px;
   display: inline-grid;
-  grid-template-columns: 33.33% 33.33% 33.33%;
+  grid-template-columns: 16.66% 16.66% 33.33% 33.33%;
   border: none;
 }
 
@@ -234,6 +234,9 @@ img.database.upload {
 }
 
 .sudoku-control-pane.undo { 
+  justify-self: start;
+}
+.sudoku-control-pane.redo { 
   justify-self: start;
 }
 .sudoku-control-pane.timer { 
@@ -270,6 +273,9 @@ img.control {
 }
 img.control.undo {
   content: url('../assets/sudoku/undo.svg');
+}
+img.control.redo {
+  content: url('../assets/sudoku/redo.svg');
 }
 img.control.timer {
   content: url('../assets/sudoku/timer.svg');
@@ -409,6 +415,9 @@ img.control.pencil {
 
   .sudoku-control-pane.undo:hover > img.undo {
     content: url('../assets/sudoku/undo_focus.svg');
+  }
+  .sudoku-control-pane.redo:hover > img.redo {
+    content: url('../assets/sudoku/redo_focus.svg');
   }
   .sudoku-control-pane.timer:hover > img.timer {
     content: url('../assets/sudoku/timer_focus.svg');
