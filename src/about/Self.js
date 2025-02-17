@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-import selfGif from '../assets/self.gif';
+import selfGif from '../assets/about/self.gif';
 
 
 export default function Self({listExpanded}) {

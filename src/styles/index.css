@@ -18,7 +18,7 @@
   --alt-text-color: rgb(5, 4, 4);
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);
-  --pointer: url('../assets/cursors/Dark/Hands/Hand2.png'), auto;
+  --pointer: url('../assets/cursors/Dark/Hands/Hand3.png'), auto;
   --arrow: url('../assets/cursors/Dark/Arrows/Arrow2.png'), auto;
 }
 

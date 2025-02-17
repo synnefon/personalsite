@@ -50,7 +50,7 @@ div#rainfall-zone {
 
 @media screen and (max-width: 1255px) {
   div#raincloud {
-    margin-top: 10px;
+    margin-top: 0px;
     position: relative;
     bottom: 2vh;
     width: 75%;
@@ -91,13 +91,13 @@ div#cloud {
 }
 
 .cloud-gif {
-  content: url('../assets/cloud.gif');
+  content: url('../assets/raincloud/cloud.gif');
 }
 .cloud-img {
-  content: url('../assets/cloud.png');
+  content: url('../assets/raincloud/cloud.png');
 }
 .cloud-img.hoverable-cloud:hover {
-  content: url('../assets/darkCloud.png');
+  content: url('../assets/raincloud/darkCloud.png');
 }
 
 img#lightning {

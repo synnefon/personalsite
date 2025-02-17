@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
-import dropImg from '../assets/drop.png'
+import dropImg from '../assets/raincloud/drop.png'
 
 import '../styles/raincloud.css'
 

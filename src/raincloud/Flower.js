@@ -22,7 +22,7 @@ export default function Flower({id, dropsToGrow, dropsFallen}) {
       className="flower"
       id={`flower${id}`}
       alt="a growing flower"
-      src={require(`../assets/flower_${flowerType}/flower${flowerIdx}.gif`)}
+      src={require(`../assets/raincloud/flower_${flowerType}/flower${flowerIdx}.gif`)}
       draggable={false}
       style={{'left': left}}
     />

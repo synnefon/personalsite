@@ -4,9 +4,9 @@ import { PersonalAudio } from '../util/Audio';
 import Flower from './Flower';
 import Rain from './Rain';
 
-import rainNoise from '../assets/cloud_mumbles.mp3'
-import thunderNoise from '../assets/thunder.mp3'
-import lightningBolt from '../assets/bolt.gif'
+import rainNoise from '../assets/raincloud/cloud_mumbles.mp3'
+import thunderNoise from '../assets/raincloud/thunder.mp3'
+import lightningBolt from '../assets/raincloud/bolt.gif'
 
 import '../styles/raincloud.css'
 

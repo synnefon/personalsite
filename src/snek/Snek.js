@@ -3,9 +3,9 @@ import { Direction } from 'rc-joystick';
 import { JoystickControls } from "./JoystickControls";
 import { PersonalAudio } from "../util/Audio"
 
-import clickNoise from '../assets/groovy_click.mp3';
-import gameOverNoise from '../assets/game_over.mp3';
-import gameMusicNoise from '../assets/the_gathering.mp3';
+import clickNoise from '../assets/snek/groovy_click.mp3';
+import gameOverNoise from '../assets/snek/game_over.mp3';
+import gameMusicNoise from '../assets/snek/the_gathering.mp3';
 
 import '../styles/snek.css'
 

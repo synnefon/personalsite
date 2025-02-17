@@ -133,17 +133,12 @@ img#person-icon {
   left: 4%;
   bottom: 0%;
   transition: left 0.7s ease-in-out;
-  content: url("../assets/person.png");
+  content: url("../assets/about/person.png");
   cursor: var(--pointer);
 }
 
-/* img#person-icon:hover {
-  content: url("../assets/orange_person.png");
-  animation: wiggle 0.3s linear;
-  pointer-events: auto;
-} */
 *.hovered-person {
-  content: url("../assets/orange_person.png")!important;
+  content: url("../assets/about/orange_person.png")!important;
   animation: wiggle 0.3s linear;
   pointer-events: auto;
 }
@@ -157,7 +152,7 @@ img#self-gif {
 }
 
 .invisible {
-  content: url("../assets/orange_person.png")!important;
+  content: url("../assets/about/orange_person.png")!important;
   left: -6em!important;
 }
 

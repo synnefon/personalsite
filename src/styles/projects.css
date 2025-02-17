@@ -5,7 +5,7 @@
 }
 
 div#app.lightning {
-  background-image: url('../assets/bolt_backgroud.gif')!important;
+  background-image: url('../assets/raincloud/bolt_backgroud.gif')!important;
   background-size: cover;
   background-color: transparent;
   height: 100%;
