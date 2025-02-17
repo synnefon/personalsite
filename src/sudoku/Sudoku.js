@@ -94,8 +94,8 @@ export default function Sudoku() {
         cellsToUpdate.add({ ridx: gridRow, cidx: gridCol });
       }
       // row and col
-      if (i !== r) cellsToUpdate.add({ ridx: r, cidx: i });
-      if (i !== c) cellsToUpdate.add({ ridx: i, cidx: c });
+      if (i !== c) cellsToUpdate.add({ ridx: r, cidx: i });
+      if (i !== r) cellsToUpdate.add({ ridx: i, cidx: c });
     }
 
     for (let { ridx, cidx } of cellsToUpdate) {
