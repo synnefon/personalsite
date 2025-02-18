@@ -53,38 +53,38 @@ export default function Sudoku() {
     return c1?.val === c2?.val && c1?.ridx === c2?.ridx && c1?.cidx === c2?.cidx;
   }
 
-  const updateTimeline = (cell, update) => {
-    history.current.push({ ...cell, ignorable: update.ignorable });
+  const updateTimeline = (ridx, cidx, cell, ignorable = false) => {
+    history.current.push(makeRecord(ridx, cidx, cell, ignorable));
     future.current = [];
   }
 
-  const setCell = ({ update, ridx, cidx, refresh = true, record = false }) => {
+  const setCell = ({ update, ridx, cidx, refresh = true, record = false, ignorable = false}) => {
     const newBoard = board.current;
     const cell = newBoard[ridx][cidx];
 
     if (record) {
-      updateTimeline(cell, update);
+      updateTimeline(ridx, cidx, cell, ignorable);
     }
 
-    newBoard[ridx][cidx] = { ...cell, ignorable: false, ...update };
+    newBoard[ridx][cidx] = { ...cell, ...update };
     board.current = newBoard;
 
     if (refresh) forceRefresh();
   }
 
-  const takeNote = (ridx, cidx) => {
+  const takeNote = (ridx, cidx, noteVal) => {
     const update = {};
-    if (board.current[ridx][cidx].notes.includes(selectedVal)) {
-      update.notes = board.current[ridx][cidx].notes.filter(n => n !== selectedVal);
+    if (board.current[ridx][cidx].notes.includes(noteVal)) {
+      update.notes = board.current[ridx][cidx].notes.filter(n => n !== noteVal);
     } else {
-      update.notes = board.current[ridx][cidx].notes.concat([selectedVal]);
+      update.notes = board.current[ridx][cidx].notes.concat([noteVal]);
       setNotesTaken(nt => nt + 1);
     }
     setCell({ update, ridx, cidx, record: true });
   }
 
   // does NOT refresh
-  const updateNeighbors = (makeUpdate, r, c, record = false) => {
+  const updateNeighbors = (makeUpdate, r, c, record = false, ignorable = false) => {
     const cellsToUpdate = new Set();
     for (let i = 0; i < 9; i++) {
       // sub grid
@@ -101,7 +101,7 @@ export default function Sudoku() {
     for (let { ridx, cidx } of cellsToUpdate) {
       const update = makeUpdate(ridx, cidx);
       if (update) {
-        setCell({ update: makeUpdate(ridx, cidx), ridx, cidx, record, refresh: false });
+        setCell({ update: makeUpdate(ridx, cidx), ridx, cidx, record, ignorable, refresh: false });
       }
     }
   }
@@ -109,30 +109,27 @@ export default function Sudoku() {
   const clearLikeNotes = (ridx, cidx, filterVal, record=true) => {
     const filterNotes = (notes) => notes.filter(n => n !== filterVal);
     const makeUpdate = (r, c) => {
-      const neighborUpdate = { 
-        notes: filterNotes(board.current[r][c].notes),
-        ignorable: true
-      };
+      const neighborUpdate = { notes: filterNotes(board.current[r][c].notes) };
       return board.current[r][c].val === '.' ? neighborUpdate : false; 
     };
 
-    updateNeighbors(makeUpdate, ridx, cidx, record);
+    updateNeighbors(makeUpdate, ridx, cidx, record, true);
   }
 
-  const updateCell = (ridx, cidx) => {
-    if (selectedVal === board.current[ridx][cidx].val) {
+  const updateCell = (ridx, cidx, updateVal) => {
+    if (updateVal === board.current[ridx][cidx].val) {
       setCell({ update: { color: null, val: "." }, ridx, cidx, record: true });
       return;
     };
 
-    const isCorrect = solvedBoard.current[ridx][cidx].val === selectedVal;
+    const isCorrect = solvedBoard.current[ridx][cidx].val === updateVal;
     if (isCorrect) {
-      clearLikeNotes(ridx, cidx, selectedVal);
+      clearLikeNotes(ridx, cidx, updateVal);
     } else {
       setMistakes(m => m + 1);
     }
 
-    const update = { val: selectedVal, color: isCorrect ? 'new-text' : 'incorrect' };
+    const update = { val: updateVal, color: isCorrect ? 'new-text' : 'incorrect' };
     setCell({ update, ridx, cidx, record: true });
   }
 
@@ -173,9 +170,9 @@ export default function Sudoku() {
     } else if (selectedVal === null) {
       forceRefresh();
     } else if (takingNotes) {
-      takeNote(ridx, cidx);
+      takeNote(ridx, cidx, selectedVal);
     } else {
-      updateCell(ridx, cidx);
+      updateCell(ridx, cidx, selectedVal);
     }
   }
 
@@ -188,38 +185,49 @@ export default function Sudoku() {
     }
   }
 
-  const travelThroughTime = (dst, src, writeIgnorable=true) => {
-    if (src.current.length === 0) return;
+  const makeRecord = (ridx, cidx, update, ignorable) => {
+    return ({ridx, cidx, update, ignorable});
+  }
+
+  const onUndo = () => {
+    const travelBackwards = () => {
+      let r = history.current.pop();
+      let update = r.update;
+      if (!r.ignorable) future.current.push(makeRecord(r.ridx, r.cidx, board.current[r.ridx][r.cidx], r.ignorable));
+      board.current[r.ridx][r.cidx] = {...board.current[r.ridx][r.cidx], ...update};
+    }
+
+    if (history.current.length === 0) return;
+
+    clearHighlights();
+    while (history.current.length > 0) {
+      if (!history.current[history.current.length-1].ignorable) break;
+      travelBackwards();
+    }
+    travelBackwards();
+
+    forceRefresh();
+  };
+
+  const onRedo = () => {
+    if (future.current.length === 0) return;
 
     clearHighlights();
 
-    let cell = src.current.pop();
-    dst.current.push({...board.current[cell.ridx][cell.cidx], ignorable: cell.ignorable });
-    // board.current[cell.ridx][cell.cidx] = cell;
-    setCell({update: {...cell}, ridx: cell.ridx, cidx: cell.cidx, refresh: false});
-    if (!writeIgnorable) {
-      clearLikeNotes(cell.ridx, cell.cidx, cell.val, false);
-    }
+    const r = future.current.pop();
 
-    while (src.current.length > 0) {
-      cell = src.current.pop();
-      if (cell?.ignorable) {
-        dst.current.push({...board.current[cell.ridx][cell.cidx], ignorable: cell.ignorable });
-        if (writeIgnorable) {
-          setCell({update: {...cell}, ridx: cell.ridx, cidx: cell.cidx, refresh: false});
-        }
-        // board.current[cell.ridx][cell.cidx] = cell;
-      } else {
-        src.current.push(cell);
-        break;
-      }
+    const boardCell = board.current[r.ridx][r.cidx];
+
+    history.current.push(makeRecord(r.ridx, r.cidx, boardCell, false));
+
+    const isCorrect = solvedBoard.current[r.ridx][r.cidx].val === r.update.val;
+    if (isCorrect) {
+      clearLikeNotes(r.ridx, r.cidx, r.update.val);
     }
+    setCell({update: r.update, ridx: r.ridx, cidx: r.cidx, refresh: false })
 
     forceRefresh();
-  }
-
-  const onUndo = () => travelThroughTime(future, history, true);
-  const onRedo = () => travelThroughTime(history, future, false);
+  };
 
   const toggleTime = (b) => {
     if (!b) {
@@ -231,15 +239,15 @@ export default function Sudoku() {
   }
 
   const saveBoard = async () => {
-    await signInUser().then(async (uid) => {
+    return signInUser().then(async (uid) => {
       const boardString = encryptBoardState(board.current, solvedBoard.current, timerMillis, mistakes, notesTaken);
-      await writeBoard(uid, boardString);
-    });
+      return writeBoard(uid, boardString).catch(e => e);
+    }).catch(e => e);
   }
 
   const loadBoard = async () => {
-    await signInUser().then(async (uid) => {
-      await getBoard(uid).then(b => {
+    return signInUser().then(async (uid) => {
+      return getBoard(uid).then(b => {
         const { savedBoard, savedSolvedBoard, savedTime, savedMistakes, savedNotesTaken } = decryptBoardState(b);
         if (!savedBoard) return;
 
@@ -255,8 +263,8 @@ export default function Sudoku() {
         forceRefresh();
         history.current = [];
         future.current = [];
-      });
-    });
+      }).catch(e => e);
+    }).catch(e => e);
   }
 
   useEffect(() => {

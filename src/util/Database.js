@@ -19,29 +19,21 @@ const app = initializeApp(firebaseConfig);
 export const signInUser = async () => {
   const auth = getAuth();
   const user = auth.currentUser;
-  if (user) return user.uid;
+  if (user !== null && await auth.authStateReady()) {
+    return user.uid;
+  };
 
   const provider = new GoogleAuthProvider();
-  return await signInWithPopup(auth, provider)
-    .then(result => result.user.uid)
-    .catch(error => console.log(error));
+  return signInWithPopup(auth, provider).then(result => result.user.uid);
 }
 
 export const writeBoard = async (userId, boardStr) => {
-  const db = getDatabase(app);
-  await set(ref(db, `boards/${userId}`), String(boardStr))
-    .catch(e => console.log(e));
+  const dbRef = ref(getDatabase(app), `boards/${userId}`);
+  return set(dbRef, String(boardStr));
 }
 
 export const getBoard = async (userId) => {
-  const dbRef = ref(getDatabase());
-  return await get(child(dbRef, `boards/${userId}`)).then((snapshot) => {
-    if (snapshot.exists()) {
-      return snapshot.val();
-    } else {
-      console.log("No data available");
-    }
-  }).catch((error) => {
-    console.error(error);
-  });
+  const dbRef = ref(getDatabase(app));
+  return get(child(dbRef, `boards/${userId}`))
+    .then((snapshot) => snapshot?.val());
 }
