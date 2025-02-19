@@ -123,7 +123,13 @@ export default function Sudoku() {
     const filterNotes = (notes) => notes.filter(n => n !== filterVal);
     const makeUpdate = (r, c) => {
       const neighborUpdate = { notes: filterNotes(board.current[r][c].notes) };
-      return board.current[r][c].val === '.' ? neighborUpdate : false;
+      let shouldFilter = board.current[r][c].val === '.';
+      if (board.current[r][c].val === filterVal) {
+        neighborUpdate.val = '.';
+        neighborUpdate.color = null;
+        shouldFilter = true;
+      }
+      return shouldFilter ? neighborUpdate : false;
     };
 
     return getNeighborUpdates(makeUpdate, ridx, cidx);
@@ -208,7 +214,6 @@ export default function Sudoku() {
       setSelectedVal(null);
     }
   }
-
 
   const travelThroughTime = (from, to) => {
     const getSaveCells = cells => cells.map(cell => board.current[cell.ridx][cell.cidx]);
