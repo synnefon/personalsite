@@ -13,7 +13,7 @@ import '../styles/sudoku.css'
 const makeColorBoard = (board) => {
   return board.map((row, ridx) => {
     return row.map((c, cidx) => {
-      return ({ ridx, cidx, val: c, color: null, notes: [], ignorable: null })
+      return ({ ridx, cidx, val: c, color: null, notes: [] })
     })
   })
 };
@@ -53,22 +53,26 @@ export default function Sudoku() {
     return c1?.val === c2?.val && c1?.ridx === c2?.ridx && c1?.cidx === c2?.cidx;
   }
 
-  const updateTimeline = (ridx, cidx, cell, ignorable = false) => {
-    history.current.push(makeRecord(ridx, cidx, cell, ignorable));
+  const updateTimeline = (cells) => {
+    history.current.push(cells);
     future.current = [];
   }
 
-  const setCell = ({ update, ridx, cidx, refresh = true, record = false, ignorable = false}) => {
-    const newBoard = board.current;
-    const cell = newBoard[ridx][cidx];
+  const setCells = ({ updates, refresh = true, record = false }) => {
+    const savedCells = [];
+    for (let update of updates) {
+      const ridx = update.ridx;
+      const cidx = update.cidx;
+      const newBoard = board.current;
+      const cell = newBoard[ridx][cidx];
 
-    if (record) {
-      updateTimeline(ridx, cidx, cell, ignorable);
+      if (record) savedCells.push(cell);
+
+      newBoard[ridx][cidx] = { ...cell, ...update };
+      board.current = newBoard;
     }
 
-    newBoard[ridx][cidx] = { ...cell, ...update };
-    board.current = newBoard;
-
+    if (savedCells.length > 0) updateTimeline(savedCells);
     if (refresh) forceRefresh();
   }
 
@@ -80,57 +84,68 @@ export default function Sudoku() {
       update.notes = board.current[ridx][cidx].notes.concat([noteVal]);
       setNotesTaken(nt => nt + 1);
     }
-    setCell({ update, ridx, cidx, record: true });
+    const updates = [{ ...update, ridx, cidx }];
+    setCells({ updates, ridx, cidx, record: true });
+  }
+
+  const getNeighbors = (ridx, cidx) => {
+    const neighbors = new Set();
+    for (let i = 0; i < 9; i++) {
+      // sub grid
+      const gridRow = (Math.floor(ridx / 3) * 3) + Math.floor(i / 3);
+      const gridCol = (Math.floor(cidx / 3) * 3) + (i % 3);
+      if (ridx !== gridRow && cidx !== gridCol) {
+        neighbors.add({ ridx: gridRow, cidx: gridCol });
+      }
+      // row and col
+      if (i !== cidx) neighbors.add({ ridx, cidx: i });
+      if (i !== ridx) neighbors.add({ ridx: i, cidx });
+    }
+    return neighbors;
   }
 
   // does NOT refresh
-  const updateNeighbors = (makeUpdate, r, c, record = false, ignorable = false) => {
-    const cellsToUpdate = new Set();
-    for (let i = 0; i < 9; i++) {
-      // sub grid
-      const gridRow = (Math.floor(r / 3) * 3) + Math.floor(i / 3);
-      const gridCol = (Math.floor(c / 3) * 3) + (i % 3);
-      if (r !== gridRow && c !== gridCol) {
-        cellsToUpdate.add({ ridx: gridRow, cidx: gridCol });
-      }
-      // row and col
-      if (i !== c) cellsToUpdate.add({ ridx: r, cidx: i });
-      if (i !== r) cellsToUpdate.add({ ridx: i, cidx: c });
-    }
+  const getNeighborUpdates = (makeUpdate, r, c) => {
+    const cellsToUpdate = getNeighbors(r, c);
+    const updates = []
 
     for (let { ridx, cidx } of cellsToUpdate) {
       const update = makeUpdate(ridx, cidx);
       if (update) {
-        setCell({ update: makeUpdate(ridx, cidx), ridx, cidx, record, ignorable, refresh: false });
+        updates.push({ ...update, ridx, cidx })
       }
     }
+
+    return updates;
   }
 
-  const clearLikeNotes = (ridx, cidx, filterVal, record=true) => {
+  const getClearableLikeNoteCells = (ridx, cidx, filterVal) => {
     const filterNotes = (notes) => notes.filter(n => n !== filterVal);
     const makeUpdate = (r, c) => {
       const neighborUpdate = { notes: filterNotes(board.current[r][c].notes) };
-      return board.current[r][c].val === '.' ? neighborUpdate : false; 
+      return board.current[r][c].val === '.' ? neighborUpdate : false;
     };
 
-    updateNeighbors(makeUpdate, ridx, cidx, record, true);
+    return getNeighborUpdates(makeUpdate, ridx, cidx);
   }
 
   const updateCell = (ridx, cidx, updateVal) => {
     if (updateVal === board.current[ridx][cidx].val) {
-      setCell({ update: { color: null, val: "." }, ridx, cidx, record: true });
+      const updates = [{ color: null, val: ".", ridx, cidx }]
+      setCells({ updates, ridx, cidx, record: true });
       return;
     };
 
+    let updates = [];
     const isCorrect = solvedBoard.current[ridx][cidx].val === updateVal;
     if (isCorrect) {
-      clearLikeNotes(ridx, cidx, updateVal);
+      updates = [...getClearableLikeNoteCells(ridx, cidx, updateVal), ...updates];
     } else {
       setMistakes(m => m + 1);
     }
 
-    const update = { val: updateVal, color: isCorrect ? 'new-text' : 'incorrect' };
-    setCell({ update, ridx, cidx, record: true });
+    updates.push({ ridx, cidx, val: updateVal, color: isCorrect ? 'new-text' : 'incorrect' });
+    setCells({ updates, ridx, cidx, record: true });
   }
 
   // does NOT refresh
@@ -140,26 +155,35 @@ export default function Sudoku() {
     const update = { highlightColor: null, textHighlight: null };
     for (let ridx = 0; ridx < 9; ridx++) {
       for (let cidx = 0; cidx < 9; cidx++) {
-        setCell({ update, ridx, cidx, refresh: false });
+        const updates = [{ ...update, ridx, cidx }];
+        setCells({ updates, ridx, cidx, refresh: false });
       }
     }
   }
 
   const highlightStuff = (ridx, cidx) => {
-    const update = {};
     const isHighlighted = cellsEq(board.current[ridx][cidx], highlightCell);
+    console.log(board.current[ridx][cidx])
+    console.log(highlightCell)
 
-    if (isHighlighted) {
-      setCell({ update: { highlightColor: null }, ridx, cidx, refresh: false });
-      update.highlightColor = null;
-    } else {
-      setHighlightCell(board.current[ridx][cidx]);
-      setCell({ update: { highlightColor: 'epicenter' }, ridx, cidx, refresh: false });
-      update.highlightColor = 'highlight';
+    const epicenterUpdate = isHighlighted
+      ? { highlightColor: null, ridx, cidx }
+      : { highlightColor: 'epicenter', ridx, cidx };
+
+    const makeNeighborUpdate = (r, c) => isHighlighted
+      ? { highlightColor: null, r, c }
+      : { highlightColor: 'highlight', r, c };
+
+    const neighborUpdates = getNeighborUpdates(makeNeighborUpdate, ridx, cidx);
+
+    const updates = [epicenterUpdate];
+    for (let update of neighborUpdates) {
+      updates.push(update);
     }
 
-    updateNeighbors(() => update, ridx, cidx);
-    forceRefresh();
+    setCells({ updates, record: false, refresh: true });
+
+    setHighlightCell(isHighlighted ? null : board.current[ridx][cidx]);
   }
 
   const onBoardClick = (ridx, cidx) => {
@@ -185,49 +209,24 @@ export default function Sudoku() {
     }
   }
 
-  const makeRecord = (ridx, cidx, update, ignorable) => {
-    return ({ridx, cidx, update, ignorable});
+
+  const travelThroughTime = (from, to) => {
+    const getSaveCells = cells => cells.map(cell => board.current[cell.ridx][cell.cidx]);
+
+    if (to.current.length === 0) return;
+    clearHighlights();
+
+    let cells = to.current.pop();
+    from.current.push(getSaveCells(cells));
+    for (let cell of cells) {
+      board.current[cell.ridx][cell.cidx] = cell;
+    }
+
+    forceRefresh();
   }
 
-  const onUndo = () => {
-    const travelBackwards = () => {
-      let r = history.current.pop();
-      let update = r.update;
-      if (!r.ignorable) future.current.push(makeRecord(r.ridx, r.cidx, board.current[r.ridx][r.cidx], r.ignorable));
-      board.current[r.ridx][r.cidx] = {...board.current[r.ridx][r.cidx], ...update};
-    }
-
-    if (history.current.length === 0) return;
-
-    clearHighlights();
-    while (history.current.length > 0) {
-      if (!history.current[history.current.length-1].ignorable) break;
-      travelBackwards();
-    }
-    travelBackwards();
-
-    forceRefresh();
-  };
-
-  const onRedo = () => {
-    if (future.current.length === 0) return;
-
-    clearHighlights();
-
-    const r = future.current.pop();
-
-    const boardCell = board.current[r.ridx][r.cidx];
-
-    history.current.push(makeRecord(r.ridx, r.cidx, boardCell, false));
-
-    const isCorrect = solvedBoard.current[r.ridx][r.cidx].val === r.update.val;
-    if (isCorrect) {
-      clearLikeNotes(r.ridx, r.cidx, r.update.val);
-    }
-    setCell({update: r.update, ridx: r.ridx, cidx: r.cidx, refresh: false })
-
-    forceRefresh();
-  };
+  const onUndo = () => travelThroughTime(future, history);
+  const onRedo = () => travelThroughTime(history, future);
 
   const toggleTime = (b) => {
     if (!b) {
