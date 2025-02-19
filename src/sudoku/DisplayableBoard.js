@@ -10,7 +10,7 @@ const noteSubCell = (cell, highlightCell, selectedVal, n) => {
   );
 };
 
-const DisplayableCell = ({cell, highlightCell, selectedVal}) => {
+const DisplayableCell = ({ cell, highlightCell, selectedVal }) => {
   if (cell.val !== ".") return <div>{cell.val}</div>;
   const makeSubCell = (n) => noteSubCell(cell, highlightCell, selectedVal, n);
   return <div className='note-cell'>
@@ -20,14 +20,14 @@ const DisplayableCell = ({cell, highlightCell, selectedVal}) => {
   </div>;
 };
 
-export default function DisplayableBoard ({board, highlightCell, onBoardClick, selectedVal}) {
+export default function DisplayableBoard({ board, highlightCell, onBoardClick, selectedVal }) {
   return (
     <div className='sudoku-board'>
       {board.map((row, ridx) => {
         return (
           <div key={ridx} className='sudoku-row'>
             {row.map((cell, cidx) => {
-              const shouldHighlightText = 
+              const shouldHighlightText =
                 cell.color !== "incorrect"
                 && cell.val === (highlightCell?.val ? highlightCell.val : selectedVal);
               const color = `

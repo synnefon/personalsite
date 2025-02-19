@@ -1,21 +1,21 @@
 import { useState } from "react";
 
-export default function TopBar({mistakes, saveBoard, toggleTime, runTimer, loadBoard}) {
+export default function TopBar({ mistakes, saveBoard, toggleTime, runTimer, loadBoard }) {
   const [showLoadPopup, setShowLoadPopup] = useState(false);
   const [showNotifyPopup, setShowNotifyPopup] = useState(false);
   const [NotifyPopupMsg, setNotifyPopupMsg] = useState("");
   const [savedRunTimer, setSavedRunTimer] = useState(runTimer);
 
-  const onCloseLoadPopup = async ({refreshBoard = false}) => {
+  const onCloseLoadPopup = async ({ refreshBoard = false }) => {
     setShowLoadPopup(false);
     toggleTime(savedRunTimer);
     if (refreshBoard) {
-      await loadBoard().then(result =>{
+      await loadBoard().then(result => {
         toggleNotifyPopup(result);
       })
     }
   };
-  const onCloseAndLoad = () => onCloseLoadPopup({refreshBoard: true});
+  const onCloseAndLoad = () => onCloseLoadPopup({ refreshBoard: true });
   const onOpenLoadPopup = () => {
     setSavedRunTimer(runTimer);
     toggleTime(false);
@@ -24,9 +24,11 @@ export default function TopBar({mistakes, saveBoard, toggleTime, runTimer, loadB
 
   const toggleNotifyPopup = (result) => {
     if (String(result).includes("FirebaseError")) {
-      setNotifyPopupMsg(<div style={{color: "red"}}>
-        ERROR! database did not respond
-        </div>);
+      setNotifyPopupMsg(
+        <div style={{ color: "red" }}>
+          ERROR! database did not respond
+        </div>
+      );
     } else {
       setNotifyPopupMsg("success!");
       setTimeout(() => setShowNotifyPopup(false), 2_000);
@@ -37,7 +39,7 @@ export default function TopBar({mistakes, saveBoard, toggleTime, runTimer, loadB
   const onSave = async () => {
     await saveBoard().then(result => {
       toggleNotifyPopup(result);
-    })
+    }).catch(e => console.log(e))
   }
 
   const LoadPopup = () => {
@@ -59,12 +61,12 @@ export default function TopBar({mistakes, saveBoard, toggleTime, runTimer, loadB
   };
 
   const NotifyPopup = () => {
-    const content = <div className='confirmation-popup notify'> 
+    const content = <div className='confirmation-popup notify'>
       <div className="close-popup-button" onClick={() => setShowNotifyPopup(false)}>x</div>
       <div className="popup-text">{NotifyPopupMsg}</div>
     </div>;
     return (
-      showNotifyPopup 
+      showNotifyPopup
         ? content
         : <></>
     );
@@ -73,14 +75,14 @@ export default function TopBar({mistakes, saveBoard, toggleTime, runTimer, loadB
   return (
     <div className='save-load'>
       <button className="save-load-button" onClick={onOpenLoadPopup}>
-        <img alt="download" className="database download"/>
+        <img alt="download" className="database download" />
         <div className="save-load-text">load game</div>
       </button>
-      <LoadPopup/>
-      <NotifyPopup/>
+      <LoadPopup />
+      <NotifyPopup />
       <div className='mistakes'>mistakes: {mistakes}</div>
       <button className="save-load-button" onClick={onSave}>
-        <img alt="upload" className="database upload"/>
+        <img alt="upload" className="database upload" />
         <div className="save-load-text">save game</div>
       </button>
     </div>

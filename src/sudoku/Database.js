@@ -16,24 +16,35 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 
+const awaitTimeout = (delay, reason) =>
+  new Promise((resolve, reject) =>
+    setTimeout(
+      () => (reason === undefined ? resolve() : reject(reason)),
+      delay
+    )
+  );
+
+const wrapPromise = (promise, delay, reason) => Promise.race([promise, awaitTimeout(delay, reason)]);
+const interactWithDb = promise => wrapPromise(promise, 3_000, "FirebaseError: database timeout");
+
 export const signInUser = async () => {
   const auth = getAuth();
   const user = auth.currentUser;
-  if (user !== null && await auth.authStateReady()) {
-    return user.uid;
-  };
+  if (user && user !== undefined) return user.uid;
 
   const provider = new GoogleAuthProvider();
-  return signInWithPopup(auth, provider).then(result => result.user.uid);
+  return wrapPromise(signInWithPopup(auth, provider),)
+    .then(result => result.user.uid);
 }
 
 export const writeBoard = async (userId, boardStr) => {
   const dbRef = ref(getDatabase(app), `boards/${userId}`);
-  return set(dbRef, String(boardStr));
+  return interactWithDb(set(dbRef, String(boardStr)))
+    .then(result => result.user.uid);
 }
 
 export const getBoard = async (userId) => {
   const dbRef = ref(getDatabase(app));
-  return get(child(dbRef, `boards/${userId}`))
-    .then((snapshot) => snapshot?.val());
+  return interactWithDb(get(child(dbRef, `boards/${userId}`)))
+    .then((snapshot) => snapshot.val());
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { signInUser, writeBoard, getBoard } from "../util/Database";
+import { signInUser, writeBoard, getBoard } from "./Database";
 
 import { makeSudoku, encryptBoardState, decryptBoardState } from './SudokuUtils';
 import DisplayableBoard from './DisplayableBoard';
@@ -169,8 +169,6 @@ export default function Sudoku() {
 
   const highlightStuff = (ridx, cidx) => {
     const isHighlighted = cellsEq(board.current[ridx][cidx], highlightCell);
-    console.log(board.current[ridx][cidx])
-    console.log(highlightCell)
 
     const epicenterUpdate = isHighlighted
       ? { highlightColor: null, ridx, cidx }
@@ -216,13 +214,12 @@ export default function Sudoku() {
   }
 
   const travelThroughTime = (from, to) => {
-    const getSaveCells = cells => cells.map(cell => board.current[cell.ridx][cell.cidx]);
-
     if (to.current.length === 0) return;
+
     clearHighlights();
 
     let cells = to.current.pop();
-    from.current.push(getSaveCells(cells));
+    from.current.push(cells.map(cell => board.current[cell.ridx][cell.cidx]));
     for (let cell of cells) {
       board.current[cell.ridx][cell.cidx] = cell;
     }
@@ -245,7 +242,10 @@ export default function Sudoku() {
   const saveBoard = async () => {
     return signInUser().then(async (uid) => {
       const boardString = encryptBoardState(board.current, solvedBoard.current, timerMillis, mistakes, notesTaken);
-      return writeBoard(uid, boardString).catch(e => e);
+      return writeBoard(uid, boardString).catch(async e => {
+        console.log(e)
+        return e
+      });
     }).catch(e => e);
   }
 

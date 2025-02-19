@@ -1,6 +1,6 @@
 import { formatTime } from './Util';
 
-export default function ControlPanel({onUndo, onRedo, runTimer, toggleTime, timerMillis, takingNotes, setTakingNotes}) {
+export default function ControlPanel({ onUndo, onRedo, runTimer, toggleTime, timerMillis, takingNotes, setTakingNotes }) {
   return (
     <div className='sudoku-control-panel'>
       <div className={`sudoku-control-pane undo`} onClick={onUndo}>
