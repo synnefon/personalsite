@@ -176,7 +176,12 @@
   background-color: var(--text-color)!important;
   color: var(--alt-text-color)!important;
   transition: all 0.5s cubic-bezier(0.1, 0.6, 0.1, 0.6);
-
+}
+.save-load-button:active > .database.upload {
+  content: url('../assets/sudoku/upload_focus.svg')!important;
+}
+.save-load-button:active > .database.download {
+  content: url('../assets/sudoku/download_focus.svg')!important;
 }
 img.database {
   height: 2.5em;
@@ -239,6 +244,7 @@ img.database.upload {
   display: inline-grid;
   grid-template-columns: 16.66% 16.66% 33.33% 33.33%;
   border: none;
+  justify-content: center;
 }
 
 .sudoku-control-pane {
@@ -247,6 +253,7 @@ img.database.upload {
   border: none;
   vertical-align: middle;
   position: relative;
+  border: 2px solid var(--bg-color);
 }
 
 .sudoku-control-pane.undo { 
@@ -262,7 +269,19 @@ img.database.upload {
 }
 .sudoku-control-pane.pencil { 
   justify-self: end;
-  border: 2px solid var(--bg-color);
+}
+
+.sudoku-control-pane.redo:active, .sudoku-control-pane.undo:active {
+  color: var(--alt-text-color);
+}
+.sudoku-control-pane.undo:active > img.undo {
+  content: url('../assets/sudoku/undo_focus.svg');
+}
+.sudoku-control-pane.redo:active > img.redo {
+  content: url('../assets/sudoku/redo_focus.svg');
+}
+.sudoku-control-pane.timer:active > img.timer {
+  content: url('../assets/sudoku/timer_focus.svg');
 }
 
 p.control {

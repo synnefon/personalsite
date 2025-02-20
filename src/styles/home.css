@@ -2,10 +2,6 @@
   --bg-color: rgb(70, 27, 241)!important;
 }
 
-body {
-  background-color: var(--bg-color);
-}
-
 div#app-base {
   transition: none!important;
 }
