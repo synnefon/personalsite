@@ -43,6 +43,7 @@
 .sudoku-win-text {
   display: flex;
   flex-direction: row;
+  justify-self: center;
 }
 .again-button {
   color: var(--alt-text-color);
@@ -376,7 +377,7 @@ img.control.pencil {
 }
 .note-sub-cell {
   text-align: center;
-  font-size: var(--small-font);
+  font-size: 55%;
 }
 .invisible-num {
   color: transparent;

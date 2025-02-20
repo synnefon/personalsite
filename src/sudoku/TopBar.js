@@ -23,10 +23,10 @@ export default function TopBar({ mistakes, saveBoard, toggleTime, runTimer, load
   };
 
   const toggleNotifyPopup = (result) => {
-    if (String(result).includes("FirebaseError")) {
+    if (String(result).includes("Error")) {
       setNotifyPopupMsg(
         <div style={{ color: "red" }}>
-          ERROR! database did not respond
+          ERROR! {String(result)}
         </div>
       );
     } else {

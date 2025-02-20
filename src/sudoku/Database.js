@@ -25,26 +25,32 @@ const awaitTimeout = (delay, reason) =>
   );
 
 const wrapPromise = (promise, delay, reason) => Promise.race([promise, awaitTimeout(delay, reason)]);
-const interactWithDb = promise => wrapPromise(promise, 3_000, "FirebaseError: database timeout");
+const interactWithDb = promise => {
+  return wrapPromise(promise, 3_000, "FirebaseError: database timeout")
+};
+
+const getUserId = () => getAuth()?.currentUser?.uid;
 
 export const signInUser = async () => {
   const auth = getAuth();
   const user = auth.currentUser;
-  if (user && user !== undefined) return user.uid;
+
+  if (user && user !== undefined && user?.uid) return user.uid;
 
   const provider = new GoogleAuthProvider();
-  return wrapPromise(signInWithPopup(auth, provider),)
-    .then(result => result.user.uid);
+  return interactWithDb(signInWithPopup(auth, provider));
 }
 
-export const writeBoard = async (userId, boardStr) => {
-  const dbRef = ref(getDatabase(app), `boards/${userId}`);
-  return interactWithDb(set(dbRef, String(boardStr)))
-    .then(result => result.user.uid);
+export const writeBoard = async (boardStr) => {
+  const uid = getUserId();
+  if (!uid) return "Error: failed to authenticate user";
+  const dbRef = ref(getDatabase(app), `boards/${uid}`);
+  return interactWithDb(set(dbRef, String(boardStr)));
 }
 
-export const getBoard = async (userId) => {
+export const getBoard = async () => {
+  const uid = getUserId();
+  if (!uid) return "Error: failed to authenticate user";
   const dbRef = ref(getDatabase(app));
-  return interactWithDb(get(child(dbRef, `boards/${userId}`)))
-    .then((snapshot) => snapshot.val());
+  return interactWithDb(get(child(dbRef, `boards/${uid}`)));
 }

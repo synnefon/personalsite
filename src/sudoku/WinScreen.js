@@ -25,7 +25,7 @@ export default function WinScreen({ timerMillis, toggleTime, mistakes, notesTake
       <img alt="dancer man" src={dancer} />
       <div className='game-stats'>
         <GameStat title={"time spent"} value={formatTime(timerMillis)} />
-        <GameStat title={"mistakes made"} value={mistakes} />
+        <GameStat title={"mistakes"} value={mistakes} />
         <GameStat title={"notes taken"} value={notesTaken} />
       </div>
     </div>

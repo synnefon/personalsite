@@ -240,19 +240,18 @@ export default function Sudoku() {
   }
 
   const saveBoard = async () => {
-    return signInUser().then(async (uid) => {
+    return signInUser().then(async () => {
       const boardString = encryptBoardState(board.current, solvedBoard.current, timerMillis, mistakes, notesTaken);
-      return writeBoard(uid, boardString).catch(async e => {
-        console.log(e)
-        return e
-      });
+      return writeBoard(boardString).catch(async e => e);
     }).catch(e => e);
   }
 
   const loadBoard = async () => {
-    return signInUser().then(async (uid) => {
-      return getBoard(uid).then(b => {
-        const { savedBoard, savedSolvedBoard, savedTime, savedMistakes, savedNotesTaken } = decryptBoardState(b);
+    return signInUser().then(async () => {
+      return getBoard().then(b => {
+        const {
+          savedBoard, savedSolvedBoard, savedTime, savedMistakes, savedNotesTaken
+        } = decryptBoardState(b.val());
         if (!savedBoard) return;
 
         board.current = savedBoard;
