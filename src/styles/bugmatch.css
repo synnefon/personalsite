@@ -72,5 +72,6 @@ div#bug-match {
   .match-board  { 
     width: 85%;
     grid-template-columns: repeat(4, 25%);
+    grid-template-rows: repeat(6, calc(100% / 6));
   }
 }
