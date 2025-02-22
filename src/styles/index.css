@@ -20,6 +20,9 @@
   --inv-bg-color: var(--text-color);
   --pointer: url('../assets/cursors/Dark/Hands/Hand3.png'), auto;
   --arrow: url('../assets/cursors/Dark/Arrows/Arrow2.png'), auto;
+  --large-font: calc(13px + 3.5vmin);
+  --medium-font: calc(9px + 2.5vmin);
+  --small-font: max(calc(5px + 1.5vmin), 14px);
 }
 
 @keyframes boing {
@@ -27,6 +30,14 @@
   15% { transform: scale(0.95); }
   40% { transform: scale(1.05) translateY(-2%); }
   95% { transform: scale(0.99); }
+  100% { transform: scale(1.0); }
+}
+
+@keyframes boing-small {
+  0% { transform: scale(1.0); }
+  15% { transform: scale(0.98); }
+  40% { transform: scale(1.02) translateY(-1%); }
+  95% { transform: scale(0.995); }
   100% { transform: scale(1.0); }
 }
 

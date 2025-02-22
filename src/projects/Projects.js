@@ -27,24 +27,28 @@ export default function Projects() {
             <p className="link-text proj-colors">sudoku</p>
             <p className="tooltip-text proj-colors">an eternal classic</p>
           </Link>
-          <a className="link proj-colors middle left" href="http://18.190.107.78" rel="noreferrer">
-            <p className="link-text proj-colors">shufflenator</p>
-            <p className="tooltip-text proj-colors">gives a card deck's optimal shuffle pattern</p>
-          </a>
+          <Link className="link proj-colors middle left" to="/bugmatch" rel="noreferrer">
+            <p className="link-text proj-colors">bug match</p>
+            <p className="tooltip-text proj-colors">a bug-themed memory game</p>
+          </Link>
           {
               <Link className="link proj-colors middle right" to="/snek" rel="noreferrer">
                 <p className="link-text proj-colors">snek</p>
                 <p className="tooltip-text proj-colors">snek!</p>
               </Link>
           }
-          <Link className="link proj-colors bottom left" to="/wip" rel="noreferrer">
+          <a className="link proj-colors bottom left" href="http://18.190.107.78" rel="noreferrer">
+            <p className="link-text proj-colors">shufflenator</p>
+            <p className="tooltip-text proj-colors">gives a card deck's optimal shuffle pattern</p>
+          </a>
+          <Link className="link proj-colors bottom right" to="/wip" rel="noreferrer">
             <p className="link-text proj-colors">rpg tabletop</p>
             <p className="tooltip-text proj-colors">real-time updating battle maps, world maps, and images</p>
           </Link>
-          <Link className="link proj-colors bottom right" to="/wip" rel="noreferrer">
+          {/* <Link className="link proj-colors bottom right" to="/wip" rel="noreferrer">
             <p className="link-text proj-colors">infinite terrain</p>
             <p className="tooltip-text proj-colors">a godot module that generates infinite terrains</p>
-          </Link>
+          </Link> */}
         </div>
         <Raincloud showLightning={showLightning} setShowLightning={setShowLightning}/>
         <br />

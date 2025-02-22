@@ -1,0 +1,76 @@
+
+:root {
+
+}
+
+div#bug-match {
+  --bg-color: #A27B5C!important;
+  --text-color: #EFDCAB!important;
+  --inner-color: #FEFAE0;
+
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+
+  justify-content: center;
+  top: 0px!important;
+  bottom: 0px;
+  position: absolute;
+  width: 100%;
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.miss-count {
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  font-size: var(--medium-font)!important;
+}
+
+.match-board {
+  display: inline-grid;
+  grid-template-columns: repeat(6, calc(100% / 6));
+  align-self: center;
+  width: 70%;
+  height: fit-content;
+}
+
+.bug-image {
+  width: 97%;
+  height: 97%;
+  cursor: var(--pointer);
+  aspect-ratio: 1/1;
+  background-color: var(--inner-color);
+}
+
+.bug-image.red {
+  background-color: var(--text-color);
+}
+
+.bug-image.completed {
+  background-color: var(--bg-color);
+  pointer-events: none;
+  cursor: var(--arrow);
+}
+
+.win-screen {
+  text-align: center;
+  font-size: var(--large-font);
+}
+
+.win-details {
+  font-size: var(--medium-font);
+}
+
+@media screen and (max-width: 600px) {
+  .match-board  { 
+    width: 85%;
+    grid-template-columns: repeat(4, 25%);
+  }
+}

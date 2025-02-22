@@ -11,9 +11,6 @@
   --inv-bg-color: var(--text-color);
   --hue-rotate: 0deg;
   --base-dim: min(17vw, 15vh);
-  --large-font: calc(13px + 3.5vmin);
-  --medium-font: calc(9px + 2.5vmin);
-  --small-font: max(calc(5px + 1.5vmin), 14px);
 }
 
 .sudoku-container {

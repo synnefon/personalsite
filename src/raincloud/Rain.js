@@ -5,7 +5,7 @@ import dropImg from '../assets/raincloud/drop.png'
 import '../styles/raincloud.css'
 
 export default function Rain({numDrops, showLightning, setDropsFallen}) {
-  const [canMakeDrops, setCanMakeDrops] = useState(true)
+  const [canMakeDrops, setCanMakeDrops] = useState(true);
   const randRange = (minNum, maxNum) => (Math.floor(Math.random() * (maxNum - minNum + 1)) + minNum);
 
   const fallDrop = useCallback((rain, drop) => {
