@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { signInUser, writeBoard, getBoard } from "./Database";
+import { signInUser, writeBoard, getBoard } from "../Database";
 
 import { makeSudoku, encryptBoardState, decryptBoardState } from './SudokuUtils';
 import DisplayableBoard from './DisplayableBoard';

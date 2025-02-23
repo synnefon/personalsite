@@ -1,5 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+// import OpenAI from "openai";
+
 import '../styles/bugmatch.css'
+import { getBug } from '../Database';
+
 
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -15,14 +19,34 @@ export default function BugMatch() {
   const [completeds, setCompleteds] = useState(Array.from({ length: 12 }).map(() => false));
   const [tries, setTries] = useState(0);
   const [gameWon, setGameWon] = useState(false);
+  const [images, setImages] = useState(Array.from({ length: 12 }).map(() => ""));
+  const [imagesFound, setImagesFound] = useState(0);
+
+  const [canDisplayBoard, setCanDisplayBoard] = useState(false);
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      const possibleVals = shuffle(Array.from({ length: 74 }).map((_, i) => i));
+      for (let i in possibleVals.slice(0, 13)) {
+        await getBug(possibleVals[i]).then(img => {
+          setImages(imgs => {
+            imgs[i] = img.val();
+            return imgs;
+          });
+          setImagesFound(f => f+1);
+        });
+      }
+    }
+    fetchImages().then(() => setCanDisplayBoard(true));
+  }, []);
 
   const checkCompleted = (idx, f1, f2) => {
     if (f1 % 12 === f2 % 12) {
-      const newCompleteds = completeds.map((e, i) => i+1 === idx ? true : e);
+      const newCompleteds = completeds.map((e, i) => i + 1 === idx ? true : e);
       setCompleteds(newCompleteds);
       if (newCompleteds.every(c => c)) setGameWon(true);
     } else {
-      setTries(t => t+1);
+      setTries(t => t + 1);
     }
     setFlipped1(-1);
     setFlipped2(-1);
@@ -32,11 +56,12 @@ export default function BugMatch() {
     return <div className='win-screen'>
       <p>YOU WIN!</p>
       <p className='win-details'>tries: {tries}</p>
+      <div className="play-again" onClick={() => window.location.reload()}>play again?</div>
     </div>
   }
 
-  const BugImage = ({id}) => {
-    const idx = (id % 12)+1;
+  const BugImage = ({ id }) => {
+    const idx = (id % 12) + 1;
 
     const flipUp = () => {
       if (flipped1 === id || flipped2 === id || flipped2 >= 0) return;
@@ -47,36 +72,49 @@ export default function BugMatch() {
         setFlipped1(id);
       }
     };
-    
-    const img = require(`../assets/bug_match/bug_${idx}.png`);
 
-    return completeds[idx-1]
-    ? <div className="bug-image completed"/>
-    : flipped1 === id || flipped2 === id
-      ? <img 
+    const img = images[idx];
+
+    return completeds[idx - 1]
+      ? <div className="bug-image completed" />
+      : flipped1 === id || flipped2 === id
+        ? <img
           className="bug-image"
           alt={`bug ${idx}`}
-          src={img}
+          src={`data:image/png;base64,${img}`}
         />
-      : <div
+        : <div
           onClick={flipUp}
           className="bug-image red"
         />;
   }
-  
+
+  const LoadingBar = () => {
+    const bars = Array.from({ length: imagesFound }).map(() => "█").join("");
+    const antiBars = Array.from({ length: 24-imagesFound }).map(() => "░").join("");
+    return (
+      <div className='loading-bar'>
+        {`loading: ${bars}${antiBars}`}
+      </div>
+    );
+  }
+
   const shuffledIndexes = useRef(shuffle(Array.from({ length: 24 }).map((_, i) => i)));
-  const bugImages = shuffledIndexes.current.map(i => <BugImage key={`bug_${i+1}`} id={i}/>);
+  const bugImages = shuffledIndexes.current.map(i => <BugImage key={`bug_${i + 1}`} id={i} />);
 
   return (
     <div id='bug-match'>
-      {gameWon 
-        ? <WinScreen/>
-        : <>
-          <h4 className='miss-count'>tries: {tries}</h4>
-          <div className='match-board'>
-            {bugImages}
-          </div>
-        </>
+      {canDisplayBoard 
+        ? gameWon
+            ? <WinScreen />
+            : <>
+                <h4 className='miss-count'>tries: {tries}</h4>
+                <div className='match-board'>
+                  {bugImages}
+                </div>
+              </>
+          
+        : <LoadingBar/>
       }
     </div>
   );

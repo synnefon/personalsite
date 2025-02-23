@@ -1,6 +1,7 @@
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { getDatabase, ref, set, get, child } from "firebase/database";
 import { initializeApp } from 'firebase/app';
+import { v4 as uuid } from 'uuid';
 
 
 // TODO: Replace the following with your app's Firebase project configuration
@@ -53,4 +54,14 @@ export const getBoard = async () => {
   if (!uid) return "Error: failed to authenticate user";
   const dbRef = ref(getDatabase(app));
   return interactWithDb(get(child(dbRef, `boards/${uid}`)));
+}
+
+export const saveBug = async (b64Img) => {
+  const dbRef = ref(getDatabase(app), `bugs/${uuid()}`);
+  return interactWithDb(set(dbRef, String(b64Img)));
+}
+
+export const getBug = async (bugIndex) => {
+  const dbRef = ref(getDatabase(app));
+  return get(child(dbRef, `bugs/${bugIndex}`));
 }
