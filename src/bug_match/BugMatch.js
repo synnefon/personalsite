@@ -50,7 +50,7 @@ export default function BugMatch() {
 
   useEffect(() => {
     const fetchImages = async () => {
-      const possibleVals = shuffle(Array.from({ length: 166 }).map((_, i) => i));
+      const possibleVals = shuffle(Array.from({ length: 105 }).map((_, i) => i));
       for (let i in possibleVals.slice(0, 13)) {
         await getBug(possibleVals[i]).then(img => {
           setImages(imgs => {
