@@ -1,8 +1,3 @@
-
-:root {
-
-}
-
 div#bug-match {
   --bg-color: #A27B5C!important;
   --text-color: #EFDCAB!important;
@@ -15,6 +10,7 @@ div#bug-match {
   color: var(--text-color);
   display: flex;
   flex-direction: column;
+  overflow: scroll;
 
   justify-content: center;
   top: 0px!important;
@@ -27,26 +23,47 @@ div#bug-match {
 }
 
 .loading-bar {
-  width: 50%;
+  width: 60%;
   text-align: left;
   align-self: center;
   font-family: F25_Bank_Printer;
   font-size: var(--medium-font);
 }
 
+.match-game {
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  display: inline-grid;
+  grid-template-rows: 10% 5% 85%;
+  grid-template-columns: 100%;
+  top: 0%;
+  position: absolute;
+}
+
+.match-title {
+  font-size: var(--large-font)!important;
+  align-self: center;
+  top: 0%;
+  width: 100%;
+}
+
 .miss-count {
   justify-content: center;
   text-align: center;
   width: 100%;
-  font-size: var(--medium-font)!important;
+  font-size: var(--small-font)!important;
 }
 
 .match-board {
   display: inline-grid;
   grid-template-columns: repeat(6, calc(100% / 6));
-  align-self: center;
-  width: 70%;
+  justify-self: center;
+  top: 10%;
+  width: 100vmin;
   height: fit-content;
+  position: relative;
 }
 
 .bug-image {
@@ -57,8 +74,18 @@ div#bug-match {
   background-color: var(--inner-color);
 }
 
-.bug-image.red {
+.bug-image.back {
   background-color: var(--text-color);
+  color: #6E8E59;
+  font-size: var(--large-font);
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  vertical-align: middle;
+  display: inline-grid;
+}
+.card-back-text {
+  margin: 0px;
 }
 
 .bug-image.completed {
@@ -90,5 +117,9 @@ div#bug-match {
     width: 85%;
     grid-template-columns: repeat(4, 25%);
     grid-template-rows: repeat(6, calc(100% / 6));
+  }
+  .loading-bar {
+    width: 90%;
+    text-align: center;
   }
 }

@@ -23,10 +23,33 @@ export default function BugMatch() {
   const [imagesFound, setImagesFound] = useState(0);
 
   const [canDisplayBoard, setCanDisplayBoard] = useState(false);
+  
+  // const openai = new OpenAI({ dangerouslyAllowBrowser: true, apiKey: apiKey });
+  // useEffect(() => {
+  //   try {
+  //     const fetchData = async () => {
+  //       const response = await openai.images.generate({
+  //         model: "dall-e-2",
+  //         prompt: "a pink 8-bit, pixel art praying mantis. white background",
+  //         n: 1,
+  //         size: "256x256",
+  //         response_format: "b64_json"
+  //         // response_format: "url"
+  //       });    
+  //       for (let d of response.data) {
+  //         // console.log(d.url)
+  //         await saveBug(d.b64_json);
+  //       }
+  //   }
+  //     fetchData();
+  //   } catch(e) {
+  //     console.log(e);
+  //   }
+  // }, [openai.images]);
 
   useEffect(() => {
     const fetchImages = async () => {
-      const possibleVals = shuffle(Array.from({ length: 74 }).map((_, i) => i));
+      const possibleVals = shuffle(Array.from({ length: 166 }).map((_, i) => i));
       for (let i in possibleVals.slice(0, 13)) {
         await getBug(possibleVals[i]).then(img => {
           setImages(imgs => {
@@ -83,10 +106,9 @@ export default function BugMatch() {
           alt={`bug ${idx}`}
           src={`data:image/png;base64,${img}`}
         />
-        : <div
-          onClick={flipUp}
-          className="bug-image red"
-        />;
+        : <div onClick={flipUp} className="bug-image back">
+            <div className='card-back-text'>?</div>
+          </div>;
   }
 
   const LoadingBar = () => {
@@ -94,7 +116,7 @@ export default function BugMatch() {
     const antiBars = Array.from({ length: 24-imagesFound }).map(() => "░").join("");
     return (
       <div className='loading-bar'>
-        {`loading: ${bars}${antiBars}`}
+        {`loading bugs: ${bars}${antiBars}`}
       </div>
     );
   }
@@ -107,12 +129,13 @@ export default function BugMatch() {
       {canDisplayBoard 
         ? gameWon
             ? <WinScreen />
-            : <>
+            : <div className='match-game'>
+                <h1 className='match-title'>BUG MATCH</h1>
                 <h4 className='miss-count'>tries: {tries}</h4>
                 <div className='match-board'>
                   {bugImages}
                 </div>
-              </>
+              </div>
           
         : <LoadingBar/>
       }
