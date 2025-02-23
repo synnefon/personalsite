@@ -74,6 +74,23 @@ div#bug-match {
   background-color: var(--inner-color);
 }
 
+.bug-image.short {
+  margin-top: 5%;
+  height: 96%;
+  width: 96%;
+  aspect-ratio: 1/1;
+  margin-left: 10px;
+  cursor: var(--arrow);
+}
+.bug-image-row {
+  margin-top: 5%;
+  display: inline-grid;
+  grid-template-columns: repeat(6, calc(100% /6));
+  grid-template-rows: repeat(2, 50%);
+  flex-direction: row;
+  width: 80vmin;
+}
+
 .bug-image.back {
   background-color: var(--text-color);
   color: #6E8E59;
@@ -97,6 +114,9 @@ div#bug-match {
 .win-screen {
   text-align: center;
   font-size: var(--large-font);
+  align-items: center;
+  display: flex;
+  flex-direction: column;
 }
 
 .win-details {

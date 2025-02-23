@@ -21,6 +21,7 @@ export default function BugMatch() {
   const [gameWon, setGameWon] = useState(false);
   const [images, setImages] = useState(Array.from({ length: 12 }).map(() => ""));
   const [imagesFound, setImagesFound] = useState(0);
+  const foundBugs = useRef([]);
 
   const [canDisplayBoard, setCanDisplayBoard] = useState(false);
   
@@ -66,6 +67,7 @@ export default function BugMatch() {
   const checkCompleted = (idx, f1, f2) => {
     if (f1 % 12 === f2 % 12) {
       const newCompleteds = completeds.map((e, i) => i + 1 === idx ? true : e);
+      foundBugs.current.push(idx);
       setCompleteds(newCompleteds);
       if (newCompleteds.every(c => c)) setGameWon(true);
     } else {
@@ -80,6 +82,16 @@ export default function BugMatch() {
       <p>YOU WIN!</p>
       <p className='win-details'>tries: {tries}</p>
       <div className="play-again" onClick={() => window.location.reload()}>play again?</div>
+      <div className='bug-image-row'>
+        {foundBugs.current.map(i => {
+          const img = images[i];
+          return <img
+            className="bug-image short"
+            alt={`bug ${i}`}
+            src={`data:image/png;base64,${img}`}
+          />;
+        })}
+      </div>
     </div>
   }
 
