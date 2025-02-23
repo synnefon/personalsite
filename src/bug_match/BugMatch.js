@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 // import OpenAI from "openai";
 
 import '../styles/bugmatch.css'
-import { getBug } from '../Database';
+import { 
+  getBug,
+  // saveBug
+} from '../Database';
 
 
 function shuffle(array) {
@@ -31,7 +34,7 @@ export default function BugMatch() {
   //     const fetchData = async () => {
   //       const response = await openai.images.generate({
   //         model: "dall-e-2",
-  //         prompt: "a pink 8-bit, pixel art praying mantis. white background",
+  //         prompt: "a 8-bit, pixel art cockroach. white background",
   //         n: 1,
   //         size: "256x256",
   //         response_format: "b64_json"
@@ -50,7 +53,7 @@ export default function BugMatch() {
 
   useEffect(() => {
     const fetchImages = async () => {
-      const possibleVals = shuffle(Array.from({ length: 105 }).map((_, i) => i));
+      const possibleVals = shuffle(Array.from({ length: 101 }).map((_, i) => i));
       for (let i in possibleVals.slice(0, 13)) {
         await getBug(possibleVals[i]).then(img => {
           setImages(imgs => {
