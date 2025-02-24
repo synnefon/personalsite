@@ -20,7 +20,7 @@ export default function MatchGame() {
   const [flipped1, setFlipped1] = useState(-1);
   const [flipped2, setFlipped2] = useState(-1);
   const [completeds, setCompleteds] = useState(Array.from({ length: 12 }).map(() => false));
-  const [tries, setTries] = useState(0);
+  const [misses, setMisses] = useState(0);
   const [gameWon, setGameWon] = useState(false);
   const [images, setImages] = useState(Array.from({ length: 12 }).map(() => ""));
   const [imagesFound, setImagesFound] = useState(0);
@@ -51,7 +51,7 @@ export default function MatchGame() {
       setCompleteds(newCompleteds);
       if (newCompleteds.every(c => c)) setGameWon(true);
     } else {
-      setTries(t => t + 1);
+      setMisses(t => t + 1);
     }
     setFlipped1(-1);
     setFlipped2(-1);
@@ -60,7 +60,7 @@ export default function MatchGame() {
   const WinScreen = () => {
     return <div className='win-screen'>
       <img alt="victory fish dance" src={victoryDance}/>
-      <p className='win-details'>tries: {tries}</p>
+      <p className='win-details'>misses: {misses}</p>
       <div className="play-again" onClick={() => window.location.reload()}>play again?</div>
       <div className='fish-image-row'>
         {foundFish.current.map(i => {
@@ -129,7 +129,7 @@ export default function MatchGame() {
             ? <WinScreen />
             : <div className='match-game'>
                 <h1 className='match-title'>SEA MATCH</h1>
-                <h4 className='miss-count'>tries: {tries}</h4>
+                <h4 className='miss-count'>misses: {misses}</h4>
                 <div className='match-board'>
                   {fishImages}
                 </div>
