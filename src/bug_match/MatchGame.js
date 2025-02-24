@@ -16,6 +16,8 @@ function shuffle(array) {
   return array;
 }
 
+const NUM_FISH = 108;
+
 export default function MatchGame() {
   const [flipped1, setFlipped1] = useState(-1);
   const [flipped2, setFlipped2] = useState(-1);
@@ -53,7 +55,7 @@ export default function MatchGame() {
 
   useEffect(() => {
     const fetchImages = async () => {
-      const possibleVals = shuffle(Array.from({ length: 109 }).map((_, i) => i));
+      const possibleVals = shuffle(Array.from({ length: NUM_FISH }).map((_, i) => i));
       for (let i in possibleVals.slice(0, 13)) {
         await getFish(possibleVals[i]).then(img => {
           setImages(imgs => {
@@ -115,6 +117,11 @@ export default function MatchGame() {
 
     return completeds[idx - 1]
       ? <div className="fish-image completed" />
+    //   : <img
+    //   className="fish-image"
+    //   alt={`fish ${idx}`}
+    //   src={`data:image/png;base64,${img}`}
+    // />
       : flipped1 === id || flipped2 === id
         ? <img
           className="fish-image"
