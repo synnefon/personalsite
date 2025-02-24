@@ -1,7 +1,9 @@
-div#bug-match {
-  --bg-color: #27445D!important;
-  --text-color: #71BBB2!important;
-  --inner-color: #71BBB2;
+div#fish-match {
+  --bg-color: #201658!important;
+  --text-color: #57A6A1!important;
+  --back-color: #344C64;
+  --inner-color: #577B8D;
+  --question-mark: #57A6A1;
 
   -webkit-user-select: none;
   -ms-user-select: none;
@@ -66,7 +68,7 @@ div#bug-match {
   position: relative;
 }
 
-.bug-image {
+.fish-image {
   width: 97%;
   height: 97%;
   cursor: var(--pointer);
@@ -74,7 +76,7 @@ div#bug-match {
   background-color: var(--inner-color);
 }
 
-.bug-image.short {
+.fish-image.short {
   margin-top: 5%;
   height: 96%;
   width: 96%;
@@ -82,7 +84,7 @@ div#bug-match {
   margin-left: 10px;
   cursor: var(--arrow);
 }
-.bug-image-row {
+.fish-image-row {
   margin-top: 5%;
   display: inline-grid;
   grid-template-columns: repeat(6, calc(100% /6));
@@ -91,9 +93,9 @@ div#bug-match {
   width: 80vmin;
 }
 
-.bug-image.back {
-  background-color: var(--text-color);
-  color: #EFE9D5;
+.fish-image.back {
+  background-color: var(--back-color);
+  color: var(--question-mark);
   font-size: var(--large-font);
   text-align: center;
   justify-content: center;
@@ -105,7 +107,7 @@ div#bug-match {
   margin: 0px;
 }
 
-.bug-image.completed {
+.fish-image.completed {
   background-color: var(--bg-color);
   pointer-events: none;
   cursor: var(--arrow);

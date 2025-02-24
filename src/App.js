@@ -7,7 +7,7 @@ import About from './about/About';
 import Snek from './snek/Snek';
 import Wip from './projects/Wip';
 import Sudoku from './sudoku/Sudoku';
-import BugMatch from './bug_match/BugMatch'
+import MatchGame from './bug_match/MatchGame'
 
 function App() {
   return (
@@ -20,7 +20,7 @@ function App() {
         <Route path="/snek" element={<Snek />} />
         <Route path="/wip" element={<Wip />} />
         <Route path="/sudoku" element={<Sudoku />} />
-        <Route path="/matchgame" element={<BugMatch />} />
+        <Route path="/matchgame" element={<MatchGame />} />
       </Routes>
       <Footer/>
     </Router> 

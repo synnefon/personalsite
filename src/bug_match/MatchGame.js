@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 // import OpenAI from "openai";
 
-import '../styles/bugmatch.css'
+import '../styles/matchgame.css'
 import { 
-  getBug,
-  // saveBug
+  getFish,
+  // saveFish
 } from '../Database';
 
 
@@ -16,7 +16,7 @@ function shuffle(array) {
   return array;
 }
 
-export default function BugMatch() {
+export default function MatchGame() {
   const [flipped1, setFlipped1] = useState(-1);
   const [flipped2, setFlipped2] = useState(-1);
   const [completeds, setCompleteds] = useState(Array.from({ length: 12 }).map(() => false));
@@ -24,7 +24,7 @@ export default function BugMatch() {
   const [gameWon, setGameWon] = useState(false);
   const [images, setImages] = useState(Array.from({ length: 12 }).map(() => ""));
   const [imagesFound, setImagesFound] = useState(0);
-  const foundBugs = useRef([]);
+  const foundFish = useRef([]);
 
   const [canDisplayBoard, setCanDisplayBoard] = useState(false);
   
@@ -42,7 +42,7 @@ export default function BugMatch() {
   //       });    
   //       for (let d of response.data) {
   //         // console.log(d.url)
-  //         await saveBug(d.b64_json);
+  //         await saveFish(d.b64_json);
   //       }
   //   }
   //     fetchData();
@@ -53,9 +53,9 @@ export default function BugMatch() {
 
   useEffect(() => {
     const fetchImages = async () => {
-      const possibleVals = shuffle(Array.from({ length: 112 }).map((_, i) => i));
+      const possibleVals = shuffle(Array.from({ length: 109 }).map((_, i) => i));
       for (let i in possibleVals.slice(0, 13)) {
-        await getBug(possibleVals[i]).then(img => {
+        await getFish(possibleVals[i]).then(img => {
           setImages(imgs => {
             imgs[i] = img.val();
             return imgs;
@@ -70,7 +70,7 @@ export default function BugMatch() {
   const checkCompleted = (idx, f1, f2) => {
     if (f1 % 12 === f2 % 12) {
       const newCompleteds = completeds.map((e, i) => i + 1 === idx ? true : e);
-      foundBugs.current.push(idx);
+      foundFish.current.push(idx);
       setCompleteds(newCompleteds);
       if (newCompleteds.every(c => c)) setGameWon(true);
     } else {
@@ -85,12 +85,12 @@ export default function BugMatch() {
       <p>YOU WIN!</p>
       <p className='win-details'>tries: {tries}</p>
       <div className="play-again" onClick={() => window.location.reload()}>play again?</div>
-      <div className='bug-image-row'>
-        {foundBugs.current.map(i => {
+      <div className='fish-image-row'>
+        {foundFish.current.map(i => {
           const img = images[i];
           return <img
-            className="bug-image short"
-            alt={`bug ${i}`}
+            className="fish-image short"
+            alt={`fish ${i}`}
             src={`data:image/png;base64,${img}`}
           />;
         })}
@@ -98,7 +98,7 @@ export default function BugMatch() {
     </div>
   }
 
-  const BugImage = ({ id }) => {
+  const FishImage = ({ id }) => {
     const idx = (id % 12) + 1;
 
     const flipUp = () => {
@@ -114,14 +114,14 @@ export default function BugMatch() {
     const img = images[idx];
 
     return completeds[idx - 1]
-      ? <div className="bug-image completed" />
+      ? <div className="fish-image completed" />
       : flipped1 === id || flipped2 === id
         ? <img
-          className="bug-image"
-          alt={`bug ${idx}`}
+          className="fish-image"
+          alt={`fish ${idx}`}
           src={`data:image/png;base64,${img}`}
         />
-        : <div onClick={flipUp} className="bug-image back">
+        : <div onClick={flipUp} className="fish-image back">
             <div className='card-back-text'>?</div>
           </div>;
   }
@@ -137,10 +137,10 @@ export default function BugMatch() {
   }
 
   const shuffledIndexes = useRef(shuffle(Array.from({ length: 24 }).map((_, i) => i)));
-  const bugImages = shuffledIndexes.current.map(i => <BugImage key={`bug_${i + 1}`} id={i} />);
+  const fishImages = shuffledIndexes.current.map(i => <FishImage key={`fish_${i + 1}`} id={i} />);
 
   return (
-    <div id='bug-match'>
+    <div id='fish-match'>
       {canDisplayBoard 
         ? gameWon
             ? <WinScreen />
@@ -148,7 +148,7 @@ export default function BugMatch() {
                 <h1 className='match-title'>FISH MATCH</h1>
                 <h4 className='miss-count'>tries: {tries}</h4>
                 <div className='match-board'>
-                  {bugImages}
+                  {fishImages}
                 </div>
               </div>
           

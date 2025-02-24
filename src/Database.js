@@ -56,12 +56,12 @@ export const getBoard = async () => {
   return interactWithDb(get(child(dbRef, `boards/${uid}`)));
 }
 
-export const saveBug = async (b64Img) => {
-  const dbRef = ref(getDatabase(app), `bugs/${uuid()}`);
+export const saveFish = async (b64Img) => {
+  const dbRef = ref(getDatabase(app), `fish/${uuid()}`);
   return interactWithDb(set(dbRef, String(b64Img)));
 }
 
-export const getBug = async (bugIndex) => {
+export const getFish = async (bugIndex) => {
   const dbRef = ref(getDatabase(app));
   return get(child(dbRef, `fish/${bugIndex}`));
 }
