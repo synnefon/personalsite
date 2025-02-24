@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-// import OpenAI from "openai";
 
 import '../styles/matchgame.css'
-import { 
-  getFish,
-  // saveFish
-} from '../Database';
+import { getFish } from '../Database';
 
 
 function shuffle(array) {
@@ -29,29 +25,6 @@ export default function MatchGame() {
   const foundFish = useRef([]);
 
   const [canDisplayBoard, setCanDisplayBoard] = useState(false);
-  
-  // const openai = new OpenAI({ dangerouslyAllowBrowser: true, apiKey: apiKey });
-  // useEffect(() => {
-  //   try {
-  //     const fetchData = async () => {
-  //       const response = await openai.images.generate({
-  //         model: "dall-e-2",
-  //         prompt: "a 8-bit, pixel art cockroach. white background",
-  //         n: 1,
-  //         size: "256x256",
-  //         response_format: "b64_json"
-  //         // response_format: "url"
-  //       });    
-  //       for (let d of response.data) {
-  //         // console.log(d.url)
-  //         await saveFish(d.b64_json);
-  //       }
-  //   }
-  //     fetchData();
-  //   } catch(e) {
-  //     console.log(e);
-  //   }
-  // }, [openai.images]);
 
   useEffect(() => {
     const fetchImages = async () => {
@@ -138,7 +111,7 @@ export default function MatchGame() {
     const antiBars = Array.from({ length: 24-imagesFound }).map(() => "░").join("");
     return (
       <div className='loading-bar'>
-        {`loading fish: ${bars}${antiBars}`}
+        {`loading critters: ${bars}${antiBars}`}
       </div>
     );
   }
@@ -152,7 +125,7 @@ export default function MatchGame() {
         ? gameWon
             ? <WinScreen />
             : <div className='match-game'>
-                <h1 className='match-title'>FISH MATCH</h1>
+                <h1 className='match-title'>SEA MATCH</h1>
                 <h4 className='miss-count'>tries: {tries}</h4>
                 <div className='match-board'>
                   {fishImages}

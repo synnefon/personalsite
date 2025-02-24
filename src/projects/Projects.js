@@ -28,7 +28,7 @@ export default function Projects() {
             <p className="tooltip-text proj-colors">an eternal classic</p>
           </Link>
           <Link className="link proj-colors middle left" to="/matchgame" rel="noreferrer">
-            <p className="link-text proj-colors">fish match</p>
+            <p className="link-text proj-colors">sea match</p>
             <p className="tooltip-text proj-colors">a sea-themed memory game</p>
           </Link>
           {

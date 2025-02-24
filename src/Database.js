@@ -1,10 +1,8 @@
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { getDatabase, ref, set, get, child } from "firebase/database";
 import { initializeApp } from 'firebase/app';
-import { v4 as uuid } from 'uuid';
 
 
-// TODO: Replace the following with your app's Firebase project configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDRjIzCoEJpa7CW_BBFrvaGjYexHxg_w6s",
   authDomain: "personalsite-sudoku.firebaseapp.com",
@@ -54,11 +52,6 @@ export const getBoard = async () => {
   if (!uid) return "Error: failed to authenticate user";
   const dbRef = ref(getDatabase(app));
   return interactWithDb(get(child(dbRef, `boards/${uid}`)));
-}
-
-export const saveFish = async (b64Img) => {
-  const dbRef = ref(getDatabase(app), `fish/${uuid()}`);
-  return interactWithDb(set(dbRef, String(b64Img)));
 }
 
 export const getFish = async (bugIndex) => {
