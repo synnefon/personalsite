@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { getFish } from '../Database';
 
 import '../styles/matchgame.css'
-import { getFish } from '../Database';
+
+import victoryDance from '../assets/match_game/victory.gif';
 
 
 function shuffle(array) {
@@ -24,7 +26,7 @@ export default function MatchGame() {
   const [imagesFound, setImagesFound] = useState(0);
   const foundFish = useRef([]);
 
-  const [canDisplayBoard, setCanDisplayBoard] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchImages = async () => {
@@ -39,7 +41,7 @@ export default function MatchGame() {
         });
       }
     }
-    fetchImages().then(() => setCanDisplayBoard(true));
+    fetchImages().then(() => setLoading(false));
   }, []);
 
   const checkCompleted = (idx, f1, f2) => {
@@ -57,7 +59,7 @@ export default function MatchGame() {
 
   const WinScreen = () => {
     return <div className='win-screen'>
-      <p>YOU WIN!</p>
+      <img alt="victory fish dance" src={victoryDance}/>
       <p className='win-details'>tries: {tries}</p>
       <div className="play-again" onClick={() => window.location.reload()}>play again?</div>
       <div className='fish-image-row'>
@@ -121,8 +123,9 @@ export default function MatchGame() {
 
   return (
     <div id='fish-match'>
-      {canDisplayBoard 
-        ? gameWon
+      {loading 
+        ? <LoadingBar/> 
+        : gameWon
             ? <WinScreen />
             : <div className='match-game'>
                 <h1 className='match-title'>SEA MATCH</h1>
@@ -131,8 +134,6 @@ export default function MatchGame() {
                   {fishImages}
                 </div>
               </div>
-          
-        : <LoadingBar/>
       }
     </div>
   );

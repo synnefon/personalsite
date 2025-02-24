@@ -7,7 +7,7 @@ import About from './about/About';
 import Snek from './snek/Snek';
 import Wip from './projects/Wip';
 import Sudoku from './sudoku/Sudoku';
-import MatchGame from './bug_match/MatchGame'
+import MatchGame from './match_game/MatchGame'
 
 function App() {
   return (
