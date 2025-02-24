@@ -63,5 +63,5 @@ export const saveBug = async (b64Img) => {
 
 export const getBug = async (bugIndex) => {
   const dbRef = ref(getDatabase(app));
-  return get(child(dbRef, `bugs/${bugIndex}`));
+  return get(child(dbRef, `fish/${bugIndex}`));
 }

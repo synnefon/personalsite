@@ -27,9 +27,9 @@ export default function Projects() {
             <p className="link-text proj-colors">sudoku</p>
             <p className="tooltip-text proj-colors">an eternal classic</p>
           </Link>
-          <Link className="link proj-colors middle left" to="/bugmatch" rel="noreferrer">
-            <p className="link-text proj-colors">bug match</p>
-            <p className="tooltip-text proj-colors">a bug-themed memory game</p>
+          <Link className="link proj-colors middle left" to="/matchgame" rel="noreferrer">
+            <p className="link-text proj-colors">fish match</p>
+            <p className="tooltip-text proj-colors">a sea-themed memory game</p>
           </Link>
           {
               <Link className="link proj-colors middle right" to="/snek" rel="noreferrer">

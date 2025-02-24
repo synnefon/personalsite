@@ -20,7 +20,7 @@ function App() {
         <Route path="/snek" element={<Snek />} />
         <Route path="/wip" element={<Wip />} />
         <Route path="/sudoku" element={<Sudoku />} />
-        <Route path="/bugmatch" element={<BugMatch />} />
+        <Route path="/matchgame" element={<BugMatch />} />
       </Routes>
       <Footer/>
     </Router> 

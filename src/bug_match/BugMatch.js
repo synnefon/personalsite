@@ -53,7 +53,7 @@ export default function BugMatch() {
 
   useEffect(() => {
     const fetchImages = async () => {
-      const possibleVals = shuffle(Array.from({ length: 101 }).map((_, i) => i));
+      const possibleVals = shuffle(Array.from({ length: 112 }).map((_, i) => i));
       for (let i in possibleVals.slice(0, 13)) {
         await getBug(possibleVals[i]).then(img => {
           setImages(imgs => {
@@ -131,7 +131,7 @@ export default function BugMatch() {
     const antiBars = Array.from({ length: 24-imagesFound }).map(() => "░").join("");
     return (
       <div className='loading-bar'>
-        {`loading bugs: ${bars}${antiBars}`}
+        {`loading fish: ${bars}${antiBars}`}
       </div>
     );
   }
@@ -145,7 +145,7 @@ export default function BugMatch() {
         ? gameWon
             ? <WinScreen />
             : <div className='match-game'>
-                <h1 className='match-title'>BUG MATCH</h1>
+                <h1 className='match-title'>FISH MATCH</h1>
                 <h4 className='miss-count'>tries: {tries}</h4>
                 <div className='match-board'>
                   {bugImages}
