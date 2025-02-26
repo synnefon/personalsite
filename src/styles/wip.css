@@ -14,7 +14,7 @@ div#bouncing-text {
   align-items: start;
   position: absolute;
   font-size: min(4vw, 4vh)!important;
-  width: calc(min(4vw, 4vh) * 11);
+  width: fit-content;
   height: min(4vw, 4vh);
   -webkit-user-select: none;
   -ms-user-select: none;
