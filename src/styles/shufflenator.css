@@ -1,9 +1,9 @@
 .shufflenator {
-  --bg-color: #0B192C!important;
-  --alt-bg-color: #000000;
-  --tertiary: #1E3E62;
-  --text-color: #FF6500!important;
-  --alt-text-color: greenyellow;
+  --bg-color: #27667B!important;
+  --alt-bg-color: #A0C878;
+  --tertiary: #143D60;
+  --text-color: #DDEB9D!important;
+  --alt-text-color: var(--tertiary);
 
   -webkit-user-select: none;
   -ms-user-select: none;
@@ -64,19 +64,20 @@
   margin-right: 1em;
 }
 
-.shufflenator-selector-row-options,
+.shufflenator-selector-row-select,
 .shufflenator-selector-row-number {
   font-size: var(--medium-font)!important;
-  background-color: var(--alt-bg-color);
-  color: var(--alt-text-color);
-  border: none;
-  outline-color: transparent!important;
-  outline: unset;
+  background-color: var(--alt-bg-color)!important;
+  color: var(--alt-text-color)!important;
   width: 100%;
   height: 70%;
   font-family: Pixelon, sans-serif;
+  border: none;
+  outline-color: transparent!important;
+  outline: unset;
 }
-.shufflenator-selector-row-options {
+
+.shufflenator-selector-row-select {
   cursor: var(--pointer);
 }
 .shufflenator-selector-row-number {
@@ -102,10 +103,11 @@ input[type=number]::-webkit-outer-spin-button {
 
 .bar-left, .bar-right {
   background-color: var(--bg-color)!important;
+  box-shadow: none!important;
 }
 .bar-inner-left, .bar-inner-right {
-  
-  background-color:#1E3E62!important;
+  background-color:var(--alt-text-color)!important;
+  box-shadow: none!important;
 }
 
 .thumb::before { 
@@ -116,12 +118,14 @@ input[type=number]::-webkit-outer-spin-button {
 .caption {
   display: flex!important;
   .min-caption, .max-caption {
-    background-color: transparent!important;
-    color: var(--alt-text-color)!important;
+    background-color: var(--tertiary)!important;
+    color: var(--text-color)!important;
     cursor: var(--arrow)!important;
     pointer-events: none;
     padding: 0px 0px!important;
     box-shadow: none!important;
+    left: -0.7em;
+    border: 3px solid var(--tertiary);
   }
 }
 
@@ -132,11 +136,18 @@ input[type=number]::-webkit-outer-spin-button {
   align-self: flex-start;
   font-size: var(--medium-font);
   cursor: var(--pointer);
-  transition: color 0.3s ease-in;
+  transition: all 0.3s ease-in;
+  border: 2px solid var(--alt-bg-color);
+  border-radius: 15%;
+  color: var(--bg-color);
+  background-color: var(--alt-bg-color);
 }
-
+.shufflenator-submit-button-text {
+  margin: 0.4em;
+}
 .shufflenator-submit-button:hover {
-  color: var(--alt-text-color);
+  background-color: orange;
+  border: 2px solid orange;
   animation: wiggle 0.3s linear;
   position: relative;
 }

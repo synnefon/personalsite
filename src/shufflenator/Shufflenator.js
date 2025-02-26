@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import MultiRangeSlider from "multi-range-slider-react";
+import Select from 'react-select'
 
 import { shuffleDecks } from './ShuffleSimulator';
 import { SHUFFLE_STRAT } from './Shuffler';
@@ -7,13 +8,37 @@ import { SCORE_TYPE } from './ShuffleScorers';
 
 import '../styles/shufflenator.css'
 
+const selectStyles = {
+  control: (baseStyles, { isFocused }) => ({
+    ...baseStyles,
+    backgroundColor: "var(--alt-bg-color)",
+    borderColor: isFocused ? 'var(--text-color)' : 'var(--tertiary)',
+    cursor: "var(--pointer)",
+  }),
+  singleValue: (baseStyles) => ({
+    ...baseStyles,
+    color:'var(--alt-text-color)',
+  }),
+  option: (baseStyles, { isFocused }) => ({
+    ...baseStyles,
+    cursor: "var(--pointer)",
+    color:'var(--alt-text-color)',
+    backgroundColor: isFocused ?  "var(--text-color)" : "var(--alt-bg-color)" ,
+  }),
+  menu: (baseStyles) => ({
+    ...baseStyles,
+    backgroundColor: "var(--alt-bg-color)",
+  }),
+  indicatorSeparator: (baseStyles) => ({...baseStyles, backgroundColor: 'var(--alt-text-color)'})
+};
+
 export default function Shufflenator() {
-  const [cardsInDeck, setCardsInDeck] = useState(52);
+  const cardsInDeck = useRef();
   const [pileMin, setPileMin] = useState(5);
   const [pileMax, setPileMax] = useState(10);
-  const [maxShuffles, setMaxShuffles] = useState(3);
-  const [shuffleStrat, setShuffleStrat] = useState("PILE");
-  const [scoreType, setScoreType] = useState("SHANNON_ENTROPY");
+  const [maxShuffles, setMaxShuffles] = useState({value: 3, label: 3});
+  const [shuffleStrat, setShuffleStrat] = useState({value: "PILE", label: "PILE"});
+  const [scoreType, setScoreType] = useState({value: "SHANNON_ENTROPY", label: "SHANNON_ENTROPY"});
   const [results, setResults] = useState(null);
 
   const CardsInDeck = () => {
@@ -23,18 +48,16 @@ export default function Shufflenator() {
         <input
           className='shufflenator-selector-row-number'
           type="number"
-          value={cardsInDeck}
+          ref={cardsInDeck}
+          defaultValue={52}
           step={10}
           min={10}
           max={1_000}
-          onChange={e => {
-            setCardsInDeck(e.target.value);
-            setResults(null);
-          }}
         />
       </div>
     );
-  }
+  };
+  const cardsInDeckInput = useRef(<CardsInDeck/>);
 
   const PileSizeRange = () => {
     const MAX_DIF = 10;
@@ -47,9 +70,6 @@ export default function Shufflenator() {
       const newMax = goingDown 
         ? Math.min(e.maxValue, e.minValue + MAX_DIF) 
         : e.maxValue;
-      if (newMin !== e.minValue || newMax !== e.maxValue) {
-        setResults(null);
-      }
       setPileMin(newMin);
       setPileMax(newMax);
     };
@@ -74,29 +94,21 @@ export default function Shufflenator() {
     );
   };
 
-  const Dropdown = ({title, options, value, onChange}) => {
+  const Dropdown = ({title, options, value, defaultValue, onChange}) => {
+    options = options.map(o => {
+      return {value: o, label: o};
+    });
     return (
       <div className='shufflenator-selector-row'>
         <div className='shufflenator-selector-row-title'>{title}:</div>
-        <select
-          className='shufflenator-selector-row-options'
+        <Select
           value={value}
-          onChange={(e) => {
-            onChange(e);
-            setResults(null);
-          }}
-        >
-          {options.map(o => {
-            return (
-              <option 
-                key={`${title}-${o}`}
-                className="shufflenator-selector-row-options-choice"
-                value={o}>
-                  {o}
-              </option>
-            );
-          })}
-        </select>
+          defaultValue={defaultValue}
+          options={options}
+          onChange={onChange}
+          isSearchable={false}
+          styles={selectStyles}
+        />
       </div>
     );
   };
@@ -107,7 +119,8 @@ export default function Shufflenator() {
         title="max shuffles"
         options={[1, 2, 3, 4, 5]}
         value={maxShuffles}
-        onChange={e => setMaxShuffles(e.target.value)}
+        defaultValue={3}
+        onChange={setMaxShuffles}
       />
     );
   };
@@ -118,7 +131,8 @@ export default function Shufflenator() {
         title="shuffle strategy"
         options={SHUFFLE_STRAT}
         value={shuffleStrat}
-        onChange={e => setShuffleStrat(e.target.value)}
+        defaultValue={"PILE"}
+        onChange={setShuffleStrat}
       />
     );
   }
@@ -126,30 +140,31 @@ export default function Shufflenator() {
   const ScoreType = () => {
     return (
       <Dropdown
-        title="scorer type"
+        title="score strategy"
         options={SCORE_TYPE}
         value={scoreType}
-        onChange={e => setScoreType(e.target.value)}
+        defaultValue={"SHANNON_ENTROPY"}
+        onChange={setScoreType}
       />
     );
   };
   
   const shuffle = async () => {
     const ret = await shuffleDecks({
-      shuffleStrat: shuffleStrat, 
-      scoreType: scoreType,
-      maxShuffles: maxShuffles,
-      deckSize: cardsInDeck,
+      shuffleStrat: shuffleStrat.value, 
+      scoreType: scoreType.value,
+      maxShuffles: maxShuffles.value,
+      deckSize: cardsInDeck.current.value,
       minNumPiles: pileMin,
       maxNumPiles: pileMax
     })
-
     setResults(ret);
   };
 
   const SubmitButton = () => {
-    const cn = "shufflenator-submit-button"
-    return <div onClick={shuffle} className={cn}>submit</div>;
+    return <div onClick={shuffle} className="shufflenator-submit-button">
+      <div className="shufflenator-submit-button-text">submit</div>
+    </div>;
   };
 
   const Results = () => {
@@ -163,7 +178,7 @@ export default function Shufflenator() {
   return (
     <div className="shufflenator">
       <div className='shufflenator-selector'>
-        <CardsInDeck/>
+        {cardsInDeckInput.current}
         <PileSizeRange/>
         <MaxShuffles/>
         <ShuffleStrategy/>

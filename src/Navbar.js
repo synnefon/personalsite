@@ -26,8 +26,6 @@ const Navbar=()=>{
     );
   };
 
-  useEffect(() => setHamburgerOpen(false), []);
-
   return (    
     <div className='navbar'>
       { isMobile && <Hamburger toggled={hamburgerOpen} toggle={setHamburgerOpen}/> }
