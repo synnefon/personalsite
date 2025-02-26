@@ -20,6 +20,7 @@
   --inv-bg-color: var(--text-color);
   --pointer: url('../assets/cursors/Dark/Hands/Hand3.png'), auto;
   --arrow: url('../assets/cursors/Dark/Arrows/Arrow2.png'), auto;
+  --text: url('../assets/cursors/Dark/Text/Text2.png'), auto;
   --large-font: calc(13px + 3.5vmin);
   --medium-font: calc(9px + 2.5vmin);
   --small-font: max(calc(5px + 1.5vmin), 14px);

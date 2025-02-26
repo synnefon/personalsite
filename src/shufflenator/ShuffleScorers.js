@@ -1,5 +1,3 @@
-const { Enum } = require('enum');
-
 function calcAdjacentTermDifferences(cards) {
     const deckLen = cards.length;
     const adjacentTermDifferences = [];
@@ -38,10 +36,10 @@ function calcShannonEntropy(cards) {
     return lnPCounts.reduce((a, b) => a + b, 0);
 }
 
-const SCORE_TYPE = new Enum('score type', ['SHANNON_ENTROPY', 'NEIGHBOR_DIST', 'LOCATION_DELTA']);
-const SCORE_FUNCTION_MAP = {
-    [SCORE_TYPE.SHANNON_ENTROPY]: calcShannonEntropy,
-    [SCORE_TYPE.NEIGHBOR_DIST]: calcAverageNeighborDist,
-    [SCORE_TYPE.LOCATION_DELTA]: calcLocationDelta
+export const SCORE_TYPE = ['SHANNON_ENTROPY', 'NEIGHBOR_DIST', 'LOCATION_DELTA'];
+export const SCORE_FUNCTION_MAP = {
+    "SHANNON_ENTROPY": calcShannonEntropy,
+    "NEIGHBOR_DIST": calcAverageNeighborDist,
+    "LOCATION_DELTA": calcLocationDelta
 };
 

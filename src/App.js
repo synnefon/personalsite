@@ -8,6 +8,7 @@ import Snek from './snek/Snek';
 import Wip from './projects/Wip';
 import Sudoku from './sudoku/Sudoku';
 import MatchGame from './match_game/MatchGame'
+import Shufflenator from './shufflenator/Shufflenator';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/wip" element={<Wip />} />
         <Route path="/sudoku" element={<Sudoku />} />
         <Route path="/matchgame" element={<MatchGame />} />
+        <Route path="/shufflenator" element={<Shufflenator />} />
       </Routes>
       <Footer/>
     </Router> 

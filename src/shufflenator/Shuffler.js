@@ -1,6 +1,6 @@
-import { SCORE_FUNCTION_MAP } from './shuffle_scorers.js';
+import { SCORE_FUNCTION_MAP } from './ShuffleScorers';
 
-class ShuffledDeck {
+export class ShuffledDeck {
     constructor(cardList, permutation, scoreType) {
         this.cardList = cardList;
         this.permutation = permutation;
@@ -50,19 +50,15 @@ function randomPileShuffle(deck, numPiles) {
     return shuffle(pileSelector, deck, numPiles);
 }
 
-function cutDeck(deck) {
-    const halfWay = Math.floor(deck.cardList.length / 2);
-    const pileSelector = (idx) => (idx < halfWay ? idx + halfWay : idx - halfWay);
-    return shuffle(pileSelector, deck, deck.cardList.length);
-}
+// function cutDeck(deck) {
+//     const halfWay = Math.floor(deck.cardList.length / 2);
+//     const pileSelector = (idx) => (idx < halfWay ? idx + halfWay : idx - halfWay);
+//     return shuffle(pileSelector, deck, deck.cardList.length);
+// }
 
-const SHUFFLE_STRAT = {
-    PILE: 'PILE',
-    RANDOM_PILE: 'RANDOM_PILE'
+export const SHUFFLE_STRAT = ['PILE', 'RANDOM_PILE']
+
+export const SHUFFLE_FUNCTION_MAP = {
+    "PILE": pileShuffle,
+    "RANDOM_PILE": randomPileShuffle
 };
-
-const SHUFFLE_FUNCTION_MAP = {
-    [SHUFFLE_STRAT.PILE]: pileShuffle,
-    [SHUFFLE_STRAT.RANDOM_PILE]: randomPileShuffle
-};
-

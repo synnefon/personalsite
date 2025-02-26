@@ -37,10 +37,14 @@ export default function Projects() {
                 <p className="tooltip-text proj-colors">snek!</p>
               </Link>
           }
-          <a className="link proj-colors bottom left" href="http://18.190.107.78" rel="noreferrer">
+          {/* <a className="link proj-colors bottom left" href="http://18.190.107.78" rel="noreferrer">
             <p className="link-text proj-colors">shufflenator</p>
             <p className="tooltip-text proj-colors">gives a card deck's optimal shuffle pattern</p>
-          </a>
+          </a> */}
+          <Link className="link proj-colors bottom left" to="/shufflenator" rel="noreferrer">
+            <p className="link-text proj-colors">shufflenator</p>
+            <p className="tooltip-text proj-colors">gives a card deck's optimal shuffle pattern</p>
+          </Link>
           <Link className="link proj-colors bottom right" to="/wip" rel="noreferrer">
             <p className="link-text proj-colors">rpg tabletop</p>
             <p className="tooltip-text proj-colors">real-time updating battle maps, world maps, and images</p>
