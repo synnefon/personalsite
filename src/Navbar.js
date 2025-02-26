@@ -17,13 +17,16 @@ const Navbar=()=>{
   }, [setWidth]);
 
   const NavItem = ({title, to}) => {
+    const closePopup = () => setTimeout(() => setHamburgerOpen(false), 200);
     return (
-      <Link className={`nav-link ${title}`} to={to}>
+      <Link className={`nav-link ${title}`} to={to} onClick={closePopup}>
         <img className={`nav-icon ${title}`} alt="home icon"></img>
         <div className='nav-link-text'>{title}</div>
       </Link>
     );
-  }
+  };
+
+  useEffect(() => setHamburgerOpen(false), []);
 
   return (    
     <div className='navbar'>
