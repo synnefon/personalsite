@@ -1,0 +1,59 @@
+div#game-of-life {
+  --bg-color: #18122B!important;
+  --border-color: #443C68;
+  --text-color: #635985!important;
+
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+  overflow: scroll;
+
+  justify-content: center;
+  align-items: center;
+  top: 0px!important;
+  bottom: 0px;
+  position: absolute;
+  width: 100%;
+  margin: 0;
+}
+
+.gol-board {
+  display: flex;
+  flex-direction: column;
+  height: 80vmin;
+  width: 80vmin;
+  border: 3px solid var(--border-color);
+}
+
+.gol-board-row {
+  display: flex;
+  flex-direction: row;
+  height: 2.5%;
+  width: 100%;
+}
+
+.gol-board-cell {
+  height: 90%;
+  width: 90%;
+  border: 1px solid var(--border-color);
+  cursor: var(--pointer);
+}
+.gol-board-cell.filled {
+  background-color: var(--text-color);
+}
+
+.gol-start-button {
+  margin-top: 1em;
+  font-size: var(--medium-font);
+  cursor: var(--pointer);
+  color: var(--border-color);
+}
+.gol-start-button:hover {
+  color: white;
+  color: var(--text-color);
+}

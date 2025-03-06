@@ -45,10 +45,14 @@ export default function Projects() {
             <p className="link-text proj-colors">shufflenator</p>
             <p className="tooltip-text proj-colors">gives a card deck's optimal shuffle pattern</p>
           </Link>
-          <Link className="link proj-colors bottom right" to="/wip" rel="noreferrer">
+          <Link className="link proj-colors bottom right" to="/game-of-life" rel="noreferrer">
+            <p className="link-text proj-colors">game of life</p>
+            <p className="tooltip-text proj-colors">conway's game of life</p>
+          </Link>
+          {/* <Link className="link proj-colors bottom right" to="/wip" rel="noreferrer">
             <p className="link-text proj-colors">rpg tabletop</p>
             <p className="tooltip-text proj-colors">real-time updating battle maps, world maps, and images</p>
-          </Link>
+          </Link> */}
           {/* <Link className="link proj-colors bottom right" to="/wip" rel="noreferrer">
             <p className="link-text proj-colors">infinite terrain</p>
             <p className="tooltip-text proj-colors">a godot module that generates infinite terrains</p>

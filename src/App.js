@@ -9,6 +9,7 @@ import Wip from './projects/Wip';
 import Sudoku from './sudoku/Sudoku';
 import MatchGame from './match_game/MatchGame'
 import Shufflenator from './shufflenator/Shufflenator';
+import GameOfLife from './game_of_life/GameOfLife.tsx';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/sudoku" element={<Sudoku />} />
         <Route path="/matchgame" element={<MatchGame />} />
         <Route path="/shufflenator" element={<Shufflenator />} />
+        <Route path="/game-of-life" element={<GameOfLife />} />
       </Routes>
       <Footer/>
     </Router> 

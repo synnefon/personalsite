@@ -50,6 +50,7 @@ export default function Home() {
       : [descriptor, 3_000]
   }
 
+
   return (
     <div id="app-base"
       className='home-colors'
