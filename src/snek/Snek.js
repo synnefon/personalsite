@@ -205,7 +205,7 @@ export default function Snek() {
   useEffect(() => {
     const onKeydown = (e) => nextDirection.current = getNextDirection(e.key);
     window.addEventListener("keydown", onKeydown);
-    // return window.removeEventListener("keydown", onKeydown);
+    return window.removeEventListener("keydown", onKeydown);
   }, [getNextDirection, isMobile]);
 
   // change snake direction on keypad press

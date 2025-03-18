@@ -37,6 +37,14 @@ export default function Projects() {
                 <p className="tooltip-text proj-colors">snek!</p>
               </Link>
           }
+          <Link className="link proj-colors middle left" to="/4096" rel="noreferrer">
+            <p className="link-text proj-colors">4096</p>
+            <p className="tooltip-text proj-colors">make lots of powers of 2!</p>
+          </Link>
+          <Link className="link proj-colors middle right" to="/wip" rel="noreferrer">
+            <p className="link-text proj-colors">work in progress</p>
+            <p className="tooltip-text proj-colors">coming soon to a website near you</p>
+          </Link>
           {/* <a className="link proj-colors bottom left" href="http://18.190.107.78" rel="noreferrer">
             <p className="link-text proj-colors">shufflenator</p>
             <p className="tooltip-text proj-colors">gives a card deck's optimal shuffle pattern</p>

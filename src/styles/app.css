@@ -61,7 +61,7 @@ div#app-base {
   position: relative;
   display: grid;  
   grid-template-columns: repeat(2, 50%);
-  grid-template-rows: repeat(3, 5.5em);
+  grid-template-rows: repeat(4, 5.5em);
   user-select: none!important;
   margin-bottom: 15px;
 }

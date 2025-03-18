@@ -10,6 +10,7 @@ import Sudoku from './sudoku/Sudoku';
 import MatchGame from './match_game/MatchGame'
 import Shufflenator from './shufflenator/Shufflenator';
 import GameOfLife from './game_of_life/GameOfLife.tsx';
+import Game4096 from './4096/Game4096.tsx';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/matchgame" element={<MatchGame />} />
         <Route path="/shufflenator" element={<Shufflenator />} />
         <Route path="/game-of-life" element={<GameOfLife />} />
+        <Route path="/4096" element={<Game4096 />} />
       </Routes>
       <Footer/>
     </Router> 

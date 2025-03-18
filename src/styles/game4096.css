@@ -1,0 +1,41 @@
+div#game-4096 {
+  --bg-color: #18122B!important;
+  --border-color: #443C68;
+  --text-color: #f0f0f0!important;
+
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+  overflow: scroll;
+
+  justify-content: center;
+  align-items: center;
+  top: 0px!important;
+  bottom: 0px;
+  position: absolute;
+  width: 100%;
+  margin: 0;
+
+  font-size: var(--large-font);
+}
+
+.board-4096 {
+  display: inline-grid;
+  width: 70vmin;
+  height: 70vmin;
+  grid-template-rows: repeat(4, 25%);
+  grid-template-columns: repeat(4, 25%);
+  text-align: center;
+}
+
+.cell-4096 {
+  display: inline-grid;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid black;
+}
