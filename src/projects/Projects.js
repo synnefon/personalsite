@@ -41,10 +41,14 @@ export default function Projects() {
             <p className="link-text proj-colors">4096</p>
             <p className="tooltip-text proj-colors">make lots of powers of 2!</p>
           </Link>
-          <Link className="link proj-colors middle right" to="/wip" rel="noreferrer">
+          <a className="link proj-colors middle right" href="https://github.com/synnefon/spagett" rel="noreferrer">
+            <p className="link-text proj-colors">spagett query language</p>
+            <p className="tooltip-text proj-colors">lisp-like query language. al dente, of course. </p>
+          </a>
+          {/* <Link className="link proj-colors middle right" to="/wip" rel="noreferrer">
             <p className="link-text proj-colors">work in progress</p>
             <p className="tooltip-text proj-colors">coming soon to a website near you</p>
-          </Link>
+          </Link> */}
           {/* <a className="link proj-colors bottom left" href="http://18.190.107.78" rel="noreferrer">
             <p className="link-text proj-colors">shufflenator</p>
             <p className="tooltip-text proj-colors">gives a card deck's optimal shuffle pattern</p>
