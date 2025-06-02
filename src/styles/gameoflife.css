@@ -1,7 +1,7 @@
 div#game-of-life {
   --bg-color: #18122B!important;
   --border-color: #443C68;
-  --text-color: #635985!important;
+  --text-color: #d9a60e!important;
 
   -webkit-user-select: none;
   -ms-user-select: none;
