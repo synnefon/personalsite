@@ -48,30 +48,39 @@
   pointer-events: none;
 }
 
+/* base size & layout */
 .nav-icon {
-  display: block;
+  width: calc(5.2vmin);
   height: calc(5.2vmin);
-  margin-right: 0.2em;
-  cursor: var(--pointer);
+  display: block;
+  background-color: var(--text-color);      /* default colour */
   pointer-events: all;
+  cursor: var(--pointer);
+  /* the magic: use the SVG as a mask */
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+/* individual icon masks */
+.nav-icon.home {
+  mask-image: url('../assets/nav_icons/house.svg');
+  -webkit-mask-image: url('../assets/nav_icons/house.svg');
 }
 .nav-icon.projects {
-  content: url('../assets/nav_icons/pen.svg');
-}
-.nav-icon.home {
-  content: url('../assets/nav_icons/house.svg');
+  mask-image: url('../assets/nav_icons/pen.svg');
+  -webkit-mask-image: url('../assets/nav_icons/pen.svg');
 }
 .nav-icon.about {
-  content: url('../assets/nav_icons/info.svg');
+  mask-image: url('../assets/nav_icons/info.svg');
+  -webkit-mask-image: url('../assets/nav_icons/info.svg');
 }
-.nav-icon.home:hover {
-  content: url('../assets/nav_icons/house_focus.svg');
-}
-.nav-icon.projects:hover {
-  content: url('../assets/nav_icons/pen_focus.svg');
-}
-.nav-icon.about:hover {
-  content: url('../assets/nav_icons/info_focus.svg');
+
+/* recolour on link hover */
+.nav-link:hover .nav-icon {
+  background-color: orange;
 }
 
 @media screen and (max-width: 500px) {

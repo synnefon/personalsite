@@ -20,8 +20,8 @@ const Navbar=()=>{
     const closePopup = () => setTimeout(() => setHamburgerOpen(false), 200);
     return (
       <Link className={`nav-link ${title}`} to={to} onClick={closePopup}>
-        <img className={`nav-icon ${title}`} alt="home icon"></img>
-        <div className='nav-link-text'>{title}</div>
+        <span className={`nav-icon ${title}`} aria-hidden="true" />
+        <div className="nav-link-text">{title}</div>
       </Link>
     );
   };
