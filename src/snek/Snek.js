@@ -81,42 +81,49 @@ export default function Snek() {
 
     setPlaying((s) => s + 1);
 
-    const coords = structuredClone(snekCoordinates.current);
-    const snekTail = coords[0];
-    let snekHead = coords.pop();
+    // Work with a shallow copy so we can reorder segments easily
+    const coords = [...snekCoordinates.current];
+    const currentHead = coords[coords.length - 1];
+
+    // Update the current direction
     direction.current = nextDirection.current;
 
-    const move_dir = nextDirection.current;
-
-    const foodConsumed =
-      snekHead.row === foodCoords.current.row &&
-      snekHead.col === foodCoords.current.col;
-
-    if (foodConsumed) eatFood(coords, snekHead);
-
-    coords.forEach((_, idx) => {
-      if (idx === coords.length - 1) {
-        coords[idx] = { ...snekHead };
-        coords[idx].isHead = false;
-        return;
-      }
-      coords[idx] = coords[idx + 1];
-    });
-
-    switch (move_dir) {
-      case UP: snekHead = moveUp(snekHead); break;
-      case DOWN: snekHead = moveDown(snekHead); break;
-      case RIGHT: snekHead = moveRight(snekHead); break;
-      case LEFT: snekHead = moveLeft(snekHead); break;
+    // Determine the next head position based on the chosen direction
+    let nextHead = { ...currentHead };
+    switch (direction.current) {
+      case UP:    nextHead = moveUp(nextHead); break;
+      case DOWN:  nextHead = moveDown(nextHead); break;
+      case LEFT:  nextHead = moveLeft(nextHead); break;
+      case RIGHT: nextHead = moveRight(nextHead); break;
       default: break;
     }
 
-    const collisionType = collisionDetected(snekHead);
+    // Check for collisions BEFORE mutating the snake body
+    const collisionType = collisionDetected(nextHead);
     if (collisionType === 'wall') return stopGame();
-    if (collisionType === 'self') stopGame();
+    if (collisionType === 'self') return stopGame();
 
-    coords.push(snekHead);
-    snekCoordinates.current = foodConsumed ? [snekTail, ...coords] : coords;
+    // Did we eat food?
+    const foodConsumed = cellsEq(nextHead, foodCoords.current);
+    if (foodConsumed) eatFood();
+
+    // Mark existing head as body
+    coords[coords.length - 1].isHead = false;
+
+    if (foodConsumed) {
+      // Grow: just push a new segment for the new head
+      coords.push({ ...nextHead, isHead: true });
+    } else {
+      // Reuse the tail segment: move it to the front as the new head
+      const tailSegment = coords.shift(); // remove tail
+      tailSegment.row = nextHead.row;
+      tailSegment.col = nextHead.col;
+      tailSegment.isHead = true;
+      coords.push(tailSegment);
+    }
+
+    // Commit the new snake coordinates
+    snekCoordinates.current = coords;
   };
 
   const collisionDetected = (snekHead) => {
@@ -205,7 +212,7 @@ export default function Snek() {
   useEffect(() => {
     const onKeydown = (e) => nextDirection.current = getNextDirection(e.key);
     window.addEventListener("keydown", onKeydown);
-    return window.removeEventListener("keydown", onKeydown);
+    return () => window.removeEventListener("keydown", onKeydown);
   }, [getNextDirection, isMobile]);
 
   // change snake direction on keypad press
