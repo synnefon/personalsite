@@ -37,10 +37,10 @@ export default function Projects() {
                 <p className="tooltip-text proj-colors">snek!</p>
               </Link>
           }
-          <Link className="link proj-colors middle left" to="/4096" rel="noreferrer">
-            <p className="link-text proj-colors">4096</p>
-            <p className="tooltip-text proj-colors">make lots of powers of 2!</p>
-          </Link>
+          <a className="link proj-colors middle left" href="https://www.npmjs.com/package/img-butler" rel="noreferrer">
+            <p className="link-text proj-colors">img-butler</p>
+            <p className="tooltip-text proj-colors">a react-based image interaction library</p>
+          </a>
           <a className="link proj-colors middle right" href="https://github.com/synnefon/spagett" rel="noreferrer">
             <p className="link-text proj-colors">spagett query language</p>
             <p className="tooltip-text proj-colors">lisp-like query language. al dente, of course. </p>
