@@ -104,6 +104,7 @@ const unsolveSudoku = (board, rng) => {
 }
 
 export const makeSudoku = () => {
+  console.log(new Date())
   const seed = Math.random() * 1_000;
   const rng = seedrandom(seed);
   const board = makeBlankBoard(9);
