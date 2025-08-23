@@ -1,7 +1,7 @@
 .snek-colors {
-  --bg-color: rgb(95, 93, 156)!important;
-  --inv-text-color: var(--bg-color)!important;
-  --inv-bg-color: var(--text-color)!important;
+  --bg-color: rgb(95, 93, 156) !important;
+  --inv-text-color: var(--bg-color) !important;
+  --inv-bg-color: var(--text-color) !important;
   --hue-rotate: 0deg;
 }
 
@@ -53,7 +53,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  border: 1px dashed var(--text-color)!important;
+  border: 1px dashed var(--text-color) !important;
 }
 
 .food {
@@ -75,6 +75,7 @@
     background-color: red;
     box-shadow: 0px 0px 2px 2px red;
   }
+
   75% {
     background-color: var(--text-color);
     box-shadow: 0px 0px 2px 2px var(--text-color);
@@ -88,7 +89,7 @@ button {
   cursor: var(--pointer);
   color: var(--text-color);
   font-family: inherit;
-  font-size: calc(12px + 1vmin)!important;
+  font-size: calc(12px + 1vmin) !important;
   z-index: 101;
   position: absolute;
   top: calc(min(25vh, 35vw) + 10vh);
@@ -107,7 +108,7 @@ button:hover {
   font-size: 16px;
   font-weight: bold;
   top: calc(min(45vh, 55vw) + 10vh);
-  filter: none!important;
+  filter: none !important;
 }
 
 .game-over {
@@ -130,7 +131,7 @@ button:hover {
   font-weight: bold;
   color: red;
   letter-spacing: 8px;
-  width: 135%!important;
+  width: 135% !important;
 }
 
 .game-over-text.second {
@@ -139,11 +140,12 @@ button:hover {
 }
 
 @keyframes scroll-text {
-  0% { 
+  0% {
     transform: translate(100%, 0);
     visibility: visible;
   }
-  100% { 
+
+  100% {
     transform: translate(-100%, 0);
     /* visibility: visible; */
   }
@@ -179,3 +181,9 @@ button:hover {
   background-color: var(--text-color);
   color: var(--bg-color);
 }
+
+.cell.obstacle {
+  background-color: var(--inv-bg-color);
+}
+
+/* or any visible color */
