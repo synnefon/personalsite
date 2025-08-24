@@ -239,6 +239,7 @@ export default function Snek() {
       if (next % POINTS_PER_LEVEL === 0) setHueRotateDeg((d) => d + 43.5); // keep the original bump
       if (next >= POINTS_PER_LEVEL && next % POINTS_PER_LEVEL === 0) {
         spawnObstacle();
+        spawnObstacle();
       }
       return next;
     });
