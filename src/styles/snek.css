@@ -107,7 +107,7 @@ button:hover {
   position: absolute;
   font-size: 16px;
   font-weight: bold;
-  top: calc(min(45vh, 55vw) + 10vh);
+  top: calc(min(45vh, 55vw) + 13vh);
   filter: none !important;
 }
 
@@ -186,4 +186,5 @@ button:hover {
   background-color: var(--inv-bg-color);
 }
 
-/* or any visible color */
+#board-wrap canvas { background: transparent !important; image-rendering: pixelated; z-index: 1; }
+#board-wrap .game-over { z-index: 3; }
