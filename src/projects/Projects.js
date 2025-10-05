@@ -31,10 +31,10 @@ export default function Projects() {
             <p className="link-text proj-colors">sea match</p>
             <p className="tooltip-text proj-colors">a sea-themed memory game</p>
           </Link> */}
-          <Link className="link proj-colors middle left" to="/toolbox" rel="noreferrer">
-            <p className="link-text proj-colors">toolbox</p>
-            <p className="tooltip-text proj-colors">various utilities</p>
-          </Link>
+          <a className="link proj-colors middle left" href="https://synnefon.github.io/mapinator" rel="noreferrer">
+            <p className="link-text proj-colors">mapinator</p>
+            <p className="tooltip-text proj-colors">generates terrain maps</p>
+          </a>
           {
               <Link className="link proj-colors middle right" to="/snek" rel="noreferrer">
                 <p className="link-text proj-colors">snek</p>
@@ -61,9 +61,9 @@ export default function Projects() {
             <p className="link-text proj-colors">shufflenator</p>
             <p className="tooltip-text proj-colors">gives a card deck's optimal shuffle pattern</p>
           </Link> */}
-          <Link className="link proj-colors bottom left" href="https://synnefon.github.io/mapinator" rel="noreferrer">
-            <p className="link-text proj-colors">mapinator</p>
-            <p className="tooltip-text proj-colors">generates terrain maps</p>
+          <Link className="link proj-colors bottom left" to="/toolbox" rel="noreferrer">
+            <p className="link-text proj-colors">toolbox</p>
+            <p className="tooltip-text proj-colors">various utilities</p>
           </Link>
           <Link className="link proj-colors bottom right" to="/game-of-life" rel="noreferrer">
             <p className="link-text proj-colors">game of life</p>
