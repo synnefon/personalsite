@@ -78,7 +78,7 @@ export default function Projects() {
             <p className="tooltip-text proj-colors">a godot module that generates infinite terrains</p>
           </Link> */}
         </div>
-        <Raincloud showLightning={showLightning} setShowLightning={setShowLightning}/>
+        {/* <Raincloud showLightning={showLightning} setShowLightning={setShowLightning}/> */}
         <br />
       </div>
     </div>
