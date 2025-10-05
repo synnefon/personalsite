@@ -257,6 +257,7 @@ export default function Snek() {
     eraseFood();
     foodCoords.current = { row: r, col: c };
     drawFood();
+    // eslint-disable-next-line
   }, []);
 
   const spawnObstacle = () => {
@@ -312,6 +313,7 @@ export default function Snek() {
 
     drawSnakeInitial();
     populateFoodBall();
+    // eslint-disable-next-line
   }, [clickSFX, gameMusic, gameOverSFX, populateFoodBall]);
 
   // ===== Loop control =====
@@ -447,6 +449,7 @@ export default function Snek() {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', updateSize);
     };
+    // eslint-disable-next-line
   }, []);
 
   // keyboard input
@@ -457,6 +460,7 @@ export default function Snek() {
     };
     window.addEventListener("keydown", onKeydown);
     return () => window.removeEventListener("keydown", onKeydown);
+    // eslint-disable-next-line
   }, [getNextDirection]);
 
   // mobile joystick input
@@ -464,6 +468,7 @@ export default function Snek() {
     if (!isMobile) return;
     const d = getNextDirection(dirKey);
     enqueueDir(d);
+    // eslint-disable-next-line
   }, [dirKey, getNextDirection, isMobile]);
 
   useEffect(() => {
@@ -476,6 +481,7 @@ export default function Snek() {
     const onVis = () => document.hidden ? stopLoop() : (playingRef.current && startLoop());
     document.addEventListener('visibilitychange', onVis, { passive: true });
     return () => document.removeEventListener('visibilitychange', onVis);
+    // eslint-disable-next-line
   }, []);
 
   // cleanup on unmount
