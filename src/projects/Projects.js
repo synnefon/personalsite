@@ -57,9 +57,13 @@ export default function Projects() {
             <p className="link-text proj-colors">shufflenator</p>
             <p className="tooltip-text proj-colors">gives a card deck's optimal shuffle pattern</p>
           </a> */}
-          <Link className="link proj-colors bottom left" to="/shufflenator" rel="noreferrer">
+          {/* <Link className="link proj-colors bottom left" to="/shufflenator" rel="noreferrer">
             <p className="link-text proj-colors">shufflenator</p>
             <p className="tooltip-text proj-colors">gives a card deck's optimal shuffle pattern</p>
+          </Link> */}
+          <Link className="link proj-colors bottom left" href="https://synnefon.github.io/mapinator/" rel="noreferrer">
+            <p className="link-text proj-colors">mapinator</p>
+            <p className="tooltip-text proj-colors">generates terrain maps</p>
           </Link>
           <Link className="link proj-colors bottom right" to="/game-of-life" rel="noreferrer">
             <p className="link-text proj-colors">game of life</p>
