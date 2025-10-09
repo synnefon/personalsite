@@ -22,7 +22,7 @@ export default function Projects() {
         <div className="links proj-colors">
           <a className="link proj-colors top left" href="https://synnefon.github.io/mapinator" rel="noreferrer">
             <p className="link-text proj-colors">mapinator</p>
-            <p className="tooltip-text proj-colors">generates terrain maps</p>
+            <p className="tooltip-text proj-colors">procedurally generates terrain maps</p>
           </a>
 
           <Link className="link proj-colors top right" to="/sudoku" rel="noreferrer">
