@@ -501,7 +501,7 @@ export default function Snek() {
   return (
     <>
       <div id='app-base' className="snek-colors">
-        <div className="game-container">
+        <div className="game-container" style={{ cursor: isPlaying ? 'none' : 'inherit' }}>
           <h1 className='snek-title' style={{ display: isPlaying || gameOver ? 'none' : 'block' }}>
             SNEK
           </h1>
@@ -512,7 +512,7 @@ export default function Snek() {
               onClick={() => { if (!loopRunning.current) startGame(); }}
               disabled={loopRunning.current}
             >
-              {gameOver ? 'main menu' : 'start game'}
+              {gameOver ? 'try again' : 'start game'}
             </button>
           }
 
@@ -551,7 +551,7 @@ export default function Snek() {
           </div>
 
           <p className='score' style={{ display: isPlaying || gameOver ? 'block' : 'none' }}>
-            food eaten: {points}
+            {points}
           </p>
 
           {isMobile && isPlaying && joystick.current ? <joystick.current setDirection={setDirKey} /> : null}

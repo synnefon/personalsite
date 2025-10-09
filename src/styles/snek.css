@@ -3,6 +3,7 @@
   --inv-text-color: var(--bg-color) !important;
   --inv-bg-color: var(--text-color) !important;
   --hue-rotate: 0deg;
+  --food-color: #3cff00;
 }
 
 .snek-title {
@@ -26,6 +27,8 @@
   -ms-user-select: none;
   user-select: none;
 }
+
+
 
 .game-container.pagified {
   width: min(90vw, 90vh);
@@ -57,9 +60,9 @@
 }
 
 .food {
-  background-color: #3cff00;
+  background-color: var(--food-color);
   z-index: 1;
-  box-shadow: 0px 0px 2px 2px #3cff00;
+  box-shadow: 0px 0px 2px 2px var(--food-color);
 }
 
 .body {
@@ -105,7 +108,8 @@ button:hover {
 
 .score {
   position: absolute;
-  font-size: 16px;
+  font-size: 24px;
+  color: var(--food-color);
   font-weight: bold;
   top: calc(min(45vh, 55vw) + 13vh);
   filter: none !important;
