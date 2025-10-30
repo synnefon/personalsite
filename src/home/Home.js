@@ -77,11 +77,11 @@ export default function Home() {
             <p className="link-text home-colors">projects</p>
             <p className="tooltip-text home-colors">an assortment of web-accessible work</p>
           </Link>
-          <Link className="link home-colors top right" to="/about" rel="noreferrer">
+          <Link className="link about home-colors top right" to="/about" rel="noreferrer">
             <p className="link-text home-colors">about</p>
             <p className="tooltip-text home-colors">$ whois connorhopkins.dev</p>
           </Link>
-          <a className="link middle left home-colors" href="https://docs.google.com/document/d/1A77LelAqhLE98pvkOYpHjUAs7l3LW-mcSQr-_MpbP6I" rel="noreferrer">
+          <a className="link resume middle left home-colors" href="https://docs.google.com/document/d/1A77LelAqhLE98pvkOYpHjUAs7l3LW-mcSQr-_MpbP6I" rel="noreferrer">
             <p className="link-text home-colors">resume</p>
             <p className="tooltip-text home-colors">the list of stuff i've done professionally</p>
           </a>
@@ -98,7 +98,6 @@ export default function Home() {
             <p className="tooltip-text home-colors">shoot me an email</p>
           </a>
         </div>
-        <br />
       </div>
     </div>
   );

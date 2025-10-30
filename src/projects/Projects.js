@@ -49,7 +49,7 @@ export default function Projects() {
             <p className="tooltip-text proj-colors">a react-based image interaction library</p>
           </a>
           <a className="link proj-colors middle right" href="https://github.com/synnefon/spagett" rel="noreferrer">
-            <p className="link-text proj-colors">spagett query language</p>
+            <p className="link-text proj-colors">spagett ql</p>
             <p className="tooltip-text proj-colors">lisp-like query language. al dente, of course. </p>
           </a>
           {/* <Link className="link proj-colors middle right" to="/wip" rel="noreferrer">
@@ -78,7 +78,6 @@ export default function Projects() {
           </Link> */}
         </div>
         {/* <Raincloud showLightning={showLightning} setShowLightning={setShowLightning}/> */}
-        <br />
       </div>
     </div>
   );

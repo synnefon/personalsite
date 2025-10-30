@@ -1,48 +1,50 @@
 body {
   overflow-x: hidden;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 
 div#app-base {
   overflow-x: hidden;
-  transition: all 2s linear!important;
+  overflow-y: auto;
+  transition: all 2s linear !important;
   justify-content: center;
   display: flex;
-  top: 0px!important;
-  bottom: 0px;
-  position: absolute;
+  top: 0px !important;
+  position: fixed;
   width: 100%;
+  height: 100vh;
   margin: 0;
   background-color: var(--bg-color);
   color: var(--text-color);
 }
 
 .content-wrapper {
-  font-size: calc(12px + 2vmin);
-  top: 20px;
+  font-size: calc(8px + 2vmin);
   width: 45%;
   display: flex;
   flex-direction: column;
-  position: absolute;
+  position: relative;
   padding-left: 50px;
   padding-right: 50px;
+  margin-top: 10px;
 }
 
 .title {
   position: relative;
   top: 0px;
   margin: 1px;
-  margin-top: 0.5em;
+  margin-top: 1.3em;
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  color: orange;
 }
 
 .description {
   position: relative;
   margin: 0px;
-  margin-top: 1.5em;
-  margin-bottom: 3em;
+  margin-top: 1em;
+  margin-bottom: 1.5em;
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
@@ -59,22 +61,28 @@ div#app-base {
 
 .links {
   position: relative;
-  display: grid;  
-  grid-template-columns: repeat(2, 50%);
-  grid-template-rows: repeat(4, 5.5em);
-  user-select: none!important;
-  margin-bottom: 15px;
+  display: grid;
+  grid-template-columns: 100%;
+  grid-auto-rows: 2.8em;
+  user-select: none !important;
+  margin-bottom: 0px;
 }
 
 .link {
   color: inherit; /* no blue link text */
   text-decoration: none; /* no underlined link text */
   transition: transform 0.8s ease;
-  overflow: hidden;
+  overflow: visible;
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
   cursor: var(--pointer);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-left: 2em;
+  position: relative;
 }
 a.link {
   cursor: var(--pointer);
@@ -90,42 +98,102 @@ a.link:hover > .tooltip-text {
   animation: boing 0.3s ease-in-out alternate;
 }
 
-.top {
-  border-top: 2px dashed var(--text-color);
-  border-bottom: 2px dashed var(--text-color);
+.link::before {
+  position: absolute;
+  left: -1.7em;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-color);
+  background-color: transparent;
+  animation: none !important;
 }
-.bottom {
-  border-bottom: 2px dashed var(--text-color);
+
+/* ================================
+ * main site links
+ * ================================ */
+.link[href*="projects"]::before {
+  content: "𐐹";
 }
-.middle {
-  border-bottom: 2px dashed var(--text-color);
-  border-right: 2px dashed var(--text-color);
+.link[class*="about"]::before {
+  content: "𐐴";
 }
-.left {
-  border-left: 2px dashed var(--text-color);
-  border-right: 2px dashed var(--text-color);
+.link[class*="resume"]::before {
+  content: "𐑉";
 }
-.right {
-  border-right: 2px dashed var(--text-color);
+.link[href*="github"]::before {
+  content: "𐑀";
+}
+.link[href*="linkedin"]::before {
+  content: "𐑊";
+}
+.link[href*="mailto"]::before {
+  content: "𐑋";
+}
+
+/* ================================
+  * project links (proj-colors)
+  * ================================ */
+.link[href*="mapinator"]::before {
+  content: "⛰";
+}
+.link[href*="sudoku"]::before {
+  content: "⊞";
+}
+.link[href*="thangs"]::before {
+  content: "⚙";
+}
+.link[href*="snek"]::before {
+  content: "𓆙";
+}
+.link[href*="img-butler"]::before {
+  content: "⚞";
+}
+.link[href*="spagett"]::before {
+  content: "≈";
+}
+.link[href*="shufflenator"]::before {
+  content: "⇄";
+}
+.link[href*="game-of-life"]::before {
+  content: "☯";
+}
+
+/* ================================
+  * hidden or WIP
+  * ================================ */
+.link[href*="toolbox"]::before {
+  content: "⚒";
+}
+.link[href*="infinite-terrain"]::before {
+  content: "∞";
+}
+.link[href*="rpg-tabletop"]::before {
+  content: "♟";
+}
+.link[href*="wip"]::before {
+  content: "⧗";
 }
 
 p.link-text {
-  margin-left: 0.3em;
-  margin-top: 0.3em;
+  margin-left: 10px;
+  margin-top: 0em;
   margin-right: 0.3em;
+  margin-bottom: 0em;
 }
 
-.tooltip-text { 
-  font-size: calc(10px + 1vmin);
+.tooltip-text {
+  font-size: calc(9px + 0.75vmin);
   color: var(--inv-text-color);
-  margin-left: 0.6em;
   margin-top: 0em;
-  margin-right: 0.4em;
+  margin-bottom: 0em;
+  margin-right: 10px;
   cursor: var(--pointer);
+  text-align: right;
+  flex-shrink: 0;
 }
 
 @media screen and (max-width: 1255px) {
-  .content-wrapper { 
+  .content-wrapper {
     width: 70%;
   }
 }
@@ -137,14 +205,14 @@ p.link-text {
 }
 
 @media screen and (max-width: 600px) {
-  .content-wrapper { 
+  .content-wrapper {
     width: 80%;
     margin-top: 50px;
   }
 }
 
 @media screen and (max-width: 500px) {
-  .content-wrapper { 
+  .content-wrapper {
     width: 90%;
     overflow-y: hidden;
   }

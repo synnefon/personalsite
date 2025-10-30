@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Hamburger from 'hamburger-react'
 
 import './styles/navbar.css'
@@ -7,6 +7,7 @@ import './styles/navbar.css'
 const Navbar=()=>{
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [width, setWidth] = useState(window.innerWidth);
+  const location = useLocation();
 
   const isMobile = width <= 500;
 
@@ -18,9 +19,10 @@ const Navbar=()=>{
 
   const NavItem = ({title, to}) => {
     const closePopup = () => setTimeout(() => setHamburgerOpen(false), 200);
+    const isActive = location.pathname === to;
     return (
-      <Link className={`nav-link ${title}`} to={to} onClick={closePopup}>
-        <span className={`nav-icon ${title}`} aria-hidden="true" />
+      <Link className={`nav-link ${title} ${isActive ? 'active' : ''}`} to={to} onClick={closePopup}>
+        <span className={`nav-icon ${title} ${isActive ? 'active' : ''}`} aria-hidden="true" />
         <div className="nav-link-text">{title}</div>
       </Link>
     );

@@ -27,11 +27,11 @@
 }
 
 @keyframes boing {
-  0% { transform: scale(1.0); }
-  15% { transform: scale(0.95); }
-  40% { transform: scale(1.05) translateY(-2%); }
-  95% { transform: scale(0.99); }
-  100% { transform: scale(1.0); }
+  0% { transform: translateY(0) scale(1.0); }
+  15% { transform: translateY(1%) scale(0.98); }
+  40% { transform: translateY(-2.5%) scale(1.02); }
+  95% { transform: translateY(0.5%) scale(0.995); }
+  100% { transform: translateY(0) scale(1.0); }
 }
 
 @keyframes boing-small {
