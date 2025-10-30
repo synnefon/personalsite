@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/static/css/main.7a272cf0.css",
-    "main.js": "/static/js/main.aeaea98c.js",
+    "main.css": "/static/css/main.d87a7a2c.css",
+    "main.js": "/static/js/main.35841436.js",
     "static/media/the_gathering.mp3": "/static/media/the_gathering.2d97c4755109d9278151.mp3",
     "static/media/self.gif": "/static/media/self.ad1e6f139233db344487.gif",
     "static/media/3.m4a": "/static/media/3.e926e4f81d1a320405da.m4a",
@@ -17,11 +17,8 @@
     "static/media/F25_Bank_Printer.otf": "/static/media/F25_Bank_Printer.07be3c3654876f79f05c.otf",
     "static/media/game_over.mp3": "/static/media/game_over.21c74c34f50a8ecedde0.mp3",
     "static/media/Pixelon.ttf": "/static/media/Pixelon.6f0c91f81b6e3e2958ec.ttf",
-    "static/media/pen.svg": "/static/media/pen.532120aadd2f50480a01.svg",
     "static/media/pen_focus.svg": "/static/media/pen_focus.4f908978b3fd40609969.svg",
-    "static/media/info.svg": "/static/media/info.ff462fc79d53fdc9e0ef.svg",
     "static/media/info_focus.svg": "/static/media/info_focus.2522e3d364aaed33ec2b.svg",
-    "static/media/house.svg": "/static/media/house.4bae503015a7f88e8d6c.svg",
     "static/media/house_focus.svg": "/static/media/house_focus.9001ebacaa429eb26577.svg",
     "index.html": "/index.html",
     "static/media/download.svg": "/static/media/download.92ba899f818fbf2a35a1.svg",
@@ -39,11 +36,11 @@
     "static/media/redo_focus.svg": "/static/media/redo_focus.29d549ae26b9af2e7d38.svg",
     "static/media/timer.svg": "/static/media/timer.4ee7cd0799986c827fe0.svg",
     "static/media/timer_focus.svg": "/static/media/timer_focus.d078fce01e3307044491.svg",
-    "main.7a272cf0.css.map": "/static/css/main.7a272cf0.css.map",
-    "main.aeaea98c.js.map": "/static/js/main.aeaea98c.js.map"
+    "main.d87a7a2c.css.map": "/static/css/main.d87a7a2c.css.map",
+    "main.35841436.js.map": "/static/js/main.35841436.js.map"
   },
   "entrypoints": [
-    "static/css/main.7a272cf0.css",
-    "static/js/main.aeaea98c.js"
+    "static/css/main.d87a7a2c.css",
+    "static/js/main.35841436.js"
   ]
 }
