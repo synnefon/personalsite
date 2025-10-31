@@ -62,16 +62,16 @@
   box-sizing: border-box;
 }
 
-.gol-board-cell.filled {
-  background: var(--text-color);
-}
-
-.gol-board.drag-mode .gol-board-cell {
+.gol-board.mouse-down .gol-board-cell {
   cursor: grab;
 }
 
-.gol-board.drag-mode:active .gol-board-cell {
+.gol-board.dragging .gol-board-cell {
   cursor: grabbing;
+}
+
+.gol-board-cell.filled {
+  background: var(--text-color);
 }
 
 
@@ -81,35 +81,7 @@
 
 .gol-controls {
   display: inline-grid;
-  grid-template-rows: 3em 5em 4em 4em 15em 7em;
-}
-
-.gol-mode-toggle {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.gol-mode-button {
-  flex: 1;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border-color);
-  background-color: transparent;
-  color: var(--border-color);
-  font-size: 0.9rem;
-  text-align: center;
-  cursor: var(--pointer);
-  transition: all 0.2s;
-}
-
-.gol-mode-button:hover {
-  border-color: var(--text-color);
-  color: var(--text-color);
-}
-
-.gol-mode-button.active {
-  background-color: var(--text-color);
-  color: var(--bg-color);
-  border-color: var(--text-color);
+  grid-template-rows: 5em 4em 4em 15em 7em;
 }
 
 .gol-control-group {

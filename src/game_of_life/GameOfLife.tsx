@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   ReactElement,
   useCallback,
   useEffect,
@@ -21,8 +22,7 @@ const DEFAULT_TICK_PER_SEC = 3;
 const MAX_TICK_PER_SEC = 10;
 const DEFAULT_SIZE = 50;
 const MAX_SIZE = 150;
-
-type Mode = "drag" | "place";
+const DRAG_THRESHOLD = 5; // pixels to move before considering it a drag
 
 // helpers for Set keys
 const makeKey = (x: number, y: number): string => `${x},${y}`;
@@ -35,7 +35,6 @@ export default function GameOfLifeInfinite(): ReactElement {
   /* --------------------------------------------------------------------- */
   /*  State                                                                */
   /* --------------------------------------------------------------------- */
-  const [mode, setMode] = useState<Mode>("place");
   const [size, setSize] = useState<number>(DEFAULT_SIZE); // rows = cols
   const sizeRef = useRef<number>(size);
   const ticksPerSec = useRef<number>(DEFAULT_TICK_PER_SEC); // rows = cols
@@ -111,6 +110,9 @@ export default function GameOfLifeInfinite(): ReactElement {
   /*  Interaction Helpers                                                  */
   /* --------------------------------------------------------------------- */
   const toggleCell = (x: number, y: number): void => {
+    // Don't toggle if we just finished dragging
+    if (isDraggingRef.current) return;
+
     const k = makeKey(x, y);
     const set = liveCellsRef.current;
     set.has(k) ? set.delete(k) : set.add(k);
@@ -182,72 +184,129 @@ export default function GameOfLifeInfinite(): ReactElement {
     return;
   }, []);
 
-  // drag functionality (mouse)
+  // Track if we're dragging to prevent click events
+  const isDraggingRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isPointerDown, setIsPointerDown] = useState(false);
+
+  // drag/click detection (mouse)
   useEffect(() => {
-    let isDragging = false;
+    let isMouseDown = false;
+    let hasDragged = false;
+    let startX = 0;
+    let startY = 0;
     let lastX = 0;
     let lastY = 0;
 
     const handleMouseDown = (e: MouseEvent): void => {
-      if (mode !== "drag") return;
-      isDragging = true;
+      // Ignore if clicking on a control element
+      if ((e.target as HTMLElement).closest(".gol-controls")) return;
+
+      isMouseDown = true;
+      hasDragged = false;
+      setIsPointerDown(true);
+      startX = e.clientX;
+      startY = e.clientY;
       lastX = e.clientX;
       lastY = e.clientY;
     };
 
     const handleMouseMove = (e: MouseEvent): void => {
-      if (!isDragging || mode !== "drag") return;
+      if (!isMouseDown) return;
+
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
+
+      // Check if we've moved enough to be considered a drag
+      const totalDx = Math.abs(e.clientX - startX);
+      const totalDy = Math.abs(e.clientY - startY);
+
+      if (!hasDragged && (totalDx > DRAG_THRESHOLD || totalDy > DRAG_THRESHOLD)) {
+        hasDragged = true;
+        isDraggingRef.current = true;
+        setIsDragging(true);
+      }
+
+      if (hasDragged) {
+        const currentSize = sizeRef.current;
+        const board = document.querySelector(".gol-board") as HTMLElement;
+        const rect = board?.getBoundingClientRect();
+        if (!rect) return;
+
+        // Convert pixel movement to cell movement
+        const cellDx = (dx / rect.width) * currentSize;
+        const cellDy = (dy / rect.height) * currentSize;
+
+        setOffset((prev) => ({
+          x: prev.x - cellDx,
+          y: prev.y - cellDy,
+        }));
+      }
+
       lastX = e.clientX;
       lastY = e.clientY;
-
-      const currentSize = sizeRef.current;
-      const board = document.querySelector(".gol-board") as HTMLElement;
-      const rect = board?.getBoundingClientRect();
-      if (!rect) return;
-
-      // Convert pixel movement to cell movement
-      const cellDx = (dx / rect.width) * currentSize;
-      const cellDy = (dy / rect.height) * currentSize;
-
-      setOffset((prev) => ({
-        x: prev.x - cellDx,
-        y: prev.y - cellDy,
-      }));
     };
 
     const handleMouseUp = (): void => {
-      isDragging = false;
+      if (hasDragged) {
+        // Only update if we actually dragged
+        setIsDragging(false);
+      }
+      isMouseDown = false;
+      hasDragged = false;
+      setIsPointerDown(false);
+      // Reset drag flag after a brief delay to let click events check it
+      setTimeout(() => {
+        isDraggingRef.current = false;
+      }, 0);
     };
 
-    const board = document.querySelector(".gol-board");
-    board?.addEventListener("mousedown", handleMouseDown);
+    const handleMouseLeave = (): void => {
+      // Reset everything if mouse leaves window while dragging
+      if (isMouseDown) {
+        isMouseDown = false;
+        hasDragged = false;
+        setIsPointerDown(false);
+        setIsDragging(false);
+        isDraggingRef.current = false;
+      }
+    };
+
+    window.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("mouseleave", handleMouseLeave);
 
     return () => {
-      board?.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("mouseleave", handleMouseLeave);
     };
-  }, [mode]);
+  }, []);
 
-  // drag functionality (touch) & pinch zoom
+  // drag/tap detection (touch) & pinch zoom
   useEffect(() => {
     let initialDistance = 0;
-    let isDragging = false;
+    let isTouching = false;
+    let hasDragged = false;
+    let startX = 0;
+    let startY = 0;
     let lastX = 0;
     let lastY = 0;
 
     const handleTouchStart = (e: TouchEvent): void => {
       if (e.touches.length === 2) {
-        isDragging = false;
+        isTouching = false;
+        hasDragged = false;
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
         initialDistance = Math.sqrt(dx * dx + dy * dy);
-      } else if (e.touches.length === 1 && mode === "drag") {
-        isDragging = true;
+      } else if (e.touches.length === 1) {
+        isTouching = true;
+        hasDragged = false;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
         lastX = e.touches[0].clientX;
         lastY = e.touches[0].clientY;
       }
@@ -256,7 +315,8 @@ export default function GameOfLifeInfinite(): ReactElement {
     const handleTouchMove = (e: TouchEvent): void => {
       if (e.touches.length === 2) {
         e.preventDefault();
-        isDragging = false;
+        isTouching = false;
+        hasDragged = false;
         const board = e.currentTarget as HTMLElement;
         const rect = board.getBoundingClientRect();
 
@@ -288,43 +348,63 @@ export default function GameOfLifeInfinite(): ReactElement {
 
         setOffset(newOffset);
         setSize(clampedSize);
-      } else if (e.touches.length === 1 && isDragging && mode === "drag") {
-        e.preventDefault();
+      } else if (e.touches.length === 1 && isTouching) {
         const dx = e.touches[0].clientX - lastX;
         const dy = e.touches[0].clientY - lastY;
+
+        // Check if we've moved enough to be considered a drag
+        const totalDx = Math.abs(e.touches[0].clientX - startX);
+        const totalDy = Math.abs(e.touches[0].clientY - startY);
+
+        if (!hasDragged && (totalDx > DRAG_THRESHOLD || totalDy > DRAG_THRESHOLD)) {
+          hasDragged = true;
+          setIsDragging(true);
+        }
+
+        if (hasDragged) {
+          e.preventDefault();
+          const currentSize = sizeRef.current;
+          const board = document.querySelector(".gol-board") as HTMLElement;
+          const rect = board?.getBoundingClientRect();
+          if (!rect) return;
+
+          // Convert pixel movement to cell movement
+          const cellDx = (dx / rect.width) * currentSize;
+          const cellDy = (dy / rect.height) * currentSize;
+
+          setOffset((prev) => ({
+            x: prev.x - cellDx,
+            y: prev.y - cellDy,
+          }));
+        }
+
         lastX = e.touches[0].clientX;
         lastY = e.touches[0].clientY;
-
-        const currentSize = sizeRef.current;
-        const board = document.querySelector(".gol-board") as HTMLElement;
-        const rect = board?.getBoundingClientRect();
-        if (!rect) return;
-
-        // Convert pixel movement to cell movement
-        const cellDx = (dx / rect.width) * currentSize;
-        const cellDy = (dy / rect.height) * currentSize;
-
-        setOffset((prev) => ({
-          x: prev.x - cellDx,
-          y: prev.y - cellDy,
-        }));
       }
     };
 
     const handleTouchEnd = (): void => {
-      isDragging = false;
+      isTouching = false;
+      setIsDragging(false);
     };
 
     const board = document.querySelector(".gol-board");
-    board?.addEventListener("touchstart", handleTouchStart);
-    board?.addEventListener("touchmove", handleTouchMove, { passive: false });
-    board?.addEventListener("touchend", handleTouchEnd);
-    return () => {
-      board?.removeEventListener("touchstart", handleTouchStart);
-      board?.removeEventListener("touchmove", handleTouchMove);
-      board?.removeEventListener("touchend", handleTouchEnd);
-    };
-  }, [mode]);
+    if (board) {
+      const startHandler = handleTouchStart as EventListener;
+      const moveHandler = handleTouchMove as EventListener;
+      const endHandler = handleTouchEnd as EventListener;
+
+      board.addEventListener("touchstart", startHandler);
+      board.addEventListener("touchmove", moveHandler, { passive: false });
+      board.addEventListener("touchend", endHandler);
+
+      return () => {
+        board.removeEventListener("touchstart", startHandler);
+        board.removeEventListener("touchmove", moveHandler);
+        board.removeEventListener("touchend", endHandler);
+      };
+    }
+  }, []);
 
   /* --------------------------------------------------------------------- */
   /*  Render Board                                                         */
@@ -349,7 +429,7 @@ export default function GameOfLifeInfinite(): ReactElement {
         <div
           key={`cell-${cellX},${cellY}`}
           className={`gol-board-cell${filled ? " filled" : ""}`}
-          onClick={() => mode === "place" && toggleCell(cellX, cellY)}
+          onClick={() => toggleCell(cellX, cellY)}
         />
       );
     }
@@ -369,11 +449,11 @@ export default function GameOfLifeInfinite(): ReactElement {
     <div id="game-of-life" className="gol-container">
       {/* BOARD */}
       <div
-        className={`gol-board${mode === "drag" ? " drag-mode" : ""}`}
+        className={`gol-board${isPointerDown && !isDragging ? " mouse-down" : ""}${isDragging ? " dragging" : ""}`}
         style={{
           "--rows": viewRows,
           "--cols": viewCols,
-        } as React.CSSProperties}
+        } as CSSProperties}
       >
         <div
           className="gol-board-content"
@@ -387,22 +467,6 @@ export default function GameOfLifeInfinite(): ReactElement {
 
       {/* CONTROLS */}
       <aside className="gol-controls">
-        {/* mode toggle */}
-        <div className="gol-mode-toggle">
-          <div
-            className={`gol-mode-button ${mode === "drag" ? "active" : ""}`}
-            onClick={() => setMode("drag")}
-          >
-            drag
-          </div>
-          <div
-            className={`gol-mode-button ${mode === "place" ? "active" : ""}`}
-            onClick={() => setMode("place")}
-          >
-            place
-          </div>
-        </div>
-
         {/* start / pause */}
         <div className="gol-start-button" onClick={onToggleStart}>
           {runningRef.current ? "pause" : "start"}
