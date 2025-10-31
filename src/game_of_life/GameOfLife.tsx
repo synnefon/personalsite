@@ -42,10 +42,6 @@ const LIFE_NEIGHBORS_BIRTH = 3;
 // Gold: #d9a60e
 const COLOR_GOLD = { r: 217, g: 166, b: 14 };
 
-// Starting pattern reference
-const START_CENTER_X = 25;
-const START_CENTER_Y = 26;
-
 const WHEEL_ZOOM_DELTA = 0.1;
 const PINCH_ZOOM_DAMPING = 0.5;
 const ZOOM_DEFAULT_LEVEL = 1;
@@ -102,10 +98,28 @@ export default function GameOfLifeInfinite(): ReactElement {
   const viewRows = dimensions.rows;
   const viewCols = dimensions.cols;
 
-  // Center the starting shape in the viewport
+  /* ------------------------------------------------------------------ */
+  /*  Starting pattern                                                  */
+  /* ------------------------------------------------------------------ */
+  const selectedPattern = getRandomPattern();
+  const initialLive = new Set<number>(
+    selectedPattern.pattern.map(([x, y]) => makeKey(x, y))
+  );
+
+  // Calculate pattern bounds to center it in viewport
+  const patternBounds = {
+    minX: Math.min(...selectedPattern.pattern.map(([x]) => x)),
+    maxX: Math.max(...selectedPattern.pattern.map(([x]) => x)),
+    minY: Math.min(...selectedPattern.pattern.map(([, y]) => y)),
+    maxY: Math.max(...selectedPattern.pattern.map(([, y]) => y)),
+  };
+  const patternCenterX = (patternBounds.minX + patternBounds.maxX) / 2;
+  const patternCenterY = (patternBounds.minY + patternBounds.maxY) / 2;
+
+  // Center the pattern in the viewport
   const [offset, setOffset] = useState<{ x: number; y: number }>({
-    x: START_CENTER_X - initialCols / 2,
-    y: START_CENTER_Y - initialRows / 2,
+    x: patternCenterX - initialCols / 2,
+    y: patternCenterY - initialRows / 2,
   });
   const offsetRef = useRef<{ x: number; y: number }>(offset);
 
@@ -181,14 +195,6 @@ export default function GameOfLifeInfinite(): ReactElement {
       clearTimeout(removeTimer);
     };
   }, []);
-
-  /* ------------------------------------------------------------------ */
-  /*  Starting pattern                                                  */
-  /* ------------------------------------------------------------------ */
-  const selectedPattern = getRandomPattern();
-  const initialLive = new Set<number>(
-    selectedPattern.pattern.map(([x, y]) => makeKey(x, y))
-  );
 
   /* ------------------------------------------------------------------ */
   /*  State                                                             */

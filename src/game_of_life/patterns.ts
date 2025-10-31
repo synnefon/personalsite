@@ -1,8 +1,11 @@
 /**
  * Conway's Game of Life - Starting Patterns
  *
- * Each pattern is defined as an array of [x, y] coordinates.
- * Add new patterns to the PATTERNS array to make them available for random selection.
+ * Patterns are defined in ASCII art format for readability:
+ * - '█' (or 'O'/'o') = live cell
+ * - '.' or ' ' = dead cell
+ *
+ * Patterns are defined starting from (0, 0). The game will auto-center them.
  */
 
 export type Pattern = [number, number][];
@@ -12,98 +15,179 @@ export interface PatternConfig {
   pattern: Pattern;
 }
 
-const GLIDER: Pattern = [
-  [25, 25],
-  [25, 26],
-  [24, 26],
-  [25, 27],
-  [26, 27],
-];
+/**
+ * Parse ASCII art pattern into coordinate array
+ * @param art - ASCII art string where '█'/'O'/'o' = live, '.' = dead
+ */
+function parsePattern(art: string): Pattern {
+  const lines = art.trim().split('\n');
+  const coords: Pattern = [];
 
-const HOLLOW_SQUARES_PATTERN: Pattern = [
-  // First 3x3 hollow square
-  [20, 20], [21, 20], [22, 20],
-  [20, 21], [22, 21], // hollow center - skip [21, 21]
-  [20, 22], [21, 22], [22, 22],
+  // Parse each cell
+  lines.forEach((line, y) => {
+    for (let x = 0; x < line.length; x++) {
+      const char = line[x];
+      if (char === '█' || char === 'O' || char === 'o') {
+        coords.push([x, y]);
+      }
+    }
+  });
 
-  // Second 3x3 hollow square (1 cell gap)
-  [24, 20], [25, 20], [26, 20],
-  [24, 21], [26, 21], // hollow center - skip [25, 21]
-  [24, 22], [25, 22], [26, 22],
-];
+  return coords;
+}
 
-const GLIDER_GUN_PATTERN: Pattern = [
-  // Left square
-  [5, 20], [5, 21], [6, 20], [6, 21],
+const HOLLOW_SQUARES: Pattern = parsePattern(`
+███.███
+█.█.█.█
+███.███
+`);
 
-  // Left part of gun
-  [15, 20], [15, 21], [15, 22],
-  [16, 19], [16, 23],
-  [17, 18], [17, 24],
-  [18, 18], [18, 24],
-  [19, 21],
-  [20, 19], [20, 23],
-  [21, 20], [21, 21], [21, 22],
-  [22, 21],
+const GLIDER_GUN: Pattern = parsePattern(`
+........................█...........
+......................█.█...........
+............██......██............██
+...........█...█....██............██
+██........█.....█...██..............
+██........█...█.██....█.█...........
+..........█.....█.......█...........
+...........█...█....................
+............██......................
+`);
 
-  // Right part of gun
-  [25, 18], [25, 19], [25, 20],
-  [26, 18], [26, 19], [26, 20],
-  [27, 17], [27, 21],
+// Evolves for 5,206 generations before stabilizing
+const ACORN: Pattern = parsePattern(`
+.█.....
+...█...
+██..███
+`);
 
-  [29, 16], [29, 17], [29, 21], [29, 22],
+// Evolves for 1,103 generations
+const R_PENTOMINO: Pattern = parsePattern(`
+.██
+██.
+.█.
+`);
 
-  // Right square
-  [39, 18], [39, 19], [40, 18], [40, 19],
-];
+// Vanishes after 130 generations
+const DIEHARD: Pattern = parsePattern(`
+......█.
+██......
+.█...███
+`);
 
-const ACORN: Pattern = [
-  // Evolves for 5,206 generations before stabilizing
-  [24, 25],
-  [26, 26],
-  [23, 27], [24, 27], [27, 27], [28, 27], [29, 27],
-];
+// Period-3 oscillator
+const PULSAR: Pattern = parsePattern(`
+..███...███..
 
-const R_PENTOMINO: Pattern = [
-  // Evolves for 1,103 generations
-  [25, 24], [26, 24],
-  [24, 25], [25, 25],
-  [25, 26],
-];
+█....█.█....█
+█....█.█....█
+█....█.█....█
+..███...███..
 
-const DIEHARD: Pattern = [
-  // Vanishes after 130 generations
-  [31, 24],
-  [25, 25], [26, 25],
-  [26, 26], [30, 26], [31, 26], [32, 26],
-];
+..███...███..
+█....█.█....█
+█....█.█....█
+█....█.█....█
 
-const PULSAR: Pattern = [
-  // Period-3 oscillator
-  // Top section
-  [20, 18], [21, 18], [22, 18], [26, 18], [27, 18], [28, 18],
-  [18, 20], [23, 20], [25, 20], [30, 20],
-  [18, 21], [23, 21], [25, 21], [30, 21],
-  [18, 22], [23, 22], [25, 22], [30, 22],
-  [20, 23], [21, 23], [22, 23], [26, 23], [27, 23], [28, 23],
+..███...███..
+`);
 
-  // Middle gap at row 24
+// Lightweight Spaceship - travels horizontally
+const LWSS: Pattern = parsePattern(`
+█..█
+....█
+█...█
+.████
+`);
 
-  // Bottom section
-  [20, 25], [21, 25], [22, 25], [26, 25], [27, 25], [28, 25],
-  [18, 26], [23, 26], [25, 26], [30, 26],
-  [18, 27], [23, 27], [25, 27], [30, 27],
-  [18, 28], [23, 28], [25, 28], [30, 28],
-  [20, 30], [21, 30], [22, 30], [26, 30], [27, 30], [28, 30],
-];
+// Medium Weight Spaceship - travels horizontally
+const MWSS: Pattern = parsePattern(`
+█...█
+.....█
+█....█
+.█████
+..███.
+`);
 
-const LWSS: Pattern = [
-  // Lightweight Spaceship - travels horizontally
-  [25, 20], [28, 20],
-  [24, 21],
-  [24, 22], [28, 22],
-  [24, 23], [25, 23], [26, 23], [27, 23],
-];
+// Heavy Weight Spaceship - travels horizontally
+const HWSS: Pattern = parsePattern(`
+██...█
+......█
+█.....█
+.██████
+..████.
+`);
+
+// Diagonal spaceship - travels diagonally
+const COPPERHEAD: Pattern = parsePattern(`
+██......
+█.█..█..
+..█..█..
+██.██.██
+...██...
+`);
+
+// Period-15 oscillator
+const PENTADECATHLON: Pattern = parsePattern(`
+.█.
+.█.
+█.█
+.█.
+.█.
+.█.
+.█.
+█.█
+.█.
+.█.
+`);
+
+// Period-8 oscillator with beautiful symmetry
+const GALAXY: Pattern = parsePattern(`
+██████..
+██████..
+█.......
+█.....█.
+█.....█.
+.█.....█
+.......█
+..██████
+..██████
+`);
+
+// Methuselah - 17,331 generations before stabilizing
+const RABBITS: Pattern = parsePattern(`
+███
+███.
+.█.
+`);
+
+// Methuselah - 29,055 generations before stabilizing
+const LIDKA: Pattern = parsePattern(`
+.█..
+..██
+██.█
+.█..
+`);
+
+// Compact glider gun - period-120
+const SIMKIN_GLIDER_GUN: Pattern = parsePattern(`
+██.....................██
+██.....................██
+.........................
+.........................
+.........................
+.........................
+██.......................
+██.......................
+.........................
+.........................
+.........................
+.......██.██.............
+.......██.██.............
+.........................
+....██...................
+....██...................
+`);
 
 /**
  * All available starting patterns
@@ -111,16 +195,12 @@ const LWSS: Pattern = [
  */
 export const PATTERNS: PatternConfig[] = [
   {
-    name: "Glider",
-    pattern: GLIDER,
-  },
-  {
     name: "Hollow Squares",
-    pattern: HOLLOW_SQUARES_PATTERN,
+    pattern: HOLLOW_SQUARES,
   },
   {
     name: "Gosper Glider Gun",
-    pattern: GLIDER_GUN_PATTERN,
+    pattern: GLIDER_GUN,
   },
   {
     name: "Acorn",
@@ -142,6 +222,38 @@ export const PATTERNS: PatternConfig[] = [
     name: "Lightweight Spaceship",
     pattern: LWSS,
   },
+  {
+    name: "Medium Weight Spaceship",
+    pattern: MWSS,
+  },
+  {
+    name: "Heavy Weight Spaceship",
+    pattern: HWSS,
+  },
+  {
+    name: "Copperhead",
+    pattern: COPPERHEAD,
+  },
+  {
+    name: "Pentadecathlon",
+    pattern: PENTADECATHLON,
+  },
+  {
+    name: "Galaxy",
+    pattern: GALAXY,
+  },
+  {
+    name: "Rabbits",
+    pattern: RABBITS,
+  },
+  {
+    name: "Lidka",
+    pattern: LIDKA,
+  },
+  {
+    name: "Simkin Glider Gun",
+    pattern: SIMKIN_GLIDER_GUN,
+  },
 ];
 
 /**
@@ -149,5 +261,7 @@ export const PATTERNS: PatternConfig[] = [
  */
 export function getRandomPattern(): PatternConfig {
   const randomIndex = Math.floor(Math.random() * PATTERNS.length);
-  return PATTERNS[randomIndex];
+  const pattern = PATTERNS[randomIndex];
+  console.log(`Starting pattern: ${pattern.name}`);
+  return pattern;
 }
