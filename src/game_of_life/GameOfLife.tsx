@@ -25,7 +25,7 @@ import "../styles/gameoflife.css";
 const DEFAULT_TICK_PER_SEC = 3;
 const MAX_TICK_PER_SEC = 10;
 const CELL_SIZE = 20; // px - fixed cell size
-const MIN_ZOOM = 0.5;
+const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 4;
 const DRAG_THRESHOLD_PX = 5;
 
@@ -132,6 +132,31 @@ export default function GameOfLifeInfinite(): ReactElement {
   // Generation counter for triggering re-renders when cells change
   const [generation, setGeneration] = useState<number>(0);
 
+  // Splash screen state
+  const [showSplash, setShowSplash] = useState<boolean>(true);
+  const [fadingSplash, setFadingSplash] = useState<boolean>(false);
+
+  // Clear button animation state
+  const [clearClicked, setClearClicked] = useState<boolean>(false);
+
+  // Handle splash screen timing
+  useEffect(() => {
+    // Start fade out after 5 seconds
+    const fadeTimer = setTimeout(() => {
+      setFadingSplash(true);
+    }, 4000);
+
+    // Remove splash completely after 6 seconds (5s display + 1s fade)
+    const removeTimer = setTimeout(() => {
+      setShowSplash(false);
+    }, 6000);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, []);
+
   /* ------------------------------------------------------------------ */
   /*  Optional static seed                                              */
   /* ------------------------------------------------------------------ */
@@ -152,6 +177,7 @@ export default function GameOfLifeInfinite(): ReactElement {
   /*  State                                                             */
   /* ------------------------------------------------------------------ */
   const liveCellsRef = useRef<Set<number>>(initialLive);
+  const [running, setRunning] = useState<boolean>(false);
   const runningRef = useRef<boolean>(false);
   const animationFrameRef = useRef<number | null>(null);
   const lastTickTimeRef = useRef<number>(0);
@@ -265,8 +291,11 @@ export default function GameOfLifeInfinite(): ReactElement {
   }, []);
 
   const onToggleStart = useCallback((): void => {
-    runningRef.current = !runningRef.current;
-    if (runningRef.current) {
+    const newRunning = !runningRef.current;
+    runningRef.current = newRunning;
+    setRunning(newRunning); // Update state immediately for UI
+
+    if (newRunning) {
       lastTickTimeRef.current = performance.now();
       runTick();
     } else {
@@ -642,6 +671,17 @@ export default function GameOfLifeInfinite(): ReactElement {
 
   return (
     <div id="game-of-life" className="gol-container">
+      {/* SPLASH SCREEN */}
+      {showSplash && (
+        <div className={`gol-splash${fadingSplash ? " fading" : ""}`}>
+          <div className="gol-splash-text">
+            Conway's
+            <br />
+            Game of Life
+          </div>
+        </div>
+      )}
+
       {/* BOARD */}
       <div
         className={`gol-board${
@@ -671,10 +711,10 @@ export default function GameOfLifeInfinite(): ReactElement {
       <aside className="gol-controls">
         {/* start / pause */}
         <div
-          className={`gol-start-button${runningRef.current ? " running" : ""}`}
+          className={`gol-start-button${running ? " running" : ""}`}
           onClick={onToggleStart}
         >
-          {runningRef.current ? "pause" : "start"}
+          {running ? "pause" : "start"}
         </div>
 
         {/* speed selector */}
@@ -702,6 +742,31 @@ export default function GameOfLifeInfinite(): ReactElement {
               }}
             />
           </label>
+        </div>
+
+        {/* clear button */}
+        <div
+          className={`gol-start-button${clearClicked ? " clearing" : ""}`}
+          onClick={() => {
+            // Pause the simulation
+            runningRef.current = false;
+            setRunning(false); // Update state immediately for UI
+            if (animationFrameRef.current !== null) {
+              cancelAnimationFrame(animationFrameRef.current);
+              animationFrameRef.current = null;
+            }
+            // Clear all cells
+            liveCellsRef.current.clear();
+            setGeneration((g) => g + 1);
+
+            // Trigger transition
+            setClearClicked(true);
+            setTimeout(() => {
+              setClearClicked(false);
+            }, 900);
+          }}
+        >
+          clear
         </div>
       </aside>
     </div>

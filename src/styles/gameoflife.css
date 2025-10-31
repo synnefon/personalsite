@@ -144,9 +144,54 @@
     color: var(--text-color);
   }
 
+  .gol-start-button:active {
+    background-color: var(--text-color);
+    color: var(--bg-color);
+    border-color: var(--text-color);
+  }
+
   .gol-start-button.running {
     background-color: var(--text-color);
     color: var(--bg-color);
     border-color: var(--text-color);
   }
-  
+
+  .gol-start-button.clearing {
+    background-color: var(--text-color);
+    color: var(--bg-color);
+    border-color: var(--text-color);
+    transition: all 0.2s 0.2s ease-out;
+  }
+
+
+/* ============================================
+   SPLASH SCREEN
+   ============================================ */
+
+.gol-splash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--bg-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 1;
+  transition: opacity 1s ease-out;
+}
+
+.gol-splash.fading {
+  opacity: 0;
+}
+
+.gol-splash-text {
+  font-size: clamp(3rem, 10vw, 8rem);
+  font-weight: bold;
+  color: var(--text-color);
+  text-align: center;
+  padding: 2rem;
+  line-height: 1.2;
+}
