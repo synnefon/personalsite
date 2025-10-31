@@ -1,118 +1,144 @@
-/* rain drop styles */
+/* ============================================
+   RAIN EFFECTS
+   ============================================ */
 
 :root {
   --fall-height: 100vh;
 }
 
 .drop {
-	height: 4vh;
-	position: absolute;
-  /* top: 85px; */
+  position: absolute;
   right: var(--rand);
+  height: 4vh;
   z-index: 500;
   -webkit-animation: fall 3.01s linear;
   -moz-animation: fall 3.01s linear;
+  animation: fall 3.01s linear;
 }
 
-/* drop animation styles */
 @-webkit-keyframes fall {
-  from {margin-top: 95px;}
-  to {margin-top: var(--fall-height);}
+  from { margin-top: 95px; }
+  to { margin-top: var(--fall-height); }
 }
+
 @-moz-keyframes fall {
-  from {margin-top: 95px;}
-  to {margin-top: var(--fall-height);}
+  from { margin-top: 95px; }
+  to { margin-top: var(--fall-height); }
 }
+
 @keyframes fall {
-  from {margin-top: 95px;}
-  to {margin-top: var(--fall-height);}
+  from { margin-top: 95px; }
+  to { margin-top: var(--fall-height); }
 }
+
+
+/* ============================================
+   RAINCLOUD CONTAINER
+   ============================================ */
 
 div#raincloud {
-  height: 100vh;
-  width: 20vw;
-  right: -21vw;
-  top: 0vh;
   position: absolute;
-  overflow: visible;
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
+  top: 0;
+  right: -21vw;
+  width: 20vw;
+  height: 100vh;
   z-index: 1;
+  overflow: visible;
+  user-select: none;
 }
 
 div#rainfall-zone {
-  height: 100%;
-  width: 100%;
   position: absolute;
-  overflow: hidden!important;
-}
-
-@media screen and (max-width: 1255px) {
-  div#raincloud {
-    margin-top: 0px;
-    position: relative;
-    bottom: 2vh;
-    width: 75%;
-    left: 12.5%;
-    height: 80vw;
-  }
-  :root {
-    --fall-height: 80vw;
-  }
-  img.flower { 
-    bottom: 2vh!important;
-  }
-}
-
-@media screen and (max-width: 500px) {
-  div#raincloud {
-    width: 90%;
-    left: 5%;
-    height: 100vw;
-  }
-  :root {
-    --fall-height: 100vw;
-  }
+  width: 100%;
+  height: 100%;
+  overflow: hidden !important;
 }
 
 div#cloud {
-  width: 100%;
   position: absolute;
+  width: 100%;
 }
+
+
+/* ============================================
+   CLOUD IMAGES
+   ============================================ */
 
 .cloud-gif,
 .cloud-img,
 .cloud-img.hoverable-cloud {
+  position: absolute;
   width: 100%;
   z-index: 999;
-  position: absolute;
   cursor: var(--pointer);
 }
 
 .cloud-gif {
   content: url('../assets/raincloud/cloud.gif');
 }
+
 .cloud-img {
   content: url('../assets/raincloud/cloud.png');
 }
+
 .cloud-img.hoverable-cloud:hover {
   content: url('../assets/raincloud/darkCloud.png');
 }
 
+
+/* ============================================
+   LIGHTNING & FLOWERS
+   ============================================ */
+
 img#lightning {
   position: absolute;
-  height: 104%;
-  width: 200%;
   top: 10%;
-  bottom: 0em;
   right: -50%;
+  bottom: 0;
+  width: 200%;
+  height: 104%;
   z-index: 500;
-}  
+}
 
 img.flower {
-  bottom: 0px;
-  height: 10vh;
   position: absolute;
+  bottom: 0;
+  height: 10vh;
   z-index: 400;
+}
+
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media screen and (max-width: 1255px) {
+  div#raincloud {
+    position: relative;
+    left: 12.5%;
+    bottom: 2vh;
+    width: 75%;
+    height: 80vw;
+    margin-top: 0;
+  }
+
+  :root {
+    --fall-height: 80vw;
+  }
+
+  img.flower {
+    bottom: 2vh !important;
+  }
+}
+
+@media screen and (max-width: 500px) {
+  div#raincloud {
+    left: 5%;
+    width: 90%;
+    height: 100vw;
+  }
+
+  :root {
+    --fall-height: 100vw;
+  }
 }

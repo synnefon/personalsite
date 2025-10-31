@@ -1,124 +1,140 @@
+/* ============================================
+   GAME CONTAINER & LAYOUT
+   ============================================ */
+
 div#fish-match {
-  --bg-color: #201658!important;
-  --text-color: #57A6A1!important;
-  --back-color: #344C64;
-  --inner-color: #577B8D;
-  --question-mark: #57A6A1;
-
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  display: flex;
-  flex-direction: column;
-  overflow: scroll;
-
-  justify-content: center;
-  top: 0px!important;
-  bottom: 0px;
   position: absolute;
+  top: 0 !important;
+  bottom: 0;
   width: 100%;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: scroll;
   background-color: var(--bg-color);
   color: var(--text-color);
-}
-
-.loading-bar {
-  width: 60%;
-  text-align: left;
-  align-self: center;
-  font-family: F25_Bank_Printer;
-  font-size: var(--medium-font);
+  user-select: none;
+  /* Color overrides */
+  --bg-color: #201658 !important;
+  --text-color: #57a6a1 !important;
+  --back-color: #344c64;
+  --inner-color: #577b8d;
+  --question-mark: #57a6a1;
 }
 
 .match-game {
-  justify-content: center;
-  text-align: center;
+  position: absolute;
+  top: 0;
   width: 100%;
   height: 100%;
   display: inline-grid;
   grid-template-rows: 15% 5% 80%;
   grid-template-columns: 100%;
-  top: 0%;
-  position: absolute;
+  justify-content: center;
+  text-align: center;
+}
+
+/* ============================================
+   LOADING & UI ELEMENTS
+   ============================================ */
+
+.loading-bar {
+  width: 60%;
+  align-self: center;
+  font-family: ShareTechMono;
+  font-size: var(--medium-font);
+  text-align: left;
 }
 
 .match-title {
-  font-size: var(--large-font)!important;
   align-self: center;
-  top: 0%;
+  top: 0;
   width: 100%;
+  font-size: var(--large-font) !important;
 }
 
 .miss-count {
+  width: 100%;
   justify-content: center;
   text-align: center;
-  width: 100%;
-  font-size: var(--small-font)!important;
+  font-size: var(--small-font) !important;
 }
 
+/* ============================================
+   GAME BOARD
+   ============================================ */
+
 .match-board {
-  display: inline-grid;
-  grid-template-columns: repeat(6, calc(100% / 6));
-  justify-self: center;
+  position: relative;
   top: 10%;
   width: 100vmin;
   height: fit-content;
-  position: relative;
+  display: inline-grid;
+  grid-template-columns: repeat(6, calc(100% / 6));
+  justify-self: center;
 }
+
+.fish-image-row {
+  width: 80vmin;
+  margin-top: 20px;
+  display: inline-grid;
+  grid-template-columns: repeat(6, calc(100% / 6));
+  grid-template-rows: repeat(2, 50%);
+  flex-direction: row;
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
 
 .fish-image {
   width: 97%;
   height: 97%;
-  cursor: var(--pointer);
   aspect-ratio: 1/1;
+  cursor: var(--pointer);
   background-color: var(--inner-color);
 }
 
 .fish-image.short {
   margin-top: 5%;
-  height: 96%;
   width: 96%;
+  height: 96%;
   aspect-ratio: 1/1;
   cursor: var(--arrow);
 }
 
-.fish-image-row {
-  margin-top: 20px;
+.fish-image.back {
   display: inline-grid;
-  grid-template-columns: repeat(6, calc(100% /6));
-  grid-template-rows: repeat(2, 50%);
-  flex-direction: row;
-  width: 80vmin;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  vertical-align: middle;
+  font-size: var(--large-font);
+  color: var(--question-mark);
+  background-color: var(--back-color);
 }
 
-.fish-image.back {
-  background-color: var(--back-color);
-  color: var(--question-mark);
-  font-size: var(--large-font);
-  text-align: center;
-  justify-content: center;
-  align-items: center;
-  vertical-align: middle;
-  display: inline-grid;
-}
 .card-back-text {
-  margin: 0px;
+  margin: 0;
 }
 
 .fish-image.completed {
-  background-color: var(--bg-color);
-  pointer-events: none;
   cursor: var(--arrow);
+  pointer-events: none;
+  background-color: var(--bg-color);
 }
 
+/* ============================================
+   WIN SCREEN
+   ============================================ */
+
 .win-screen {
-  text-align: center;
-  font-size: var(--large-font);
-  align-items: center;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
+  font-size: var(--large-font);
 }
 
 .win-details {
@@ -130,27 +146,34 @@ div#fish-match {
   font-size: var(--medium-font);
   cursor: var(--pointer);
 }
+
 .play-again:hover {
   color: orange;
 }
 
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
 @media screen and (max-width: 600px) {
-  .match-board  { 
+  .match-board {
     width: 85%;
     grid-template-columns: repeat(4, 25%);
     grid-template-rows: repeat(6, calc(100% / 6));
   }
+
   .loading-bar {
     width: 90%;
     text-align: center;
   }
+
   .fish-image-row {
     width: 90vmin;
   }
 }
 
-@media screen and (max-width: 500px) { 
-  .match-game  { 
+@media screen and (max-width: 500px) {
+  .match-game {
     grid-template-rows: 30% 5% 65%;
   }
 }

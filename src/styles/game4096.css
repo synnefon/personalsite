@@ -1,33 +1,37 @@
+/* ============================================
+   COLOR THEME & CONTAINER
+   ============================================ */
+
 div#game-4096 {
-  --bg-color: #18122B!important;
-  --border-color: #443C68;
-  --text-color: #f0f0f0!important;
+  --bg-color: #18122b !important;
+  --border-color: #443c68;
+  --text-color: #f0f0f0 !important;
 
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  display: flex;
-  flex-direction: column;
-  overflow: scroll;
-
-  justify-content: center;
-  align-items: center;
-  top: 0px!important;
-  bottom: 0px;
   position: absolute;
+  top: 0 !important;
+  bottom: 0;
   width: 100%;
   margin: 0;
-
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: scroll;
+  background-color: var(--bg-color);
+  color: var(--text-color);
   font-size: var(--large-font);
+  user-select: none;
 }
 
+
+/* ============================================
+   GAME BOARD
+   ============================================ */
+
 .board-4096 {
-  display: inline-grid;
   width: 70vmin;
   height: 70vmin;
+  display: inline-grid;
   grid-template-rows: repeat(4, 25%);
   grid-template-columns: repeat(4, 25%);
   text-align: center;

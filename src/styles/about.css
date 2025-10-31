@@ -1,5 +1,9 @@
+/* ============================================
+   COLOR THEME
+   ============================================ */
+
 .about-colors {
-  --bg-color: rgb(118, 111, 14)!important;
+  --bg-color: rgb(118, 111, 14) !important;
   --text-color: rgb(234, 234, 247);
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);
@@ -10,63 +14,75 @@
   height: 100%;
 }
 
+
+/* ============================================
+   LAYOUT
+   ============================================ */
+
 .about-text-wrapper {
+  position: absolute;
+  left: calc(-3.2vmin);
   width: 100%;
   height: 100%;
-  left: calc(-3.2vmin);
-  position: absolute;
-  overflow: hidden;
-  overflow-y: visible;
+  display: grid;
   justify-self: center;
   align-self: center;
-  display: grid;
-  -webkit-user-select: none;
-  -ms-user-select: none;
+  overflow: hidden;
+  overflow-y: visible;
   user-select: none;
 }
 
 .about-text {
-  margin-top: 8vh;
-  margin-bottom: 8vh;
+  position: absolute;
   width: 55%;
   height: 90%;
-  text-align: left;
-  white-space: wrap;
-  position: absolute;
+  margin-top: 8vh;
+  margin-bottom: 8vh;
   justify-self: center;
   align-self: center;
+  text-align: left;
+  white-space: wrap;
 }
 
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+
 .about-title {
-  font-size: calc(25px + 2vmin);
-  color: var(--text-color);
   margin-bottom: 1em;
+  font-size: calc(25px + 2vmin);
+  color: orange;
   text-align: left;
 }
 
 .about-description {
-  font-size: calc(13px + 1.5vmin);
-  margin-bottom: 2.5em;
   width: 100%;
+  margin-bottom: 2.5em;
   display: flex;
   flex-direction: column;
+  font-size: calc(13px + 1.5vmin);
 }
 
+
+/* ============================================
+   FACTS LIST
+   ============================================ */
+
 .me-fact-wrapper {
-  background: transparent;
   display: flex;
   flex-direction: row;
   align-items: center;
-  transform-style: preserve-3d;
-  padding: 0%;
   margin-bottom: -0.2em;
-  color: var(--text-color);
+  padding: 0;
   z-index: 1;
+  background: transparent;
+  color: var(--text-color);
   font-weight: normal;
-  color: inherit;
+  transform-style: preserve-3d;
 }
 
-.me-fact-wrapper:first-child { 
+.me-fact-wrapper:first-child {
   margin-bottom: 0.8em;
 }
 
@@ -75,13 +91,13 @@
 }
 
 .me-fact {
-  margin: 0px;
-  margin-bottom: 1.9em;
+  margin: 0 0 1.9em 0;
   cursor: var(--pointer);
 }
+
 .me-fact:hover {
-  font-weight: bold!important;
-  color: orange!important;
+  color: orange !important;
+  font-weight: bold !important;
   animation: wiggle 0.3s linear;
 }
 
@@ -99,74 +115,92 @@
   align-self: flex-start;
 }
 
+
+/* ============================================
+   SKIP BUTTON
+   ============================================ */
+
 button#skip-button {
+  position: relative !important;
+  bottom: 0;
+  top: auto !important;
+  margin-top: 2em;
+  margin-bottom: 1em;
   display: inline-block;
-  bottom: 0px;
-  position: relative!important;
   align-self: center;
   border: none;
-  margin-bottom: 1em;
-  font-size: calc(12px + 1.5vmin)!important;
-  margin-top: 2em;
-  top: auto!important;
+  font-size: calc(12px + 1.5vmin) !important;
   opacity: 0;
   visibility: hidden;
   transition: visibility 0.3s linear, opacity 0.3s linear;
 }
-button#skip-button:before {
+
+button#skip-button::before {
   content: 'v';
 }
 
 button#skip-button:hover {
-  animation: boing 0.3s linear;
   background-color: transparent;
   color: orange;
+  animation: boing 0.3s linear;
 }
 
-button#skip-button:hover:before {
+button#skip-button:hover::before {
   content: "skip?";
 }
 
+
+/* ============================================
+   PERSON ICON
+   ============================================ */
+
 img#person-icon {
   position: absolute;
-  width: min(5em, 11vw);
   left: 4%;
-  bottom: 0%;
-  transition: left 0.7s ease-in-out;
+  bottom: 0;
+  width: min(5em, 11vw);
   content: url("../assets/about/person.png");
   cursor: var(--pointer);
+  transition: left 0.7s ease-in-out;
 }
 
 *.hovered-person {
-  content: url("../assets/about/orange_person.png")!important;
-  animation: wiggle 0.3s linear;
+  content: url("../assets/about/orange_person.png") !important;
   pointer-events: auto;
+  animation: wiggle 0.3s linear;
+}
+
+.invisible {
+  left: -6em !important;
+  content: url("../assets/about/orange_person.png") !important;
 }
 
 img#self-gif {
   position: absolute;
+  left: 0;
+  bottom: 0;
   width: 20em;
-  left: 0%;
-  bottom: 0%;
   z-index: 999;
 }
 
-.invisible {
-  content: url("../assets/about/orange_person.png")!important;
-  left: -6em!important;
-}
 
-@media screen and (max-width: 1200px) { 
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media screen and (max-width: 1200px) {
   .about-text {
-    width: 75%;
     left: 20%;
+    width: 75%;
   }
-  img#person-icon { 
-    left: 2%;
-  }
-  .about-title { 
+
+  .about-title {
+    margin-top: 40px;
     display: flex;
     flex-direction: column;
-    margin-top: 40px;
+  }
+
+  img#person-icon {
+    left: 2%;
   }
 }

@@ -1,64 +1,97 @@
+/* ============================================
+   FONTS
+   ============================================ */
+
 @font-face {
-  font-family: 'Pixelon';
-  src: local('pixeloid'), url('../fonts/Pixelon.ttf') format('truetype');
+  font-family: "ShareTechMono";
+  src: local("ShareTechMono"),
+    url("../fonts/ShareTechMono-Regular.ttf") format("truetype");
   font-weight: 100;
   font-style: monospace;
 }
 
-@font-face {
-  font-family: 'F25_Bank_Printer';
-  src: local('F25'), url('../fonts/F25_Bank_Printer.otf') format('opentype');
-  font-weight: 100;
-  font-style: monospace;
-}
+/* ============================================
+   CSS VARIABLES
+   ============================================ */
 
 :root {
+  /* Colors */
   --bg-color: transparent;
   --text-color: rgb(234, 234, 247);
   --alt-text-color: rgb(5, 4, 4);
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);
-  --pointer: url('../assets/cursors/Dark/Hands/Hand3.png'), auto;
-  --arrow: url('../assets/cursors/Dark/Arrows/Arrow2.png'), auto;
-  --text: url('../assets/cursors/Dark/Text/Text2.png'), auto;
+
+  /* Cursors */
+  --pointer: url("../assets/cursors/Dark/Hands/Hand3.png"), auto;
+  --arrow: url("../assets/cursors/Dark/Arrows/Arrow2.png"), auto;
+  --text: url("../assets/cursors/Dark/Text/Text2.png"), auto;
+
+  /* Font sizes */
   --large-font: calc(13px + 3.5vmin);
   --medium-font: calc(9px + 2.5vmin);
   --small-font: max(calc(5px + 1.5vmin), 14px);
 }
 
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
 @keyframes boing {
-  0% { transform: translateY(0) scale(1.0); }
-  15% { transform: translateY(1%) scale(0.98); }
-  40% { transform: translateY(-2.5%) scale(1.02); }
-  95% { transform: translateY(0.5%) scale(0.995); }
-  100% { transform: translateY(0) scale(1.0); }
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  15% {
+    transform: translateY(1%) scale(0.98);
+  }
+  40% {
+    transform: translateY(-2.5%) scale(1.02);
+  }
+  95% {
+    transform: translateY(0.5%) scale(0.995);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes boing-small {
-  0% { transform: scale(1.0); }
-  15% { transform: scale(0.98); }
-  40% { transform: scale(1.02) translateY(-1%); }
-  95% { transform: scale(0.995); }
-  100% { transform: scale(1.0); }
+  0% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(0.98);
+  }
+  40% {
+    transform: scale(1.02) translateY(-1%);
+  }
+  95% {
+    transform: scale(0.995);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
-header {
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+header,
+body {
   margin: 0;
-  font-family: Pixelon, sans-serif;
+  font-family: ShareTechMono, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  margin: 0;
-  font-family: Pixelon, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   background-color: rgb(5, 4, 4);
   color: var(--text-color);
   cursor: var(--arrow);
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
 }

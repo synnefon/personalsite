@@ -1,54 +1,59 @@
+/* ============================================
+   BASE LAYOUT
+   ============================================ */
+
 body {
   overflow-x: hidden;
   overflow-y: auto;
 }
 
 div#app-base {
-  overflow-x: hidden;
-  overflow-y: auto;
-  transition: all 2s linear !important;
-  justify-content: center;
-  display: flex;
-  top: 0px !important;
   position: fixed;
+  top: 0 !important;
   width: 100%;
   height: 100vh;
   margin: 0;
+  display: flex;
+  justify-content: center;
+  overflow-x: hidden;
+  overflow-y: auto;
   background-color: var(--bg-color);
   color: var(--text-color);
+  transition: all 2s linear !important;
 }
 
 .content-wrapper {
-  font-size: calc(8px + 2vmin);
-  width: 45%;
-  display: flex;
-  flex-direction: column;
   position: relative;
+  width: 45%;
+  margin-top: 10px;
   padding-left: 50px;
   padding-right: 50px;
-  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  font-size: calc(8px + 2vmin);
 }
+
+/* ============================================
+   TYPOGRAPHY & CONTENT
+   ============================================ */
 
 .title {
   position: relative;
-  top: 0px;
+  top: 0;
   margin: 1px;
   margin-top: 1.3em;
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
   color: orange;
+  user-select: none;
 }
 
 .description {
   position: relative;
-  margin: 0px;
+  margin: 0 0 1.5em 0;
   margin-top: 1em;
-  margin-bottom: 1.5em;
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
+  display: flex;
+  align-items: center;
   white-space: nowrap;
+  user-select: none;
 }
 
 .description-text::after {
@@ -59,138 +64,175 @@ div#app-base {
   font-weight: bold;
 }
 
+/* ============================================
+   LINKS - CONTAINER
+   ============================================ */
+
 .links {
   position: relative;
   display: grid;
   grid-template-columns: 100%;
   grid-auto-rows: 2.8em;
+  margin-bottom: 0;
   user-select: none !important;
-  margin-bottom: 0px;
 }
 
+/* ============================================
+   LINKS - BASE STYLES
+   ============================================ */
+
 .link {
-  color: inherit; /* no blue link text */
-  text-decoration: none; /* no underlined link text */
-  transition: transform 0.8s ease;
-  overflow: visible;
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  cursor: var(--pointer);
+  position: relative;
+  margin-left: 2em;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  align-items: center;
-  margin-left: 2em;
-  position: relative;
+  align-items: baseline;
+  overflow: visible;
+  color: inherit;
+  text-decoration: none;
+  cursor: var(--pointer);
+  transition: transform 0.8s ease;
+  user-select: none;
 }
+
 a.link {
   cursor: var(--pointer);
 }
+
+/* ============================================
+   LINKS - HOVER STATES
+   ============================================ */
+
 a.link:hover {
   color: var(--inv-text-color);
   background-color: var(--inv-bg-color);
 }
-a.link:hover > p.link-text {
-  animation: boing 0.3s ease-in-out alternate;
-}
+
+a.link:hover > p.link-text,
 a.link:hover > .tooltip-text {
   animation: boing 0.3s ease-in-out alternate;
 }
 
+/* ============================================
+   LINKS - SHAVIAN CHARACTERS (::before)
+   ============================================ */
+
 .link::before {
   position: absolute;
   left: -1.7em;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
   color: var(--text-color);
   background-color: transparent;
   animation: none !important;
 }
 
-/* ================================
- * main site links
- * ================================ */
+/* Main site links */
 .link[href*="projects"]::before {
-  content: "𐐹";
+  content: "𐑐";
 }
 .link[class*="about"]::before {
-  content: "𐐴";
+  content: "𐑩";
 }
 .link[class*="resume"]::before {
-  content: "𐑉";
+  content: "𐑮";
 }
 .link[href*="github"]::before {
-  content: "𐑀";
+  content: "𐑜";
 }
 .link[href*="linkedin"]::before {
-  content: "𐑊";
+  content: "𐑤";
 }
 .link[href*="mailto"]::before {
-  content: "𐑋";
+  content: "𐑥";
 }
 
-/* ================================
-  * project links (proj-colors)
-  * ================================ */
+/* Project links */
 .link[href*="mapinator"]::before {
-  content: "⛰";
+  content: "𐑥";
 }
 .link[href*="sudoku"]::before {
-  content: "⊞";
+  content: "𐑕";
 }
 .link[href*="thangs"]::before {
-  content: "⚙";
+  content: "𐑔";
 }
 .link[href*="snek"]::before {
-  content: "𓆙";
+  content: "𐑕";
 }
 .link[href*="img-butler"]::before {
-  content: "⚞";
+  content: "𐑦";
 }
 .link[href*="spagett"]::before {
-  content: "≈";
+  content: "𐑕";
 }
 .link[href*="shufflenator"]::before {
-  content: "⇄";
+  content: "𐑖";
 }
 .link[href*="game-of-life"]::before {
-  content: "☯";
+  content: "𐑜";
 }
 
-/* ================================
-  * hidden or WIP
-  * ================================ */
+/* Hidden/WIP links */
 .link[href*="toolbox"]::before {
-  content: "⚒";
+  content: "𐑑";
 }
 .link[href*="infinite-terrain"]::before {
-  content: "∞";
+  content: "𐑦";
 }
 .link[href*="rpg-tabletop"]::before {
-  content: "♟";
+  content: "𐑮";
 }
 .link[href*="wip"]::before {
-  content: "⧗";
+  content: "𐑢";
 }
 
+/* ============================================
+   LINKS - TEXT CONTENT
+   ============================================ */
+
 p.link-text {
+  margin: 0;
   margin-left: 10px;
-  margin-top: 0em;
   margin-right: 0.3em;
-  margin-bottom: 0em;
+  padding: 0;
 }
 
 .tooltip-text {
+  margin: 0;
+  margin-right: 10px;
+  padding: 0;
   font-size: calc(9px + 0.75vmin);
   color: var(--inv-text-color);
-  margin-top: 0em;
-  margin-bottom: 0em;
-  margin-right: 10px;
-  cursor: var(--pointer);
   text-align: right;
+  cursor: var(--pointer);
   flex-shrink: 0;
 }
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+div#footer {
+  position: absolute;
+  bottom: 0;
+  right: 30px;
+  width: auto;
+  height: 2.5em;
+  z-index: 300;
+  display: flex;
+  align-content: center;
+  align-items: center;
+  font-size: calc(8px + 1vmin);
+  text-align: right;
+  color: var(--text-color);
+  background-color: transparent;
+  user-select: none;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
 
 @media screen and (max-width: 1255px) {
   .content-wrapper {
@@ -230,22 +272,4 @@ p.link-text {
   div#footer {
     visibility: hidden;
   }
-}
-
-div#footer {
-  font-size: calc(8px + 1vmin);
-  text-align: right;
-  align-content: center;
-  align-items: center;
-  position: absolute;
-  width: auto;
-  height: 2.5em;
-  bottom: 0px;
-  right: 30px;
-  z-index: 300;
-  background-color: transparent;
-  color: var(--text-color);
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
 }

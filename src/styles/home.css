@@ -1,7 +1,15 @@
+/* ============================================
+   COLOR THEME
+   ============================================ */
+
 :root {
-  --bg-color: rgb(70, 27, 241)!important;
+  --bg-color: rgb(70, 27, 241) !important;
 }
 
+/* ============================================
+   BASE CONTAINER
+   ============================================ */
+
 div#app-base {
-  transition: none!important;
+  transition: none !important;
 }

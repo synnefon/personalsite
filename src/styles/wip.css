@@ -1,27 +1,39 @@
-div#bounce-room {
-  position: absolute;
-  height: 80vh;
-  width: 80vw;
-  left: 10vw;
-  top: 10vh;
-}
+/* ============================================
+   BOUNCING TEXT CONTAINER
+   ============================================ */
 
 #root {
   background-color: var(--bg-color);
 }
 
-div#bouncing-text {
-  align-items: start;
+div#bounce-room {
   position: absolute;
-  font-size: min(4vw, 4vh)!important;
+  left: 10vw;
+  top: 10vh;
+  width: 80vw;
+  height: 80vh;
+}
+
+
+/* ============================================
+   BOUNCING TEXT
+   ============================================ */
+
+div#bouncing-text {
+  position: absolute;
   width: fit-content;
   height: min(4vw, 4vh);
-  -webkit-user-select: none;
-  -ms-user-select: none;
+  align-items: start;
+  font-size: min(4vw, 4vh) !important;
   user-select: none;
 }
 
-@media screen and (max-width: 500px) { 
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media screen and (max-width: 500px) {
   div#bouncing-text {
     width: calc(min(2vw, 4vh) * 11);
     height: 2em;

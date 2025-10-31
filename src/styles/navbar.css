@@ -1,38 +1,43 @@
+/* ============================================
+   NAVBAR CONTAINER
+   ============================================ */
+
 .navbar {
-  position: absolute!important;
-  background-color: transparent;
-  font-size: calc(16px + 1vmin);
-  display: flex;
-  flex-direction: column;
-  left: 0em;
+  position: absolute !important;
+  left: 0;
   margin-top: 0.5em;
   margin-left: 0.4em;
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
   z-index: 999;
+  display: flex;
+  flex-direction: column;
+  background-color: transparent;
+  font-size: calc(16px + 1vmin);
+  user-select: none;
 }
 
 .hamburger-react {
   position: relative;
+  z-index: 999;
   background-color: transparent;
   color: var(--text-color);
-  z-index: 999;
 }
 
+/* ============================================
+   NAV LINKS
+   ============================================ */
+
 .nav-link {
-  color: var(--text-color);
-  text-decoration: none; /* no underlined link text */
-  transition-duration: 0.4s;
-  transition: color, display  0.4s;
   display: flex;
   flex-direction: row;
   align-items: center;
   margin-bottom: 1em;
   color: transparent;
-  cursor: var(--arrow)!important;
+  text-decoration: none;
+  cursor: var(--arrow) !important;
   pointer-events: none;
+  transition: color 0.4s, display 0.4s;
 }
+
 .nav-link:last-child {
   border-right: none;
 }
@@ -42,21 +47,30 @@
   animation: boing 0.3s ease-in-out alternate;
 }
 
+.nav-link:hover .nav-icon::before {
+  color: orange;
+}
+
 .nav-link-text {
   height: fit-content;
   margin-left: 0.3em;
   pointer-events: none;
 }
 
-/* base size & layout */
+/* ============================================
+   NAV ICONS - BASE STYLES
+   ============================================ */
+
 .nav-icon {
-  width: calc(5.2vmin);
-  height: calc(5.2vmin);
-  display: block;
-  background-color: var(--text-color);      /* default colour */
-  pointer-events: all;
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--text-color);
   cursor: var(--pointer);
-  /* the magic: use the SVG as a mask */
+  pointer-events: all;
+  /* SVG mask properties */
   mask-repeat: no-repeat;
   mask-position: center;
   mask-size: contain;
@@ -64,115 +78,109 @@
   -webkit-mask-position: center;
   -webkit-mask-size: contain;
 }
-/* individual icon masks */
-.nav-icon.home {
-  mask-image: none;
-  -webkit-mask-image: none;
-  background-color: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.nav-icon.home::before {
-  content: "𐐸";
-}
-.nav-icon.projects {
-  mask-image: none;
-  -webkit-mask-image: none;
-  background-color: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.nav-icon.projects::before {
-  content: "𐐹";
-}
+
+/* ============================================
+   NAV ICONS - SHAVIAN CHARACTERS
+   ============================================ */
+
+.nav-icon.home,
+.nav-icon.projects,
 .nav-icon.about {
   mask-image: none;
   -webkit-mask-image: none;
   background-color: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+}
+
+.nav-icon.home::before {
+  content: "𐑣";
+}
+.nav-icon.projects::before {
+  content: "𐑐";
 }
 .nav-icon.about::before {
-  content: "𐐴";
+  content: "𐑩";
 }
 
 .nav-icon.home::before,
 .nav-icon.projects::before,
 .nav-icon.about::before {
-  color: var(--text-color);
-  font-size: calc(6vmin);
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: calc(6vmin);
+  color: var(--text-color);
 }
 
-/* recolour on link hover */
-.nav-link:hover .nav-icon::before {
-  color: orange;
-}
+/* ============================================
+   ACTIVE STATE
+   ============================================ */
 
-/* highlight active page */
 .nav-icon.active::before {
   color: orange;
 }
 
+/* ============================================
+   RESPONSIVE - MOBILE (max-width: 500px)
+   ============================================ */
+
 @media screen and (max-width: 500px) {
+  .navbar {
+    left: 0 !important;
+    width: 100%;
+    margin-left: 0;
+    display: inline-grid;
+    grid-template-columns: 14% 28% 28% 28% 2%;
+    justify-content: right;
+  }
+
   .hamburger-react {
     width: 100%;
     justify-self: center;
   }
-  .navbar {
-    display: inline-grid;
-    grid-template-columns: 14% 28% 28% 28% 2%;
-    left: 0px!important;
-    width: 100%;
-    margin-left: 0px;
-    justify-content: right;
-  }
+
   .nav-link {
-    flex-direction: column;
-    pointer-events: all;
-    cursor: var(--pointer)!important;
     width: 100%;
+    flex-direction: column;
+    cursor: var(--pointer) !important;
+    pointer-events: all;
   }
+
   .nav-link-text {
     margin-top: 0.4em;
-    margin-left: 0px;
+    margin-left: 0;
     color: var(--text-color);
   }
-  .nav-link:hover > .nav-link-text {
-    color: orange;
-  }
-  .nav-link:hover > .nav-icon.home {
-    content: url('../assets/nav_icons/house_focus.svg');
-  }
-  .nav-link:hover > .nav-icon.projects {
-    content: url('../assets/nav_icons/pen_focus.svg');
-  }
-  .nav-link:hover > .nav-icon.about {
-    content: url('../assets/nav_icons/info_focus.svg');
-  }
-  .nav-link.active > .nav-icon.home {
-    content: url('../assets/nav_icons/house_focus.svg');
-  }
-  .nav-link.active > .nav-icon.projects {
-    content: url('../assets/nav_icons/pen_focus.svg');
-  }
-  .nav-link.active > .nav-icon.about {
-    content: url('../assets/nav_icons/info_focus.svg');
-  }
+
+  .nav-link:hover > .nav-link-text,
   .nav-link.active > .nav-link-text {
     color: orange;
   }
+
+  .nav-link:hover > .nav-icon.home,
+  .nav-link.active > .nav-icon.home {
+    content: url("../assets/nav_icons/house_focus.svg");
+  }
+
+  .nav-link:hover > .nav-icon.projects,
+  .nav-link.active > .nav-icon.projects {
+    content: url("../assets/nav_icons/pen_focus.svg");
+  }
+
+  .nav-link:hover > .nav-icon.about,
+  .nav-link.active > .nav-icon.about {
+    content: url("../assets/nav_icons/info_focus.svg");
+  }
+
   .nav-icon {
-    margin-right: 0px!important;
+    margin-right: 0 !important;
   }
 }
+
+/* ============================================
+   RESPONSIVE - EXTRA SMALL (max-width: 230px)
+   ============================================ */
 
 @media screen and (max-width: 230px) {
   .nav-link-text {
