@@ -6,7 +6,7 @@
   --bg-color: #000000 !important;
   --border-color: #1d1d1d;
   --text-color: #d9a60e !important;
-  --alt-text-color: #545454;
+  --alt-text-color: #a4a0a0;
 
   width: 100%;
   min-height: 100vh;
@@ -31,13 +31,14 @@
   --rows: 30;
   --cols: 30;
 
-  width: 80vmin;
-  height: 80vmin;
-  border: 3px solid var(--border-color);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   box-sizing: border-box;
   touch-action: none;
   overflow: hidden;
-  position: relative;
 }
 
 .gol-board-content {
@@ -79,45 +80,92 @@
    CONTROLS
    ============================================ */
 
-.gol-controls {
-  display: inline-grid;
-  grid-template-rows: 5em 4em 15em;
-}
+   .gol-controls {
+    position: fixed;
+    top: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2rem;
+  }
+  
+  .gol-control-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .gol-control-group label {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--alt-text-color);
+  }
+  
+  .gol-control-group input {
+    width: 4rem;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    color: var(--alt-text-color);
+    font: inherit;
+    text-align: center;
+    transition: all 0.2s;
+    border: 1px solid var(--alt-text-color);
+  }
+  
+  .gol-control-group input:hover,
+  .gol-control-group input:focus {
+    border-color: var(--text-color);
+    color: var(--text-color);
+    outline: none;
+  }
+  
+  .gol-start-button {
+    padding: 0.75rem 2rem;
+    border: 2px solid var(--alt-text-color);
+    background-color: transparent;
+    color: var(--alt-text-color);
+    font-size: 1rem;
+    text-align: center;
+    align-content: center;
+    cursor: var(--pointer);
+    white-space: nowrap;
+    transition: all 0.3s ease;
+    position: relative;
+  }
 
-.gol-control-group {
-  gap: 0.35rem;
-  margin-top: 2em;
-  font-size: 0.9rem;
-}
+  .gol-start-button:hover {
+    border-color: var(--text-color);
+    color: var(--text-color);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(217, 166, 14, 0.3);
+  }
 
-.gol-control-group input {
-  padding: 0.35rem 0.5rem;
-  background: var(--bg-color);
-  color: var(--text-color);
-  border: 1px solid var(--border-color);
-  font: inherit;
-}
+  .gol-start-button.running {
+    background-color: var(--text-color);
+    color: var(--bg-color);
+    border-color: var(--text-color);
+    box-shadow: 0 0 20px rgba(217, 166, 14, 0.6), 0 0 40px rgba(217, 166, 14, 0.4);
+    animation: pulse 2s ease-in-out infinite;
+  }
 
-.gol-rules {
-  text-align: left;
-  align-content: center;
-}
+  .gol-start-button.running:hover {
+    box-shadow: 0 0 25px rgba(217, 166, 14, 0.8), 0 0 50px rgba(217, 166, 14, 0.5);
+    transform: translateY(-1px);
+  }
 
-.gol-start-button {
-  position: relative !important;
-  width: 10%;
-  height: 50%;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--alt-text-color);
-  background-color: transparent !important;
-  color: var(--alt-text-color);
-  font-size: 1rem;
-  text-align: center;
-  align-content: center;
-  cursor: var(--pointer);
-}
-
-.gol-start-button:hover {
-  border-color: var(--text-color);
-  color: var(--text-color);
-}
+  @keyframes pulse {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(217, 166, 14, 0.6), 0 0 40px rgba(217, 166, 14, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 30px rgba(217, 166, 14, 0.8), 0 0 60px rgba(217, 166, 14, 0.5);
+    }
+  }
+  

@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 
+import React from "react";
 import "../styles/gameoflife.css";
 
 /*
@@ -20,8 +21,9 @@ import "../styles/gameoflife.css";
 
 const DEFAULT_TICK_PER_SEC = 3;
 const MAX_TICK_PER_SEC = 10;
-const DEFAULT_SIZE = 50;
-const MAX_SIZE = 150;
+const CELL_SIZE = 20; // Fixed cell size in pixels
+const MIN_ZOOM = 0.5; // Minimum zoom level (larger cells)
+const MAX_ZOOM = 3; // Maximum zoom level (smaller cells)
 const DRAG_THRESHOLD = 5; // pixels to move before considering it a drag
 
 // helpers for Set keys
@@ -35,20 +37,43 @@ export default function GameOfLifeInfinite(): ReactElement {
   /* --------------------------------------------------------------------- */
   /*  State                                                                */
   /* --------------------------------------------------------------------- */
-  const [size, setSize] = useState<number>(DEFAULT_SIZE); // rows = cols
-  const sizeRef = useRef<number>(size);
-  const ticksPerSec = useRef<number>(DEFAULT_TICK_PER_SEC); // rows = cols
-  const viewRows = size;
-  const viewCols = size;
+  const [zoom, setZoom] = useState<number>(1); // Zoom level multiplier
+  const zoomRef = useRef<number>(zoom);
+  const ticksPerSec = useRef<number>(DEFAULT_TICK_PER_SEC);
+
+  // Calculate grid dimensions based on window size and zoom
+  const [dimensions, setDimensions] = useState<{ rows: number; cols: number }>({
+    rows: Math.ceil(window.innerHeight / (CELL_SIZE / zoom)),
+    cols: Math.ceil(window.innerWidth / (CELL_SIZE / zoom)),
+  });
+  const dimensionsRef = useRef(dimensions);
+
+  const viewRows = dimensions.rows;
+  const viewCols = dimensions.cols;
 
   const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const offsetRef = useRef<{ x: number; y: number }>(offset);
 
   // Keep refs in sync
   useEffect(() => {
-    sizeRef.current = size;
+    zoomRef.current = zoom;
     offsetRef.current = offset;
-  }, [size, offset]);
+    dimensionsRef.current = dimensions;
+  }, [zoom, offset, dimensions]);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = (): void => {
+      const currentZoom = zoomRef.current;
+      setDimensions({
+        rows: Math.ceil(window.innerHeight / (CELL_SIZE / currentZoom)),
+        cols: Math.ceil(window.innerWidth / (CELL_SIZE / currentZoom)),
+      });
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // forceRefresh = cheap way to make React repaint
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -124,7 +149,7 @@ export default function GameOfLifeInfinite(): ReactElement {
     runningRef.current ? runTick() : forceRefresh((v) => !v);
   };
 
-  // arrow-key panning
+  // arrow-key panning and Enter/Space for play/pause
   useEffect(() => {
     const handler = (e: KeyboardEvent): void => {
       switch (e.key) {
@@ -140,11 +165,16 @@ export default function GameOfLifeInfinite(): ReactElement {
         case "ArrowLeft":
           setOffset((o) => ({ ...o, x: o.x + 1 }));
           break;
+        case "Enter":
+        case " ":
+          e.preventDefault();
+          onToggleStart();
+          break;
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [onToggleStart]);
 
   // wheel zoom
   useEffect(() => {
@@ -157,23 +187,27 @@ export default function GameOfLifeInfinite(): ReactElement {
       const mouseXRatio = (e.clientX - rect.left) / rect.width;
       const mouseYRatio = (e.clientY - rect.top) / rect.height;
 
-      const currentSize = sizeRef.current;
+      const currentZoom = zoomRef.current;
       const currentOffset = offsetRef.current;
+      const currentDimensions = dimensionsRef.current;
 
-      // Adjust size slower (1-2 cells per scroll)
-      // scroll down (deltaY > 0) = zoom out = show more cells = increase size
-      const delta = e.deltaY > 0 ? 0.5 : -0.5;
-      const newSize = Math.max(10, Math.min(MAX_SIZE, currentSize + delta));
+      // Adjust zoom (scroll down = zoom out = show more cells = decrease zoom)
+      const zoomDelta = e.deltaY > 0 ? 0.05 : -0.05;
+      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, currentZoom + zoomDelta));
+
+      // Calculate new dimensions based on new zoom
+      const newRows = Math.ceil(window.innerHeight / (CELL_SIZE / newZoom));
+      const newCols = Math.ceil(window.innerWidth / (CELL_SIZE / newZoom));
 
       // Adjust offset to keep the same visual point fixed
-      // Formula: newOffset = oldOffset - mouseRatio * (newSize - oldSize)
       const newOffset = {
-        x: currentOffset.x - mouseXRatio * (newSize - currentSize),
-        y: currentOffset.y - mouseYRatio * (newSize - currentSize),
+        x: currentOffset.x - mouseXRatio * (newCols - currentDimensions.cols),
+        y: currentOffset.y - mouseYRatio * (newRows - currentDimensions.rows),
       };
 
       setOffset(newOffset);
-      setSize(newSize);
+      setZoom(newZoom);
+      setDimensions({ rows: newRows, cols: newCols });
     };
     const board = document.querySelector(".gol-board") as HTMLElement | null;
     if (board) {
@@ -228,14 +262,14 @@ export default function GameOfLifeInfinite(): ReactElement {
       }
 
       if (hasDragged) {
-        const currentSize = sizeRef.current;
+        const currentDimensions = dimensionsRef.current;
         const board = document.querySelector(".gol-board") as HTMLElement;
         const rect = board?.getBoundingClientRect();
         if (!rect) return;
 
         // Convert pixel movement to cell movement
-        const cellDx = (dx / rect.width) * currentSize;
-        const cellDy = (dy / rect.height) * currentSize;
+        const cellDx = (dx / rect.width) * currentDimensions.cols;
+        const cellDy = (dy / rect.height) * currentDimensions.rows;
 
         setOffset((prev) => ({
           x: prev.x - cellDx,
@@ -326,28 +360,32 @@ export default function GameOfLifeInfinite(): ReactElement {
         const centerXRatio = (centerX - rect.left) / rect.width;
         const centerYRatio = (centerY - rect.top) / rect.height;
 
-        const currentSize = sizeRef.current;
+        const currentZoom = zoomRef.current;
         const currentOffset = offsetRef.current;
+        const currentDimensions = dimensionsRef.current;
 
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
         const currentDistance = Math.sqrt(dx * dx + dy * dy);
 
-        // Slower zoom with damping factor
+        // Calculate new zoom level
         const rawScale = currentDistance / initialDistance;
         const scale = 1 + (rawScale - 1) * 0.5; // 50% damping
-        const targetSize = Math.round(currentSize / scale);
-        const clampedSize = Math.max(10, Math.min(MAX_SIZE, targetSize));
+        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, currentZoom * scale));
+
+        // Calculate new dimensions based on new zoom
+        const newRows = Math.ceil(window.innerHeight / (CELL_SIZE / newZoom));
+        const newCols = Math.ceil(window.innerWidth / (CELL_SIZE / newZoom));
 
         // Adjust offset to keep the current center point fixed
-        // Formula: newOffset = oldOffset - centerRatio * (newSize - oldSize)
         const newOffset = {
-          x: currentOffset.x - centerXRatio * (clampedSize - currentSize),
-          y: currentOffset.y - centerYRatio * (clampedSize - currentSize),
+          x: currentOffset.x - centerXRatio * (newCols - currentDimensions.cols),
+          y: currentOffset.y - centerYRatio * (newRows - currentDimensions.rows),
         };
 
         setOffset(newOffset);
-        setSize(clampedSize);
+        setZoom(newZoom);
+        setDimensions({ rows: newRows, cols: newCols });
       } else if (e.touches.length === 1 && isTouching) {
         const dx = e.touches[0].clientX - lastX;
         const dy = e.touches[0].clientY - lastY;
@@ -363,14 +401,14 @@ export default function GameOfLifeInfinite(): ReactElement {
 
         if (hasDragged) {
           e.preventDefault();
-          const currentSize = sizeRef.current;
+          const currentDimensions = dimensionsRef.current;
           const board = document.querySelector(".gol-board") as HTMLElement;
           const rect = board?.getBoundingClientRect();
           if (!rect) return;
 
           // Convert pixel movement to cell movement
-          const cellDx = (dx / rect.width) * currentSize;
-          const cellDy = (dy / rect.height) * currentSize;
+          const cellDx = (dx / rect.width) * currentDimensions.cols;
+          const cellDy = (dy / rect.height) * currentDimensions.rows;
 
           setOffset((prev) => ({
             x: prev.x - cellDx,
@@ -468,7 +506,10 @@ export default function GameOfLifeInfinite(): ReactElement {
       {/* CONTROLS */}
       <aside className="gol-controls">
         {/* start / pause */}
-        <div className="gol-start-button" onClick={onToggleStart}>
+        <div
+          className={`gol-start-button${runningRef.current ? " running" : ""}`}
+          onClick={onToggleStart}
+        >
           {runningRef.current ? "pause" : "start"}
         </div>
 
@@ -495,19 +536,6 @@ export default function GameOfLifeInfinite(): ReactElement {
             />
           </label>
         </div>
-
-        {/* rules list */}
-        <ol className="gol-rules">
-          <li>
-            DIES: fewer than 2 neighbours, or more than 3
-          </li>
-          <li>
-            STAYS ALIVE: 2 neighbors
-          </li>
-          <li>
-            ALWAYS LIVES: exactly 3 neighbors
-          </li>
-        </ol>
       </aside>
     </div>
   );
