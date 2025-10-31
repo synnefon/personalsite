@@ -3,8 +3,10 @@ import {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
+  memo,
 } from "react";
 
 import React from "react";
@@ -24,41 +26,55 @@ const DEFAULT_TICK_PER_SEC = 3;
 const MAX_TICK_PER_SEC = 10;
 const CELL_SIZE = 20; // px - fixed cell size
 const MIN_ZOOM = 0.5;
-const MAX_ZOOM = 3;
+const MAX_ZOOM = 4;
 const DRAG_THRESHOLD_PX = 5;
+
+// Memory management constants
+const MAX_LIVE_CELLS = 50000; // Maximum cells before pausing simulation
+const CULLING_MARGIN = 100; // Cells beyond viewport to keep
+const KEY_MULTIPLIER = 1000000; // For numeric key encoding
 
 // Game of Life rules
 const LIFE_NEIGHBORS_SURVIVE = [2, 3];
 const LIFE_NEIGHBORS_BIRTH = 3;
 
-// Color and opacity constants
-const UNDERCROWD_OPACITY = 0.6;
-const OVERCROWD_OPACITY = 0.6;
-const HEALTHY_OPACITY = 1.0;
-
 // Gold: #d9a60e
 const COLOR_GOLD = { r: 217, g: 166, b: 14 };
-// Green for undercrowded: #64c850
-const COLOR_GREEN = { r: 100, g: 200, b: 80 };
-// Purple for overcrowded: #8b4789
-const COLOR_PURPLE = { r: 139, g: 71, b: 137 };
 
 // Starting pattern reference
 const START_CENTER_X = 25;
 const START_CENTER_Y = 26;
-// Maximum neighbors for color blend
-const OVERCROWD_BLEND_START = 4;
-const OVERCROWD_BLEND_SPAN = 5;
 
 const WHEEL_ZOOM_DELTA = 0.1;
 const PINCH_ZOOM_DAMPING = 0.5;
 const ZOOM_DEFAULT_LEVEL = 1;
 const EXTRA_ROWS = 1; // for rendering extra padding
 
-// helpers for Set keys
-const makeKey = (x: number, y: number): string => `${x},${y}`;
-const parseKey = (k: string): [number, number] =>
-  k.split(",").map(Number) as [number, number];
+// helpers for Set keys - using numeric encoding for better memory efficiency
+const makeKey = (x: number, y: number): number => x * KEY_MULTIPLIER + y;
+const parseKey = (k: number): [number, number] => [
+  Math.floor(k / KEY_MULTIPLIER),
+  k % KEY_MULTIPLIER,
+];
+
+// Memoized cell component - only re-renders when filled state changes
+const Cell = memo(
+  ({ x, y, filled }: { x: number; y: number; filled: boolean }) => (
+    <div
+      data-cell-x={x}
+      data-cell-y={y}
+      className={`gol-board-cell${filled ? " filled" : ""}`}
+      style={
+        filled
+          ? {
+              backgroundColor: `rgb(${COLOR_GOLD.r}, ${COLOR_GOLD.g}, ${COLOR_GOLD.b})`,
+            }
+          : undefined
+      }
+    />
+  )
+);
+Cell.displayName = "Cell";
 
 export default function GameOfLifeInfinite(): ReactElement {
   /* --------------------------------------------------------------------- */
@@ -70,10 +86,10 @@ export default function GameOfLifeInfinite(): ReactElement {
 
   // Calculate grid dimensions based on window size and zoom
   const initialRows = Math.ceil(
-    window.innerHeight / (CELL_SIZE / ZOOM_DEFAULT_LEVEL)
+    window.innerHeight / (CELL_SIZE * ZOOM_DEFAULT_LEVEL)
   );
   const initialCols = Math.ceil(
-    window.innerWidth / (CELL_SIZE / ZOOM_DEFAULT_LEVEL)
+    window.innerWidth / (CELL_SIZE * ZOOM_DEFAULT_LEVEL)
   );
 
   const [dimensions, setDimensions] = useState<{ rows: number; cols: number }>({
@@ -104,8 +120,8 @@ export default function GameOfLifeInfinite(): ReactElement {
     const handleResize = (): void => {
       const currentZoom = zoomRef.current;
       setDimensions({
-        rows: Math.ceil(window.innerHeight / (CELL_SIZE / currentZoom)),
-        cols: Math.ceil(window.innerWidth / (CELL_SIZE / currentZoom)),
+        rows: Math.ceil(window.innerHeight / (CELL_SIZE * currentZoom)),
+        cols: Math.ceil(window.innerWidth / (CELL_SIZE * currentZoom)),
       });
     };
 
@@ -113,9 +129,8 @@ export default function GameOfLifeInfinite(): ReactElement {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // forceRefresh = cheap way to make React repaint
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_, forceRefresh] = useState<boolean>(false);
+  // Generation counter for triggering re-renders when cells change
+  const [generation, setGeneration] = useState<number>(0);
 
   /* ------------------------------------------------------------------ */
   /*  Optional static seed                                              */
@@ -128,70 +143,149 @@ export default function GameOfLifeInfinite(): ReactElement {
     [26, 27],
   ];
 
-  /* turn those pairs into a Set of "x,y" keys */
-  const initialLive = new Set<string>(
+  /* turn those pairs into a Set of numeric keys */
+  const initialLive = new Set<number>(
     STARTING_CONFIG.map(([x, y]) => makeKey(x, y))
   );
 
   /* ------------------------------------------------------------------ */
   /*  State                                                             */
   /* ------------------------------------------------------------------ */
-  const liveCellsRef = useRef<Set<string>>(initialLive);
+  const liveCellsRef = useRef<Set<number>>(initialLive);
   const runningRef = useRef<boolean>(false);
+  const animationFrameRef = useRef<number | null>(null);
+  const lastTickTimeRef = useRef<number>(0);
+  const growthCountRef = useRef<number>(0); // Track consecutive growth for warnings
 
   /* --------------------------------------------------------------------- */
   /*  Core Life Logic                                                      */
   /* --------------------------------------------------------------------- */
-  const runTick = useCallback(() => {
-    if (!runningRef.current) return;
-
-    const nextGen = new Set<string>();
-    const neighbourCounter = new Map<string, number>();
-
-    liveCellsRef.current.forEach((cellKey) => {
-      const [x, y] = parseKey(cellKey);
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          if (dx === 0 && dy === 0) continue;
-          const neighKey = makeKey(x + dx, y + dy);
-          neighbourCounter.set(
-            neighKey,
-            (neighbourCounter.get(neighKey) || 0) + 1
-          );
-        }
+  const runTick = useCallback(
+    (timestamp: number = performance.now()) => {
+      if (!runningRef.current) {
+        animationFrameRef.current = null;
+        return;
       }
-    });
 
-    neighbourCounter.forEach((count, cellKey) => {
-      const alive = liveCellsRef.current.has(cellKey);
-      if (
-        count === LIFE_NEIGHBORS_BIRTH ||
-        (alive && LIFE_NEIGHBORS_SURVIVE.includes(count))
-      )
-        nextGen.add(cellKey);
-    });
+      const elapsed = timestamp - lastTickTimeRef.current;
+      const interval = 1_000 / ticksPerSec.current;
 
-    liveCellsRef.current = nextGen;
-    forceRefresh((v) => !v);
-    setTimeout(runTick, 1_000 / ticksPerSec.current);
-  }, [forceRefresh]);
+      if (elapsed >= interval) {
+        const currentSize = liveCellsRef.current.size;
+
+        // Check cell limit before processing
+        if (currentSize >= MAX_LIVE_CELLS) {
+          runningRef.current = false;
+          animationFrameRef.current = null;
+          alert(
+            `Simulation paused: cell limit reached (${MAX_LIVE_CELLS} cells).`
+          );
+          setGeneration((g) => g + 1);
+          return;
+        }
+
+        const nextGen = new Set<number>();
+        const neighbourCounter = new Map<number, number>();
+
+        // Calculate viewport bounds for culling
+        const currentOffset = offsetRef.current;
+        const currentDimensions = dimensionsRef.current;
+        const minX = Math.floor(currentOffset.x) - CULLING_MARGIN;
+        const maxX = Math.floor(currentOffset.x) + currentDimensions.cols + CULLING_MARGIN;
+        const minY = Math.floor(currentOffset.y) - CULLING_MARGIN;
+        const maxY = Math.floor(currentOffset.y) + currentDimensions.rows + CULLING_MARGIN;
+
+        liveCellsRef.current.forEach((cellKey) => {
+          const [x, y] = parseKey(cellKey);
+
+          // Skip cells outside culling bounds
+          if (x < minX || x > maxX || y < minY || y > maxY) {
+            return;
+          }
+
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              if (dx === 0 && dy === 0) continue;
+              const neighKey = makeKey(x + dx, y + dy);
+              neighbourCounter.set(
+                neighKey,
+                (neighbourCounter.get(neighKey) || 0) + 1
+              );
+            }
+          }
+        });
+
+        neighbourCounter.forEach((count, cellKey) => {
+          const alive = liveCellsRef.current.has(cellKey);
+          if (
+            count === LIFE_NEIGHBORS_BIRTH ||
+            (alive && LIFE_NEIGHBORS_SURVIVE.includes(count))
+          ) {
+            // Double-check culling bounds for new cells
+            const [x, y] = parseKey(cellKey);
+            if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+              nextGen.add(cellKey);
+            }
+          }
+        });
+
+        // Growth detection
+        if (nextGen.size > currentSize * 1.5) {
+          growthCountRef.current++;
+          if (growthCountRef.current >= 10) {
+            console.warn(
+              `Exponential growth detected: ${currentSize} → ${nextGen.size} cells over 10 generations`
+            );
+            growthCountRef.current = 0;
+          }
+        } else {
+          growthCountRef.current = 0;
+        }
+
+        liveCellsRef.current = nextGen;
+        setGeneration((g) => g + 1);
+        lastTickTimeRef.current = timestamp;
+      }
+
+      animationFrameRef.current = requestAnimationFrame(runTick);
+    },
+    []
+  );
 
   /* --------------------------------------------------------------------- */
   /*  Interaction Helpers                                                  */
   /* --------------------------------------------------------------------- */
-  const toggleCell = (x: number, y: number): void => {
+  const toggleCell = useCallback((x: number, y: number): void => {
     if (isDraggingRef.current) return;
 
     const k = makeKey(x, y);
     const set = liveCellsRef.current;
     set.has(k) ? set.delete(k) : set.add(k);
-    forceRefresh((v) => !v);
-  };
+    setGeneration((g) => g + 1);
+  }, []);
 
-  const onToggleStart = (): void => {
+  const onToggleStart = useCallback((): void => {
     runningRef.current = !runningRef.current;
-    runningRef.current ? runTick() : forceRefresh((v) => !v);
-  };
+    if (runningRef.current) {
+      lastTickTimeRef.current = performance.now();
+      runTick();
+    } else {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      setGeneration((g) => g + 1);
+    }
+  }, [runTick]);
+
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
 
   // arrow-key panning and Enter/Space for play/pause
   useEffect(() => {
@@ -244,8 +338,8 @@ export default function GameOfLifeInfinite(): ReactElement {
       );
 
       // Calculate new dimensions based on new zoom
-      const newRows = Math.ceil(window.innerHeight / (CELL_SIZE / newZoom));
-      const newCols = Math.ceil(window.innerWidth / (CELL_SIZE / newZoom));
+      const newRows = Math.ceil(window.innerHeight / (CELL_SIZE * newZoom));
+      const newCols = Math.ceil(window.innerWidth / (CELL_SIZE * newZoom));
 
       // Adjust offset to keep the same visual point fixed
       const newOffset = {
@@ -420,8 +514,8 @@ export default function GameOfLifeInfinite(): ReactElement {
           Math.min(MAX_ZOOM, currentZoom * scale)
         );
 
-        const newRows = Math.ceil(window.innerHeight / (CELL_SIZE / newZoom));
-        const newCols = Math.ceil(window.innerWidth / (CELL_SIZE / newZoom));
+        const newRows = Math.ceil(window.innerHeight / (CELL_SIZE * newZoom));
+        const newCols = Math.ceil(window.innerWidth / (CELL_SIZE * newZoom));
 
         const newOffset = {
           x:
@@ -495,106 +589,51 @@ export default function GameOfLifeInfinite(): ReactElement {
   /* --------------------------------------------------------------------- */
   /*  Render Board                                                         */
   /* --------------------------------------------------------------------- */
-  // Helper to count neighbors for a cell
-  const countNeighbors = (x: number, y: number): number => {
-    let count = 0;
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        if (dx === 0 && dy === 0) continue;
-        if (liveCellsRef.current.has(makeKey(x + dx, y + dy))) {
-          count++;
-        }
-      }
-    }
-    return count;
-  };
-
-  // Get color for cell based on neighbors (green for undercrowded, purple for overcrowded)
-  const getCellStyle = (neighbors: number): CSSProperties => {
-    if (LIFE_NEIGHBORS_SURVIVE.includes(neighbors)) {
-      return { opacity: HEALTHY_OPACITY };
-    }
-
-    // Undercrowded (0-1) -> interpolate gold-to-green
-    if (neighbors < LIFE_NEIGHBORS_SURVIVE[0]) {
-      const greenFactor =
-        (LIFE_NEIGHBORS_SURVIVE[0] - neighbors) / LIFE_NEIGHBORS_SURVIVE[0];
-      const r = Math.round(
-        COLOR_GOLD.r * (1 - greenFactor) + COLOR_GREEN.r * greenFactor
-      );
-      const g = Math.round(
-        COLOR_GOLD.g * (1 - greenFactor) + COLOR_GREEN.g * greenFactor
-      );
-      const b = Math.round(
-        COLOR_GOLD.b * (1 - greenFactor) + COLOR_GREEN.b * greenFactor
-      );
-      return {
-        backgroundColor: `rgb(${r}, ${g}, ${b})`,
-        opacity: UNDERCROWD_OPACITY,
-      };
-    }
-
-    // Overcrowded (4+) -> interpolate gold-to-purple
-    if (neighbors >= OVERCROWD_BLEND_START) {
-      const purpleFactor = Math.min(
-        (neighbors - (OVERCROWD_BLEND_START - 1)) / OVERCROWD_BLEND_SPAN,
-        1
-      );
-      const r = Math.round(
-        COLOR_GOLD.r * (1 - purpleFactor) + COLOR_PURPLE.r * purpleFactor
-      );
-      const g = Math.round(
-        COLOR_GOLD.g * (1 - purpleFactor) + COLOR_PURPLE.g * purpleFactor
-      );
-      const b = Math.round(
-        COLOR_GOLD.b * (1 - purpleFactor) + COLOR_PURPLE.b * purpleFactor
-      );
-      return {
-        backgroundColor: `rgb(${r}, ${g}, ${b})`,
-        opacity: OVERCROWD_OPACITY,
-      };
-    }
-
-    return { opacity: HEALTHY_OPACITY };
-  };
-
   const offsetX = Math.floor(offset.x);
   const offsetY = Math.floor(offset.y);
 
   const fractionalX = offset.x - offsetX;
   const fractionalY = offset.y - offsetY;
 
-  // Render one extra row and column to fill gaps when transformed
-  const rows: ReactElement[] = [];
-  for (let r = 0; r < viewRows + EXTRA_ROWS; r++) {
-    const cells: ReactElement[] = [];
-    for (let c = 0; c < viewCols + EXTRA_ROWS; c++) {
-      const cellX = c + offsetX;
-      const cellY = r + offsetY;
-      const filled = liveCellsRef.current.has(makeKey(cellX, cellY));
-      const neighborCount = filled ? countNeighbors(cellX, cellY) : 0;
+  // Event delegation handler for cell clicks
+  const handleBoardClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
+      if (!target.classList.contains("gol-board-cell")) return;
 
-      cells.push(
-        <div
-          key={`cell-${cellX},${cellY}`}
-          className={`gol-board-cell${filled ? " filled" : ""}`}
-          style={
-            filled
-              ? {
-                  backgroundColor: `rgb(${COLOR_GOLD.r}, ${COLOR_GOLD.g}, ${COLOR_GOLD.b})`,
-                }
-              : undefined
-          }
-          onClick={() => toggleCell(cellX, cellY)}
-        />
+      const x = target.getAttribute("data-cell-x");
+      const y = target.getAttribute("data-cell-y");
+      if (x && y) {
+        toggleCell(Number(x), Number(y));
+      }
+    },
+    [toggleCell]
+  );
+
+  // Memoized grid rendering - only recalculates when dependencies change
+  // generation is needed to trigger re-render when cells change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const rows = useMemo(() => {
+    const result: ReactElement[] = [];
+    for (let r = 0; r < viewRows + EXTRA_ROWS; r++) {
+      const cells: ReactElement[] = [];
+      for (let c = 0; c < viewCols + EXTRA_ROWS; c++) {
+        const cellX = c + offsetX;
+        const cellY = r + offsetY;
+        const filled = liveCellsRef.current.has(makeKey(cellX, cellY));
+
+        cells.push(
+          <Cell key={`cell-${cellX},${cellY}`} x={cellX} y={cellY} filled={filled} />
+        );
+      }
+      result.push(
+        <div key={`row-${r + offsetY}`} className="gol-board-row">
+          {cells}
+        </div>
       );
     }
-    rows.push(
-      <div key={`row-${r + offsetY}`} className="gol-board-row">
-        {cells}
-      </div>
-    );
-  }
+    return result;
+  }, [offsetX, offsetY, viewRows, viewCols, generation]);
 
   /* --------------------------------------------------------------------- */
   /*  Helpers                                                              */
@@ -617,6 +656,7 @@ export default function GameOfLifeInfinite(): ReactElement {
       >
         <div
           className="gol-board-content"
+          onClick={handleBoardClick}
           style={{
             transform: `translate(${-fractionalX * (100 / viewCols)}%, ${
               -fractionalY * (100 / viewRows)
@@ -658,7 +698,7 @@ export default function GameOfLifeInfinite(): ReactElement {
                   );
                   ticksPerSec.current = n;
                 }
-                forceRefresh((v) => !v);
+                setGeneration((g) => g + 1);
               }}
             />
           </label>
