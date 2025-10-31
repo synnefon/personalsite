@@ -118,15 +118,6 @@ const HWSS: Pattern = parsePattern(`
 ..████.
 `);
 
-// Diagonal spaceship - travels diagonally
-const COPPERHEAD: Pattern = parsePattern(`
-██......
-█.█..█..
-..█..█..
-██.██.██
-...██...
-`);
-
 // Period-15 oscillator
 const PENTADECATHLON: Pattern = parsePattern(`
 .█.
@@ -161,32 +152,29 @@ const RABBITS: Pattern = parsePattern(`
 .█.
 `);
 
-// Methuselah - 29,055 generations before stabilizing
-const LIDKA: Pattern = parsePattern(`
-.█..
-..██
-██.█
-.█..
-`);
-
 // Compact glider gun - period-120
 const SIMKIN_GLIDER_GUN: Pattern = parsePattern(`
-██.....................██
-██.....................██
-.........................
-.........................
-.........................
-.........................
-██.......................
-██.......................
-.........................
-.........................
-.........................
-.......██.██.............
-.......██.██.............
-.........................
-....██...................
-....██...................
+██.....██
+██.....██
+
+....██
+....██
+
+
+
+
+......................██.██
+.....................█.....█
+.....................█......█..██
+.....................███...█...██
+..........................█
+
+
+
+....................██
+....................█
+.....................███
+.......................█
 `);
 
 /**
@@ -231,10 +219,6 @@ export const PATTERNS: PatternConfig[] = [
     pattern: HWSS,
   },
   {
-    name: "Copperhead",
-    pattern: COPPERHEAD,
-  },
-  {
     name: "Pentadecathlon",
     pattern: PENTADECATHLON,
   },
@@ -245,10 +229,6 @@ export const PATTERNS: PatternConfig[] = [
   {
     name: "Rabbits",
     pattern: RABBITS,
-  },
-  {
-    name: "Lidka",
-    pattern: LIDKA,
   },
   {
     name: "Simkin Glider Gun",

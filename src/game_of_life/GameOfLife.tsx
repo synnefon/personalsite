@@ -36,7 +36,6 @@ const CULLING_MARGIN = 100; // Cells beyond viewport to keep
 const KEY_MULTIPLIER = 1000000; // For numeric key encoding
 
 // Game of Life rules
-const LIFE_NEIGHBORS_SURVIVE = [2, 3];
 const LIFE_NEIGHBORS_BIRTH = 3;
 
 // Gold: #d9a60e
@@ -101,20 +100,29 @@ export default function GameOfLifeInfinite(): ReactElement {
   /* ------------------------------------------------------------------ */
   /*  Starting pattern                                                  */
   /* ------------------------------------------------------------------ */
-  const selectedPattern = getRandomPattern();
-  const initialLive = new Set<number>(
-    selectedPattern.pattern.map(([x, y]) => makeKey(x, y))
-  );
+  const [{ initialLive, patternCenterX, patternCenterY }] = useState(() => {
+    const pattern = getRandomPattern();
+    const live = new Set<number>(
+      pattern.pattern.map(([x, y]) => makeKey(x, y))
+    );
 
-  // Calculate pattern bounds to center it in viewport
-  const patternBounds = {
-    minX: Math.min(...selectedPattern.pattern.map(([x]) => x)),
-    maxX: Math.max(...selectedPattern.pattern.map(([x]) => x)),
-    minY: Math.min(...selectedPattern.pattern.map(([, y]) => y)),
-    maxY: Math.max(...selectedPattern.pattern.map(([, y]) => y)),
-  };
-  const patternCenterX = (patternBounds.minX + patternBounds.maxX) / 2;
-  const patternCenterY = (patternBounds.minY + patternBounds.maxY) / 2;
+    // Calculate pattern bounds to center it in viewport
+    const patternBounds = {
+      minX: Math.min(...pattern.pattern.map(([x]) => x)),
+      maxX: Math.max(...pattern.pattern.map(([x]) => x)),
+      minY: Math.min(...pattern.pattern.map(([, y]) => y)),
+      maxY: Math.max(...pattern.pattern.map(([, y]) => y)),
+    };
+    const centerX = (patternBounds.minX + patternBounds.maxX) / 2;
+    const centerY = (patternBounds.minY + patternBounds.maxY) / 2;
+
+    return {
+      selectedPattern: pattern,
+      initialLive: live,
+      patternCenterX: centerX,
+      patternCenterY: centerY,
+    };
+  });
 
   // Center the pattern in the viewport
   const [offset, setOffset] = useState<{ x: number; y: number }>({
@@ -269,7 +277,7 @@ export default function GameOfLifeInfinite(): ReactElement {
         const alive = liveCellsRef.current.has(cellKey);
         if (
           count === LIFE_NEIGHBORS_BIRTH ||
-          (alive && LIFE_NEIGHBORS_SURVIVE.includes(count))
+          (alive && (count === 2 || count === 3))
         ) {
           // Double-check culling bounds for new cells
           const [x, y] = parseKey(cellKey);
@@ -728,7 +736,7 @@ export default function GameOfLifeInfinite(): ReactElement {
       <div
         className={`gol-board${
           isPointerDown && !isDragging ? " mouse-down" : ""
-        }${isDragging ? " dragging" : ""}`}
+        }${isDragging ? " dragging" : ""}${running ? " running" : ""}`}
         style={
           {
             "--rows": viewRows,

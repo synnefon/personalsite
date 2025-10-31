@@ -59,18 +59,34 @@
 .gol-board-cell {
   height: 100%;
   flex: 0 0 calc(100% / var(--cols));
-  border-width: clamp(0px, calc((var(--zoom) - 0.2) / 0.2 * 1px), 1px);
-  border-style: solid;
-  border-color: var(--border-color);
-  cursor: var(--pointer);
+  border: none;
+  cursor: crosshair;
   box-sizing: border-box;
 }
 
-.gol-board.mouse-down .gol-board-cell {
-  cursor: url('../assets/cursors/Dark/Hands/Hand_Drag2.png'), auto;
+.gol-board:not(.running) .gol-board-cell {
+  transition: background-color 0.1s ease;
+}
+
+.gol-board-cell:hover:not(.filled) {
+  background-color: rgba(217, 166, 14, 0.4);
 }
 
 .gol-board.dragging .gol-board-cell {
+  cursor: url('../assets/cursors/Dark/Hands/Hand_Drag2.png'), auto;
+}
+
+.gol-board.dragging .gol-board-cell:hover:not(.filled),
+.gol-board.running .gol-board-cell:hover:not(.filled) {
+  background-color: transparent;
+}
+
+.gol-board.running:not(.dragging) .gol-board-cell {
+  cursor: default;
+  pointer-events: none;
+}
+
+.gol-board.running.dragging .gol-board-cell {
   cursor: url('../assets/cursors/Dark/Hands/Hand_Drag2.png'), auto;
 }
 
