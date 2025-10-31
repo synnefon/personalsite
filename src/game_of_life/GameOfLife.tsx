@@ -162,7 +162,7 @@ export default function GameOfLifeInfinite(): ReactElement {
 
       // Adjust size slower (1-2 cells per scroll)
       // scroll down (deltaY > 0) = zoom out = show more cells = increase size
-      const delta = e.deltaY > 0 ? 2 : -2;
+      const delta = e.deltaY > 0 ? 0.5 : -0.5;
       const newSize = Math.max(10, Math.min(MAX_SIZE, currentSize + delta));
 
       // Adjust offset to keep the same visual point fixed
@@ -472,28 +472,6 @@ export default function GameOfLifeInfinite(): ReactElement {
           {runningRef.current ? "pause" : "start"}
         </div>
 
-        {/* size selector */}
-        <div className="gol-control-group">
-          <label>
-            <div>viewport dimension</div>
-            <input
-              type="number"
-              min={0}
-              max={MAX_SIZE}
-              value={displayVal(size)}
-              onChange={(e) => {
-                const raw = e.target.value;
-                if (raw === "") {
-                  setSize(0);
-                } else {
-                  const n = Math.max(0, Math.min(MAX_SIZE, Number(raw)));
-                  setSize(n);
-                }
-              }}
-            />
-          </label>
-        </div>
-
         {/* speed selector */}
         <div className="gol-control-group">
           <label>
@@ -530,8 +508,6 @@ export default function GameOfLifeInfinite(): ReactElement {
             ALWAYS LIVES: exactly 3 neighbors
           </li>
         </ol>
-
-        <div className="gol-hint">{"< use arrow keys pan >"}</div>
       </aside>
     </div>
   );

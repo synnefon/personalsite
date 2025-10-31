@@ -63,11 +63,11 @@
 }
 
 .gol-board.mouse-down .gol-board-cell {
-  cursor: grab;
+  cursor: url('../assets/cursors/Dark/Hands/Hand_Drag2.png'), auto;
 }
 
 .gol-board.dragging .gol-board-cell {
-  cursor: grabbing;
+  cursor: url('../assets/cursors/Dark/Hands/Hand_Drag2.png'), auto;
 }
 
 .gol-board-cell.filled {
@@ -81,7 +81,7 @@
 
 .gol-controls {
   display: inline-grid;
-  grid-template-rows: 5em 4em 4em 15em 7em;
+  grid-template-rows: 5em 4em 15em;
 }
 
 .gol-control-group {
