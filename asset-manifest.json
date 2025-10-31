@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/static/css/main.d87a7a2c.css",
-    "main.js": "/static/js/main.35841436.js",
+    "main.css": "/static/css/main.51c21aa8.css",
+    "main.js": "/static/js/main.dcc25815.js",
     "static/media/the_gathering.mp3": "/static/media/the_gathering.2d97c4755109d9278151.mp3",
     "static/media/self.gif": "/static/media/self.ad1e6f139233db344487.gif",
     "static/media/3.m4a": "/static/media/3.e926e4f81d1a320405da.m4a",
@@ -14,9 +14,8 @@
     "static/media/4.m4a": "/static/media/4.647692296e8cfc60be80.m4a",
     "static/media/dancer.gif": "/static/media/dancer.80f8815957c142cb926a.gif",
     "static/media/groovy_click.mp3": "/static/media/groovy_click.5cb6eae90670166005af.mp3",
-    "static/media/F25_Bank_Printer.otf": "/static/media/F25_Bank_Printer.07be3c3654876f79f05c.otf",
+    "static/media/ShareTechMono-Regular.ttf": "/static/media/ShareTechMono-Regular.d753b5dc50d171ecc94b.ttf",
     "static/media/game_over.mp3": "/static/media/game_over.21c74c34f50a8ecedde0.mp3",
-    "static/media/Pixelon.ttf": "/static/media/Pixelon.6f0c91f81b6e3e2958ec.ttf",
     "static/media/pen_focus.svg": "/static/media/pen_focus.4f908978b3fd40609969.svg",
     "static/media/info_focus.svg": "/static/media/info_focus.2522e3d364aaed33ec2b.svg",
     "static/media/house_focus.svg": "/static/media/house_focus.9001ebacaa429eb26577.svg",
@@ -36,11 +35,11 @@
     "static/media/redo_focus.svg": "/static/media/redo_focus.29d549ae26b9af2e7d38.svg",
     "static/media/timer.svg": "/static/media/timer.4ee7cd0799986c827fe0.svg",
     "static/media/timer_focus.svg": "/static/media/timer_focus.d078fce01e3307044491.svg",
-    "main.d87a7a2c.css.map": "/static/css/main.d87a7a2c.css.map",
-    "main.35841436.js.map": "/static/js/main.35841436.js.map"
+    "main.51c21aa8.css.map": "/static/css/main.51c21aa8.css.map",
+    "main.dcc25815.js.map": "/static/js/main.dcc25815.js.map"
   },
   "entrypoints": [
-    "static/css/main.d87a7a2c.css",
-    "static/js/main.35841436.js"
+    "static/css/main.51c21aa8.css",
+    "static/js/main.dcc25815.js"
   ]
 }
