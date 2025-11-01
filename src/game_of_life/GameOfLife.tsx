@@ -23,8 +23,8 @@ import { getRandomPattern, PATTERNS, type PatternConfig } from "./patterns.ts";
 */
 
 // General-purpose constants (no magic numbers)
-const DEFAULT_TICK_PER_SEC = 3;
-const MAX_TICK_PER_SEC = 10;
+const DEFAULT_TICK_PER_SEC = 4;
+const MAX_TICK_PER_SEC = 15;
 const CELL_SIZE = 20; // px - fixed cell size
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 4;
@@ -98,29 +98,30 @@ export default function GameOfLifeInfinite(): ReactElement {
   /* ------------------------------------------------------------------ */
   /*  Starting pattern                                                  */
   /* ------------------------------------------------------------------ */
-  const [{ initialLive, patternCenterX, patternCenterY, selectedPattern }] = useState(() => {
-    const pattern = getRandomPattern();
-    const live = new Set<number>(
-      pattern.pattern.map(([x, y]) => makeKey(x, y))
-    );
+  const [{ initialLive, patternCenterX, patternCenterY, selectedPattern }] =
+    useState(() => {
+      const pattern = getRandomPattern();
+      const live = new Set<number>(
+        pattern.pattern.map(([x, y]) => makeKey(x, y))
+      );
 
-    // Calculate pattern bounds to center it in viewport
-    const patternBounds = {
-      minX: Math.min(...pattern.pattern.map(([x]) => x)),
-      maxX: Math.max(...pattern.pattern.map(([x]) => x)),
-      minY: Math.min(...pattern.pattern.map(([, y]) => y)),
-      maxY: Math.max(...pattern.pattern.map(([, y]) => y)),
-    };
-    const centerX = (patternBounds.minX + patternBounds.maxX) / 2;
-    const centerY = (patternBounds.minY + patternBounds.maxY) / 2;
+      // Calculate pattern bounds to center it in viewport
+      const patternBounds = {
+        minX: Math.min(...pattern.pattern.map(([x]) => x)),
+        maxX: Math.max(...pattern.pattern.map(([x]) => x)),
+        minY: Math.min(...pattern.pattern.map(([, y]) => y)),
+        maxY: Math.max(...pattern.pattern.map(([, y]) => y)),
+      };
+      const centerX = (patternBounds.minX + patternBounds.maxX) / 2;
+      const centerY = (patternBounds.minY + patternBounds.maxY) / 2;
 
-    return {
-      selectedPattern: pattern,
-      initialLive: live,
-      patternCenterX: centerX,
-      patternCenterY: centerY,
-    };
-  });
+      return {
+        selectedPattern: pattern,
+        initialLive: live,
+        patternCenterX: centerX,
+        patternCenterY: centerY,
+      };
+    });
 
   // Batched viewport state to prevent race conditions during zoom/pan
   const [viewport, setViewport] = useState<{
@@ -153,8 +154,12 @@ export default function GameOfLifeInfinite(): ReactElement {
       setViewport({
         ...currentViewport,
         dimensions: {
-          rows: Math.ceil(window.innerHeight / (CELL_SIZE * currentViewport.zoom)),
-          cols: Math.ceil(window.innerWidth / (CELL_SIZE * currentViewport.zoom)),
+          rows: Math.ceil(
+            window.innerHeight / (CELL_SIZE * currentViewport.zoom)
+          ),
+          cols: Math.ceil(
+            window.innerWidth / (CELL_SIZE * currentViewport.zoom)
+          ),
         },
       });
     };
@@ -177,7 +182,9 @@ export default function GameOfLifeInfinite(): ReactElement {
   const [resetClicked, setResetClicked] = useState<boolean>(false);
 
   // Pattern selection state
-  const [currentPattern, setCurrentPattern] = useState<PatternConfig | null>(selectedPattern);
+  const [currentPattern, setCurrentPattern] = useState<PatternConfig | null>(
+    selectedPattern
+  );
 
   // Reset state - stores the cell state to reset to (make a copy of initialLive)
   const resetStateRef = useRef<Set<number>>(new Set(initialLive));
@@ -271,10 +278,14 @@ export default function GameOfLifeInfinite(): ReactElement {
       const currentViewport = viewportRef.current;
       const minX = Math.floor(currentViewport.offset.x) - CULLING_MARGIN;
       const maxX =
-        Math.floor(currentViewport.offset.x) + currentViewport.dimensions.cols + CULLING_MARGIN;
+        Math.floor(currentViewport.offset.x) +
+        currentViewport.dimensions.cols +
+        CULLING_MARGIN;
       const minY = Math.floor(currentViewport.offset.y) - CULLING_MARGIN;
       const maxY =
-        Math.floor(currentViewport.offset.y) + currentViewport.dimensions.rows + CULLING_MARGIN;
+        Math.floor(currentViewport.offset.y) +
+        currentViewport.dimensions.rows +
+        CULLING_MARGIN;
 
       // Count neighbors from ALL live cells (including those outside bounds)
       // This ensures cells near the boundary have accurate neighbor counts
@@ -537,8 +548,12 @@ export default function GameOfLifeInfinite(): ReactElement {
 
       // Adjust offset to keep the same visual point fixed
       const newOffset = {
-        x: currentViewport.offset.x - mouseXRatio * (newCols - currentViewport.dimensions.cols),
-        y: currentViewport.offset.y - mouseYRatio * (newRows - currentViewport.dimensions.rows),
+        x:
+          currentViewport.offset.x -
+          mouseXRatio * (newCols - currentViewport.dimensions.cols),
+        y:
+          currentViewport.offset.y -
+          mouseYRatio * (newRows - currentViewport.dimensions.rows),
       };
 
       // Batched update to prevent race conditions
@@ -717,9 +732,11 @@ export default function GameOfLifeInfinite(): ReactElement {
 
         const newOffset = {
           x:
-            currentViewport.offset.x - centerXRatio * (newCols - currentViewport.dimensions.cols),
+            currentViewport.offset.x -
+            centerXRatio * (newCols - currentViewport.dimensions.cols),
           y:
-            currentViewport.offset.y - centerYRatio * (newRows - currentViewport.dimensions.rows),
+            currentViewport.offset.y -
+            centerYRatio * (newRows - currentViewport.dimensions.rows),
         };
 
         // Batched update to prevent race conditions
@@ -842,6 +859,7 @@ export default function GameOfLifeInfinite(): ReactElement {
       );
     }
     return result;
+  // eslint-disable-next-line
   }, [offsetX, offsetY, viewRows, viewCols, generation]);
 
   /* --------------------------------------------------------------------- */
@@ -866,7 +884,9 @@ export default function GameOfLifeInfinite(): ReactElement {
       <div
         className={`gol-board${
           isPointerDown && !isDragging ? " mouse-down" : ""
-        }${isDragging ? " dragging" : ""}${running ? " running" : ""}`}
+        }${isDragging ? " dragging" : ""}${running ? " running" : ""}${
+          zoom >= 2 ? " zoomed-in" : ""
+        }`}
         style={
           {
             "--rows": viewRows,
@@ -935,9 +955,9 @@ export default function GameOfLifeInfinite(): ReactElement {
             <div>ticks / second</div>
             <input
               type="number"
-              min={0}
+              min={1}
               max={MAX_TICK_PER_SEC}
-              step={0.5}
+              step={1}
               value={displayVal(ticksPerSec.current)}
               onChange={(e) => {
                 const raw = e.target.value;
@@ -966,9 +986,7 @@ export default function GameOfLifeInfinite(): ReactElement {
       </aside>
 
       {/* TICK COUNTER */}
-      <div className="gol-tick-counter">
-        {tickCount}
-      </div>
+      <div className="gol-tick-counter">{tickCount}</div>
 
       {/* FULLSCREEN BUTTON */}
       <div

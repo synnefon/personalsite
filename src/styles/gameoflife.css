@@ -89,6 +89,10 @@
   background-color: rgba(217, 166, 14, 0.4) !important;
 }
 
+.gol-board:not(.running) .gol-board-cell.filled:hover {
+  background-color: rgba(217, 166, 14, 0.8) !important;
+}
+
 .gol-board.dragging .gol-board-cell {
   cursor: url('../assets/cursors/Dark/Hands/Hand_Drag2.png'), auto;
 }
@@ -109,6 +113,11 @@
 
 .gol-board-cell.filled {
   background: var(--text-color);
+}
+
+/* Show grid lines when zoomed in */
+.gol-board.zoomed-in .gol-board-cell {
+  border: 0.5px solid rgba(217, 166, 14, 0.15);
 }
 
 
@@ -225,6 +234,17 @@
   .gol-start-button.clearing {
     color: var(--text-color);
     transition: color 0.2s 0.2s ease-out;
+    animation: spin 0.9s ease-in-out;
+    transform-origin: center;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(-360deg);
+    }
   }
 
 
