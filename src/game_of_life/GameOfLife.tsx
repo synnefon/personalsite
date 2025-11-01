@@ -11,7 +11,7 @@ import {
 
 import React from "react";
 import "../styles/gameoflife.css";
-import { getRandomPattern } from "./patterns.ts";
+import { getRandomPattern, PATTERNS, type PatternConfig } from "./patterns.ts";
 
 /*
   Infinite Game of Life with a square viewport size selector.
@@ -33,7 +33,13 @@ const DRAG_THRESHOLD_PX = 5;
 // Memory management constants
 const MAX_LIVE_CELLS = 50000; // Maximum cells before pausing simulation
 const CULLING_MARGIN = 100; // Cells beyond viewport to keep
-const KEY_MULTIPLIER = 1000000; // For numeric key encoding
+
+// Key encoding constants - using offset encoding to handle negative coordinates
+// JavaScript numbers have 53 bits of integer precision, so we can safely use:
+// - 26 bits for x (range: -33M to +33M)
+// - 26 bits for y (range: -33M to +33M)
+const COORD_OFFSET = 33554432; // 2^25 - offset to ensure coordinates are always positive
+const KEY_MULTIPLIER = 67108864; // 2^26 - multiplier for x coordinate
 
 // Game of Life rules
 const LIFE_NEIGHBORS_BIRTH = 3;
@@ -46,12 +52,15 @@ const PINCH_ZOOM_DAMPING = 0.5;
 const ZOOM_DEFAULT_LEVEL = 1;
 const EXTRA_ROWS = 1; // for rendering extra padding
 
-// helpers for Set keys - using numeric encoding for better memory efficiency
-const makeKey = (x: number, y: number): number => x * KEY_MULTIPLIER + y;
-const parseKey = (k: number): [number, number] => [
-  Math.floor(k / KEY_MULTIPLIER),
-  k % KEY_MULTIPLIER,
-];
+// helpers for Set keys - using offset encoding to correctly handle negative coordinates
+const makeKey = (x: number, y: number): number =>
+  (x + COORD_OFFSET) * KEY_MULTIPLIER + (y + COORD_OFFSET);
+
+const parseKey = (k: number): [number, number] => {
+  const x = Math.floor(k / KEY_MULTIPLIER) - COORD_OFFSET;
+  const y = (k % KEY_MULTIPLIER) - COORD_OFFSET;
+  return [x, y];
+};
 
 // Memoized cell component - only re-renders when filled state changes
 const Cell = memo(
@@ -76,8 +85,6 @@ export default function GameOfLifeInfinite(): ReactElement {
   /* --------------------------------------------------------------------- */
   /*  State                                                                */
   /* --------------------------------------------------------------------- */
-  const [zoom, setZoom] = useState<number>(ZOOM_DEFAULT_LEVEL);
-  const zoomRef = useRef<number>(zoom);
   const ticksPerSec = useRef<number>(DEFAULT_TICK_PER_SEC);
 
   // Calculate grid dimensions based on window size and zoom
@@ -88,19 +95,10 @@ export default function GameOfLifeInfinite(): ReactElement {
     window.innerWidth / (CELL_SIZE * ZOOM_DEFAULT_LEVEL)
   );
 
-  const [dimensions, setDimensions] = useState<{ rows: number; cols: number }>({
-    rows: initialRows,
-    cols: initialCols,
-  });
-  const dimensionsRef = useRef(dimensions);
-
-  const viewRows = dimensions.rows;
-  const viewCols = dimensions.cols;
-
   /* ------------------------------------------------------------------ */
   /*  Starting pattern                                                  */
   /* ------------------------------------------------------------------ */
-  const [{ initialLive, patternCenterX, patternCenterY }] = useState(() => {
+  const [{ initialLive, patternCenterX, patternCenterY, selectedPattern }] = useState(() => {
     const pattern = getRandomPattern();
     const live = new Set<number>(
       pattern.pattern.map(([x, y]) => makeKey(x, y))
@@ -124,27 +122,40 @@ export default function GameOfLifeInfinite(): ReactElement {
     };
   });
 
-  // Center the pattern in the viewport
-  const [offset, setOffset] = useState<{ x: number; y: number }>({
-    x: patternCenterX - initialCols / 2,
-    y: patternCenterY - initialRows / 2,
+  // Batched viewport state to prevent race conditions during zoom/pan
+  const [viewport, setViewport] = useState<{
+    zoom: number;
+    offset: { x: number; y: number };
+    dimensions: { rows: number; cols: number };
+  }>({
+    zoom: ZOOM_DEFAULT_LEVEL,
+    offset: {
+      x: patternCenterX - initialCols / 2,
+      y: patternCenterY - initialRows / 2,
+    },
+    dimensions: { rows: initialRows, cols: initialCols },
   });
-  const offsetRef = useRef<{ x: number; y: number }>(offset);
 
-  // Keep refs in sync
+  // Keep ref in sync for runTick to access without triggering re-renders
+  const viewportRef = useRef(viewport);
   useEffect(() => {
-    zoomRef.current = zoom;
-    offsetRef.current = offset;
-    dimensionsRef.current = dimensions;
-  }, [zoom, offset, dimensions]);
+    viewportRef.current = viewport;
+  }, [viewport]);
+
+  const { zoom, offset, dimensions } = viewport;
+  const viewRows = dimensions.rows;
+  const viewCols = dimensions.cols;
 
   // Handle window resize
   useEffect(() => {
     const handleResize = (): void => {
-      const currentZoom = zoomRef.current;
-      setDimensions({
-        rows: Math.ceil(window.innerHeight / (CELL_SIZE * currentZoom)),
-        cols: Math.ceil(window.innerWidth / (CELL_SIZE * currentZoom)),
+      const currentViewport = viewportRef.current;
+      setViewport({
+        ...currentViewport,
+        dimensions: {
+          rows: Math.ceil(window.innerHeight / (CELL_SIZE * currentViewport.zoom)),
+          cols: Math.ceil(window.innerWidth / (CELL_SIZE * currentViewport.zoom)),
+        },
       });
     };
 
@@ -155,12 +166,25 @@ export default function GameOfLifeInfinite(): ReactElement {
   // Generation counter for triggering re-renders when cells change
   const [generation, setGeneration] = useState<number>(0);
 
+  // Tick counter for display
+  const [tickCount, setTickCount] = useState<number>(0);
+
   // Splash screen state
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const [fadingSplash, setFadingSplash] = useState<boolean>(false);
 
-  // Clear button animation state
-  const [clearClicked, setClearClicked] = useState<boolean>(false);
+  // Reset button animation state
+  const [resetClicked, setResetClicked] = useState<boolean>(false);
+
+  // Pattern selection state
+  const [currentPattern, setCurrentPattern] = useState<PatternConfig | null>(selectedPattern);
+
+  // Reset state - stores the cell state to reset to (make a copy of initialLive)
+  const resetStateRef = useRef<Set<number>>(new Set(initialLive));
+  const resetOffsetRef = useRef<{ x: number; y: number }>({
+    x: patternCenterX - initialCols / 2,
+    y: patternCenterY - initialRows / 2,
+  });
 
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -244,22 +268,18 @@ export default function GameOfLifeInfinite(): ReactElement {
       const neighbourCounter = new Map<number, number>();
 
       // Calculate viewport bounds for culling
-      const currentOffset = offsetRef.current;
-      const currentDimensions = dimensionsRef.current;
-      const minX = Math.floor(currentOffset.x) - CULLING_MARGIN;
+      const currentViewport = viewportRef.current;
+      const minX = Math.floor(currentViewport.offset.x) - CULLING_MARGIN;
       const maxX =
-        Math.floor(currentOffset.x) + currentDimensions.cols + CULLING_MARGIN;
-      const minY = Math.floor(currentOffset.y) - CULLING_MARGIN;
+        Math.floor(currentViewport.offset.x) + currentViewport.dimensions.cols + CULLING_MARGIN;
+      const minY = Math.floor(currentViewport.offset.y) - CULLING_MARGIN;
       const maxY =
-        Math.floor(currentOffset.y) + currentDimensions.rows + CULLING_MARGIN;
+        Math.floor(currentViewport.offset.y) + currentViewport.dimensions.rows + CULLING_MARGIN;
 
+      // Count neighbors from ALL live cells (including those outside bounds)
+      // This ensures cells near the boundary have accurate neighbor counts
       liveCellsRef.current.forEach((cellKey) => {
         const [x, y] = parseKey(cellKey);
-
-        // Skip cells outside culling bounds
-        if (x < minX || x > maxX || y < minY || y > maxY) {
-          return;
-        }
 
         for (let dy = -1; dy <= 1; dy++) {
           for (let dx = -1; dx <= 1; dx++) {
@@ -273,13 +293,14 @@ export default function GameOfLifeInfinite(): ReactElement {
         }
       });
 
+      // Apply Game of Life rules, but only keep cells within culling bounds
       neighbourCounter.forEach((count, cellKey) => {
         const alive = liveCellsRef.current.has(cellKey);
         if (
           count === LIFE_NEIGHBORS_BIRTH ||
           (alive && (count === 2 || count === 3))
         ) {
-          // Double-check culling bounds for new cells
+          // Only add to next generation if within culling bounds
           const [x, y] = parseKey(cellKey);
           if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
             nextGen.add(cellKey);
@@ -312,6 +333,7 @@ export default function GameOfLifeInfinite(): ReactElement {
 
       liveCellsRef.current = nextGen;
       setGeneration((g) => g + 1);
+      setTickCount((t) => t + 1);
       lastTickTimeRef.current = timestamp;
     }
 
@@ -327,7 +349,91 @@ export default function GameOfLifeInfinite(): ReactElement {
     const k = makeKey(x, y);
     const set = liveCellsRef.current;
     set.has(k) ? set.delete(k) : set.add(k);
+
     setGeneration((g) => g + 1);
+  }, []);
+
+  const loadPattern = useCallback((pattern: PatternConfig | null): void => {
+    // Pause the simulation
+    runningRef.current = false;
+    setRunning(false);
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    // Reset tick counter
+    setTickCount(0);
+
+    // Load the pattern (or empty if null)
+    const newLive = pattern
+      ? new Set<number>(pattern.pattern.map(([x, y]) => makeKey(x, y)))
+      : new Set<number>();
+
+    // Update cells
+    liveCellsRef.current = newLive;
+
+    // Calculate center and update viewport
+    const currentViewport = viewportRef.current;
+    let newOffset = currentViewport.offset;
+
+    if (pattern) {
+      const patternBounds = {
+        minX: Math.min(...pattern.pattern.map(([x]) => x)),
+        maxX: Math.max(...pattern.pattern.map(([x]) => x)),
+        minY: Math.min(...pattern.pattern.map(([, y]) => y)),
+        maxY: Math.max(...pattern.pattern.map(([, y]) => y)),
+      };
+      const centerX = (patternBounds.minX + patternBounds.maxX) / 2;
+      const centerY = (patternBounds.minY + patternBounds.maxY) / 2;
+
+      newOffset = {
+        x: centerX - currentViewport.dimensions.cols / 2,
+        y: centerY - currentViewport.dimensions.rows / 2,
+      };
+
+      setViewport({
+        ...currentViewport,
+        offset: newOffset,
+      });
+    }
+
+    // Save as reset state
+    resetStateRef.current = new Set(newLive);
+    resetOffsetRef.current = newOffset;
+
+    setGeneration((g) => g + 1);
+  }, []);
+
+  const resetBoard = useCallback((): void => {
+    // Pause the simulation
+    runningRef.current = false;
+    setRunning(false);
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    // Reset tick counter
+    setTickCount(0);
+
+    // Load from saved reset state
+    liveCellsRef.current = new Set(resetStateRef.current);
+
+    // Restore saved viewport offset
+    const currentViewport = viewportRef.current;
+    setViewport({
+      ...currentViewport,
+      offset: resetOffsetRef.current,
+    });
+
+    setGeneration((g) => g + 1);
+
+    // Trigger animation
+    setResetClicked(true);
+    setTimeout(() => {
+      setResetClicked(false);
+    }, 900);
   }, []);
 
   const onToggleStart = useCallback((): void => {
@@ -336,6 +442,10 @@ export default function GameOfLifeInfinite(): ReactElement {
     setRunning(newRunning); // Update state immediately for UI
 
     if (newRunning) {
+      // Save current state as reset state when starting
+      resetStateRef.current = new Set(liveCellsRef.current);
+      resetOffsetRef.current = viewportRef.current.offset;
+
       lastTickTimeRef.current = performance.now();
       runTick();
     } else {
@@ -362,16 +472,28 @@ export default function GameOfLifeInfinite(): ReactElement {
     const handler = (e: KeyboardEvent): void => {
       switch (e.key) {
         case "ArrowDown":
-          setOffset((o) => ({ ...o, y: o.y - KEY_MOVE_AMOUNT }));
+          setViewport((v) => ({
+            ...v,
+            offset: { ...v.offset, y: v.offset.y - KEY_MOVE_AMOUNT },
+          }));
           break;
         case "ArrowUp":
-          setOffset((o) => ({ ...o, y: o.y + KEY_MOVE_AMOUNT }));
+          setViewport((v) => ({
+            ...v,
+            offset: { ...v.offset, y: v.offset.y + KEY_MOVE_AMOUNT },
+          }));
           break;
         case "ArrowRight":
-          setOffset((o) => ({ ...o, x: o.x - KEY_MOVE_AMOUNT }));
+          setViewport((v) => ({
+            ...v,
+            offset: { ...v.offset, x: v.offset.x - KEY_MOVE_AMOUNT },
+          }));
           break;
         case "ArrowLeft":
-          setOffset((o) => ({ ...o, x: o.x + KEY_MOVE_AMOUNT }));
+          setViewport((v) => ({
+            ...v,
+            offset: { ...v.offset, x: v.offset.x + KEY_MOVE_AMOUNT },
+          }));
           break;
         case "Enter":
         case " ":
@@ -400,15 +522,13 @@ export default function GameOfLifeInfinite(): ReactElement {
       const mouseXRatio = (e.clientX - rect.left) / rect.width;
       const mouseYRatio = (e.clientY - rect.top) / rect.height;
 
-      const currentZoom = zoomRef.current;
-      const currentOffset = offsetRef.current;
-      const currentDimensions = dimensionsRef.current;
+      const currentViewport = viewportRef.current;
 
       // Adjust zoom (scroll down = zoom in, scroll up = zoom out)
       const zoomDelta = e.deltaY > 0 ? WHEEL_ZOOM_DELTA : -WHEEL_ZOOM_DELTA;
       const newZoom = Math.max(
         MIN_ZOOM,
-        Math.min(MAX_ZOOM, currentZoom + zoomDelta)
+        Math.min(MAX_ZOOM, currentViewport.zoom + zoomDelta)
       );
 
       // Calculate new dimensions based on new zoom
@@ -417,13 +537,16 @@ export default function GameOfLifeInfinite(): ReactElement {
 
       // Adjust offset to keep the same visual point fixed
       const newOffset = {
-        x: currentOffset.x - mouseXRatio * (newCols - currentDimensions.cols),
-        y: currentOffset.y - mouseYRatio * (newRows - currentDimensions.rows),
+        x: currentViewport.offset.x - mouseXRatio * (newCols - currentViewport.dimensions.cols),
+        y: currentViewport.offset.y - mouseYRatio * (newRows - currentViewport.dimensions.rows),
       };
 
-      setOffset(newOffset);
-      setZoom(newZoom);
-      setDimensions({ rows: newRows, cols: newCols });
+      // Batched update to prevent race conditions
+      setViewport({
+        zoom: newZoom,
+        offset: newOffset,
+        dimensions: { rows: newRows, cols: newCols },
+      });
     };
     const board = document.querySelector(".gol-board") as HTMLElement | null;
     if (board) {
@@ -479,17 +602,20 @@ export default function GameOfLifeInfinite(): ReactElement {
       }
 
       if (hasDragged) {
-        const currentDimensions = dimensionsRef.current;
+        const currentViewport = viewportRef.current;
         const board = document.querySelector(".gol-board") as HTMLElement;
         const rect = board?.getBoundingClientRect();
         if (!rect) return;
 
-        const cellDx = (dx / rect.width) * currentDimensions.cols;
-        const cellDy = (dy / rect.height) * currentDimensions.rows;
+        const cellDx = (dx / rect.width) * currentViewport.dimensions.cols;
+        const cellDy = (dy / rect.height) * currentViewport.dimensions.rows;
 
-        setOffset((prev) => ({
-          x: prev.x - cellDx,
-          y: prev.y - cellDy,
+        setViewport((prev) => ({
+          ...prev,
+          offset: {
+            x: prev.offset.x - cellDx,
+            y: prev.offset.y - cellDy,
+          },
         }));
       }
 
@@ -572,9 +698,7 @@ export default function GameOfLifeInfinite(): ReactElement {
         const centerXRatio = (centerX - rect.left) / rect.width;
         const centerYRatio = (centerY - rect.top) / rect.height;
 
-        const currentZoom = zoomRef.current;
-        const currentOffset = offsetRef.current;
-        const currentDimensions = dimensionsRef.current;
+        const currentViewport = viewportRef.current;
 
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -585,7 +709,7 @@ export default function GameOfLifeInfinite(): ReactElement {
         const scale = 1 + (rawScale - 1) * PINCH_ZOOM_DAMPING;
         const newZoom = Math.max(
           MIN_ZOOM,
-          Math.min(MAX_ZOOM, currentZoom * scale)
+          Math.min(MAX_ZOOM, currentViewport.zoom * scale)
         );
 
         const newRows = Math.ceil(window.innerHeight / (CELL_SIZE * newZoom));
@@ -593,14 +717,17 @@ export default function GameOfLifeInfinite(): ReactElement {
 
         const newOffset = {
           x:
-            currentOffset.x - centerXRatio * (newCols - currentDimensions.cols),
+            currentViewport.offset.x - centerXRatio * (newCols - currentViewport.dimensions.cols),
           y:
-            currentOffset.y - centerYRatio * (newRows - currentDimensions.rows),
+            currentViewport.offset.y - centerYRatio * (newRows - currentViewport.dimensions.rows),
         };
 
-        setOffset(newOffset);
-        setZoom(newZoom);
-        setDimensions({ rows: newRows, cols: newCols });
+        // Batched update to prevent race conditions
+        setViewport({
+          zoom: newZoom,
+          offset: newOffset,
+          dimensions: { rows: newRows, cols: newCols },
+        });
       } else if (e.touches.length === 1 && isTouching) {
         const dx = e.touches[0].clientX - lastX;
         const dy = e.touches[0].clientY - lastY;
@@ -618,17 +745,20 @@ export default function GameOfLifeInfinite(): ReactElement {
 
         if (hasDragged) {
           e.preventDefault();
-          const currentDimensions = dimensionsRef.current;
+          const currentViewport = viewportRef.current;
           const board = document.querySelector(".gol-board") as HTMLElement;
           const rect = board?.getBoundingClientRect();
           if (!rect) return;
 
-          const cellDx = (dx / rect.width) * currentDimensions.cols;
-          const cellDy = (dy / rect.height) * currentDimensions.rows;
+          const cellDx = (dx / rect.width) * currentViewport.dimensions.cols;
+          const cellDy = (dy / rect.height) * currentViewport.dimensions.rows;
 
-          setOffset((prev) => ({
-            x: prev.x - cellDx,
-            y: prev.y - cellDy,
+          setViewport((prev) => ({
+            ...prev,
+            offset: {
+              x: prev.offset.x - cellDx,
+              y: prev.offset.y - cellDy,
+            },
           }));
         }
 
@@ -760,12 +890,43 @@ export default function GameOfLifeInfinite(): ReactElement {
 
       {/* CONTROLS */}
       <aside className="gol-controls">
+        {/* pattern selector */}
+        <div className="gol-control-group">
+          <label>
+            <div>pattern</div>
+            <select
+              className="gol-pattern-select"
+              value={currentPattern?.name ?? "empty"}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "empty") {
+                  setCurrentPattern(null);
+                  loadPattern(null);
+                } else {
+                  const pattern = PATTERNS.find((p) => p.name === value);
+                  if (pattern) {
+                    setCurrentPattern(pattern);
+                    loadPattern(pattern);
+                  }
+                }
+              }}
+            >
+              <option value="empty">Empty</option>
+              {PATTERNS.map((pattern) => (
+                <option key={pattern.name} value={pattern.name}>
+                  {pattern.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
         {/* start / pause */}
         <div
           className={`gol-start-button${running ? " running" : ""}`}
           onClick={onToggleStart}
         >
-          {running ? "pause" : "start"}
+          {running ? "⏸" : "▶"}
         </div>
 
         {/* speed selector */}
@@ -795,31 +956,19 @@ export default function GameOfLifeInfinite(): ReactElement {
           </label>
         </div>
 
-        {/* clear button */}
+        {/* reset button */}
         <div
-          className={`gol-start-button${clearClicked ? " clearing" : ""}`}
-          onClick={() => {
-            // Pause the simulation
-            runningRef.current = false;
-            setRunning(false); // Update state immediately for UI
-            if (animationFrameRef.current !== null) {
-              cancelAnimationFrame(animationFrameRef.current);
-              animationFrameRef.current = null;
-            }
-            // Clear all cells
-            liveCellsRef.current.clear();
-            setGeneration((g) => g + 1);
-
-            // Trigger transition
-            setClearClicked(true);
-            setTimeout(() => {
-              setClearClicked(false);
-            }, 900);
-          }}
+          className={`gol-start-button${resetClicked ? " clearing" : ""}`}
+          onClick={resetBoard}
         >
-          clear
+          ⟲
         </div>
       </aside>
+
+      {/* TICK COUNTER */}
+      <div className="gol-tick-counter">
+        {tickCount}
+      </div>
 
       {/* FULLSCREEN BUTTON */}
       <div

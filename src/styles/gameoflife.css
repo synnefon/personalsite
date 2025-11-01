@@ -22,6 +22,23 @@
   user-select: none;
 }
 
+/* Ensure background stays black in fullscreen */
+:root:fullscreen {
+  background: #000000 !important;
+}
+
+:root:-webkit-full-screen {
+  background: #000000 !important;
+}
+
+:root:-moz-full-screen {
+  background: #000000 !important;
+}
+
+:root:-ms-fullscreen {
+  background: #000000 !important;
+}
+
 
 /* ============================================
    GAME BOARD
@@ -68,17 +85,17 @@
   transition: background-color 0.1s ease;
 }
 
-.gol-board-cell:hover:not(.filled) {
-  background-color: rgba(217, 166, 14, 0.4);
+.gol-board:not(.running) .gol-board-cell:hover {
+  background-color: rgba(217, 166, 14, 0.4) !important;
 }
 
 .gol-board.dragging .gol-board-cell {
   cursor: url('../assets/cursors/Dark/Hands/Hand_Drag2.png'), auto;
 }
 
-.gol-board.dragging .gol-board-cell:hover:not(.filled),
-.gol-board.running .gol-board-cell:hover:not(.filled) {
-  background-color: transparent;
+.gol-board.dragging .gol-board-cell:hover,
+.gol-board.running .gol-board-cell:hover {
+  background-color: transparent !important;
 }
 
 .gol-board.running:not(.dragging) .gol-board-cell {
@@ -144,42 +161,70 @@
     color: var(--text-color);
     outline: none;
   }
-  
-  .gol-start-button {
-    padding: 0.75rem 2rem;
+
+  .gol-pattern-select {
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    color: var(--alt-text-color);
+    font: inherit;
+    text-align: center;
+    transition: all 0.2s;
     border: 2px solid var(--alt-text-color);
+    cursor: var(--pointer);
+  }
+
+  .gol-pattern-select:hover,
+  .gol-pattern-select:focus {
+    border-color: var(--text-color);
+    color: var(--text-color);
+    outline: none;
+  }
+
+  .gol-pattern-select option {
+    background: var(--bg-color);
+    color: var(--alt-text-color);
+  }
+
+  .gol-tick-counter {
+    position: fixed;
+    bottom: 2rem;
+    left: 2rem;
+    z-index: 10;
+    font-size: 3rem;
+    color: var(--text-color);
+    font-weight: bold;
+    user-select: none;
+  }
+
+  .gol-start-button {
+    padding: 0;
+    border: none;
     background-color: transparent;
     color: var(--alt-text-color);
-    font-size: 1rem;
+    font-size: 3rem;
+    line-height: 1;
     text-align: center;
-    align-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
     cursor: var(--pointer);
     white-space: nowrap;
-    transition: all 0.2s;
+    transition: color 0.2s;
   }
 
   .gol-start-button:hover {
-    border-color: var(--text-color);
     color: var(--text-color);
   }
 
-  .gol-start-button:active {
-    background-color: var(--text-color);
-    color: var(--bg-color);
-    border-color: var(--text-color);
-  }
-
   .gol-start-button.running {
-    background-color: var(--text-color);
-    color: var(--bg-color);
-    border-color: var(--text-color);
+    color: var(--text-color);
   }
 
   .gol-start-button.clearing {
-    background-color: var(--text-color);
-    color: var(--bg-color);
-    border-color: var(--text-color);
-    transition: all 0.2s 0.2s ease-out;
+    color: var(--text-color);
+    transition: color 0.2s 0.2s ease-out;
   }
 
 
@@ -209,13 +254,10 @@
 
 .gol-fullscreen-button:hover {
   color: var(--text-color);
-  border-color: var(--text-color);
 }
 
 .gol-fullscreen-button:active {
-  background-color: var(--text-color);
-  color: var(--bg-color);
-  border-color: var(--text-color);
+  color: var(--text-color);
 }
 
 
