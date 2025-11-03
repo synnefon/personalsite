@@ -212,6 +212,7 @@ export default function GameOfLifeInfinite(): ReactElement {
     set.has(k) ? set.delete(k) : set.add(k);
 
     setGeneration((g) => g + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadPattern = useCallback(
