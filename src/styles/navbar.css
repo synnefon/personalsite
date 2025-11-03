@@ -92,13 +92,13 @@
 }
 
 .nav-icon.home::before {
-  content: "𐑣";
+  content: var(--shavian-ha);
 }
 .nav-icon.projects::before {
-  content: "𐑐";
+  content: var(--shavian-peep);
 }
 .nav-icon.about::before {
-  content: "𐑩";
+  content: var(--shavian-ado);
 }
 
 .nav-icon.home::before,
