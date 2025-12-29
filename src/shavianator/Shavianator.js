@@ -1,12 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import "../styles/shavianator.css";
-import { getArpabetFromShavian, tokenizeText } from "./shavianating";
+import { getArpabetFromShavian, tokenizeText, TokenType } from "./shavianating";
 
 export default function Shavianator() {
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
   const [hovered, setHovered] = useState(null);
-  const [tooltip, setTooltip] = useState({ show: false, word: "", arpabet: "", x: 0, y: 0 });
+  const [tooltip, setTooltip] = useState({
+    show: false,
+    word: "",
+    arpabet: "",
+    x: 0,
+    y: 0,
+  });
   const textareaRef = useRef();
   const inputOverlayRef = useRef();
   const outputRef = useRef();
@@ -16,16 +22,23 @@ export default function Shavianator() {
 
   // Sync scroll positions
   useEffect(() => {
-    const textarea = textareaRef.current, overlay = inputOverlayRef.current, output = outputRef.current;
+    const textarea = textareaRef.current,
+      overlay = inputOverlayRef.current,
+      output = outputRef.current;
     if (!textarea || !overlay || !output) return;
 
     const tScroll = () => {
       overlay.scrollTop = textarea.scrollTop;
       overlay.scrollLeft = textarea.scrollLeft;
-      output.scrollTop = (textarea.scrollTop / (textarea.scrollHeight - textarea.clientHeight || 1)) * (output.scrollHeight - output.clientHeight);
+      output.scrollTop =
+        (textarea.scrollTop /
+          (textarea.scrollHeight - textarea.clientHeight || 1)) *
+        (output.scrollHeight - output.clientHeight);
     };
     const oScroll = () => {
-      textarea.scrollTop = (output.scrollTop / (output.scrollHeight - output.clientHeight || 1)) * (textarea.scrollHeight - textarea.clientHeight);
+      textarea.scrollTop =
+        (output.scrollTop / (output.scrollHeight - output.clientHeight || 1)) *
+        (textarea.scrollHeight - textarea.clientHeight);
       overlay.scrollTop = textarea.scrollTop;
     };
     textarea.addEventListener("scroll", tScroll);
@@ -38,7 +51,7 @@ export default function Shavianator() {
 
   // Copy Shavian output
   const handleCopy = () => {
-    navigator.clipboard.writeText(tokens.map(t => t.shavian).join(""));
+    navigator.clipboard.writeText(tokens.map((t) => t.shavian).join(""));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -50,12 +63,35 @@ export default function Shavianator() {
       let pos = 0;
       for (const t of tokens) {
         if (t === token) break;
-        pos += t.type === "newline" ? 1 : t.english.length;
+        pos += t.type === TokenType.NEWLINE ? 1 : t.english.length;
       }
       textareaRef.current.setSelectionRange(pos, pos);
       e.stopPropagation();
     }
   };
+
+  // Adjust tooltip position after render to prevent overflow
+  useEffect(() => {
+    if (tooltip.show && tooltipRef.current) {
+      const tooltipRect = tooltipRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      let x = tooltip.x;
+
+      // Check if tooltip overflows and adjust
+      if (tooltipRect.left < 10) {
+        // Overflowing left
+        x = x + (10 - tooltipRect.left);
+      } else if (tooltipRect.right > viewportWidth - 10) {
+        // Overflowing right
+        x = x - (tooltipRect.right - (viewportWidth - 10));
+      }
+
+      // Update position if it changed
+      if (x !== tooltip.x) {
+        setTooltip(prev => ({ ...prev, x }));
+      }
+    }
+  }, [tooltip.show, tooltip.x]);
 
   // Tooltip logic
   const handleMouseEnter = (e, shavianWord, idx, isShavian) => {
@@ -63,7 +99,9 @@ export default function Shavianator() {
     const arpabet = getArpabetFromShavian(shavianWord);
 
     // Only show tooltip if there's actual content
-    const shavianChars = [...shavianWord.replace(/[^\u{10450}-\u{1047F}]/gu, "")];
+    const shavianChars = [
+      ...shavianWord.replace(/[^\u{10450}-\u{1047F}]/gu, ""),
+    ];
     const phonemes = arpabet.split(" ").filter(Boolean);
     if (shavianChars.length === 0 || phonemes.length === 0) return;
 
@@ -71,10 +109,21 @@ export default function Shavianator() {
     if (isShavian) {
       rect = e.target.getBoundingClientRect();
     } else {
-      const el = document.querySelector(`.shavianator-output .shavian-word[data-word-index="${idx}"]`);
+      const el = document.querySelector(
+        `.shavianator-output .shavian-word[data-word-index="${idx}"]`
+      );
       rect = el?.getBoundingClientRect();
     }
-    if (rect) setTooltip({ show: true, word: shavianWord, arpabet, x: rect.left + rect.width / 2, y: rect.top });
+
+    if (rect) {
+      setTooltip({
+        show: true,
+        word: shavianWord,
+        arpabet,
+        x: rect.left + rect.width / 2,
+        y: rect.top,
+      });
+    }
   };
   const handleMouseLeave = () => {
     setHovered(null);
@@ -85,18 +134,22 @@ export default function Shavianator() {
   const renderTokens = (isShavian = false) =>
     tokens.map((token, i) => {
       const text = isShavian ? token.shavian : token.english;
-      if (token.type === "newline") return <br key={i} />;
-      if (token.type === "whitespace" || token.type === "punctuation")
+      if (token.type === TokenType.NEWLINE) return <br key={i} />;
+      if (token.type === TokenType.WHITESPACE || token.type === TokenType.PUNCTUATION)
         return <span key={i}>{text}</span>;
-      if (token.type === "word")
+      if (token.type === TokenType.WORD)
         return (
           <span
             key={i}
-            className={`shavian-word${hovered === token.index ? " highlighted" : ""}`}
+            className={`shavian-word${
+              hovered === token.index ? " highlighted" : ""
+            }`}
             data-word-index={token.index}
-            onMouseEnter={e => handleMouseEnter(e, token.shavian, token.index, isShavian)}
+            onMouseEnter={(e) =>
+              handleMouseEnter(e, token.shavian, token.index, isShavian)
+            }
             onMouseLeave={handleMouseLeave}
-            onClick={e => !isShavian && handleWordClick(e, token)}
+            onClick={(e) => !isShavian && handleWordClick(e, token)}
           >
             {text}
           </span>
@@ -112,12 +165,16 @@ export default function Shavianator() {
       <div className="shavian-tooltip-grid">
         <div className="shavian-tooltip-row shavian-tooltip-word">
           {shavianChars.map((char, i) => (
-            <div key={`c${i}`} className="shavian-tooltip-cell">{char}</div>
+            <div key={`c${i}`} className="shavian-tooltip-cell">
+              {char}
+            </div>
           ))}
         </div>
         <div className="shavian-tooltip-row shavian-tooltip-pronunciation">
           {phonemes.map((p, i) => (
-            <div key={`p${i}`} className="shavian-tooltip-cell">{p}</div>
+            <div key={`p${i}`} className="shavian-tooltip-cell">
+              {p}
+            </div>
           ))}
         </div>
       </div>
@@ -128,6 +185,27 @@ export default function Shavianator() {
     <div id="app-base" className="shavianator-colors">
       <div className="content-wrapper shavianator-colors">
         <h2 className="title shavianator-colors">shavianator</h2>
+        <p className="shavianator-description">
+          a tool for transliterating english to{" "}
+          <a
+            href="https://en.wikipedia.org/wiki/Shavian_alphabet"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            shavian
+          </a>
+          .
+          <br />
+          𐑱 𐑑𐑵𐑤 𐑓𐑸 𐑑𐑮𐑨𐑯𐑟𐑤𐑦𐑑𐑩𐑮𐑱𐑑𐑦𐑙 𐑦𐑙𐑜𐑤𐑦𐑖 𐑑{" "}
+          <a
+            href="https://en.wikipedia.org/wiki/Shavian_alphabet"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            𐑖𐑱𐑝𐑰𐑩𐑯
+          </a>
+          .
+        </p>
         <div className="shavianator-layout">
           <div className="shavianator-input-container">
             <label className="shavianator-label">english</label>
@@ -137,7 +215,7 @@ export default function Shavianator() {
                 className="shavianator-input shavianator-textarea"
                 placeholder="Enter text to shavianate"
                 value={text}
-                onChange={e => setText(e.target.value)}
+                onChange={(e) => setText(e.target.value)}
                 rows={5}
               />
               <div
@@ -156,7 +234,14 @@ export default function Shavianator() {
                 onClick={handleCopy}
                 title={copied ? "Copied!" : "Copy to clipboard"}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   {copied ? (
                     <path d="M20 6L9 17l-5-5" />
                   ) : (

@@ -21,7 +21,16 @@ body:has(#app-base.shavianator-colors) {
 
 .shavianator-colors .title {
   color: var(--shavianator-text-accent);
+  /* margin-bottom: 0.5em; */
+}
+
+.shavianator-description {
   margin-bottom: 2em;
+}
+
+.shavianator-description a {
+  color: var(--shavianator-text-accent);
+  text-decoration: none;
 }
 
 .shavianator-layout {
