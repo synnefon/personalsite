@@ -121,39 +121,39 @@ const RABBITS: Pattern = parsePattern(`
  */
 export const PATTERNS: PatternConfig[] = [
   {
-    name: "Hollow Squares",
+    name: "hollow squares",
     pattern: HOLLOW_SQUARES,
   },
   {
-    name: "Gosper Glider Gun",
+    name: "gosper glider gun",
     pattern: GLIDER_GUN,
   },
   {
-    name: "Acorn",
+    name: "acorn",
     pattern: ACORN,
   },
   {
-    name: "R-pentomino",
+    name: "r-pentomino",
     pattern: R_PENTOMINO,
   },
   {
-    name: "Lightweight Spaceship",
+    name: "lightweight spaceship",
     pattern: LWSS,
   },
   {
-    name: "Pentadecathlon",
+    name: "pentadecathlon",
     pattern: PENTADECATHLON,
   },
   {
-    name: "Rabbits",
+    name: "rabbits",
     pattern: RABBITS,
   },
   {
-    name: "One Two Three",
+    name: "one two three",
     pattern: ONE_TWO_THREE,
   },
     {
-      name: "Table",
+      name: "table",
       pattern: TABLE,
     },
 ];

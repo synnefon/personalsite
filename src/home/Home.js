@@ -39,12 +39,10 @@ export default function Home() {
 
   const descriptors = [
     "software engineer",
-    "thing maker",
+    "amateur wood worker",
     "dungeon master",
     "rock climber",
     "cat dad",
-    "amateur wood worker",
-    "crepuscular code creator",
     "3d printer mechanic",
     "bike lane survivor",
     ["mildly dysleixc", "mildly dyslexic"],
@@ -52,11 +50,9 @@ export default function Home() {
     "part-time audiophile",
     "full-time wikipedia spelunker",
     "human band name generator",
-    "secretly a gnome",
     "lava lamp enthusiast",
-    "map fanatic",
-    "habitual oatmeal eater",
     "lower case advocate",
+    "secretly a gnome",
     "the ignoble",
     "bug fact purveyor",
     "list writer",
@@ -66,6 +62,7 @@ export default function Home() {
     "...pls look at projects",
     "...or just click on any link",
     "is running out of autobiographical subheadings",
+    "   ",
   ];
 
   useEffect(() => {

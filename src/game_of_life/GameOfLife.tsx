@@ -7,13 +7,13 @@ import React, {
   useState,
   type CSSProperties,
 } from "react";
+import { Cell } from "./Cell.tsx";
 import * as CONSTANTS from "./constants.ts";
 import * as patterns from "./patterns.ts";
 import type { Viewport } from "./types.ts";
 import { useGameLogic } from "./useGameLogic.ts";
 import { useInteractions } from "./useInteractions.ts";
 import { makeKey } from "./utils.ts";
-import { Cell } from "./Cell.tsx";
 
 import "../styles/gameoflife.css";
 
@@ -143,6 +143,10 @@ export default function GameOfLifeInfinite(): ReactElement {
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
+  // Info popup state
+  const [showInfo, setShowInfo] = useState<boolean>(false);
+  const wasRunningBeforeInfoRef = useRef<boolean>(false);
+
   // Handle fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = (): void => {
@@ -153,6 +157,23 @@ export default function GameOfLifeInfinite(): ReactElement {
     return () =>
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+
+  // Handle escape key to close info popup (prevent exiting fullscreen)
+  useEffect(() => {
+    const handleEscapeKey = (e: KeyboardEvent): void => {
+      if (e.key === "Escape" && showInfo) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        setShowInfo(false);
+      }
+    };
+
+    if (showInfo) {
+      document.addEventListener("keydown", handleEscapeKey, { capture: true });
+      return () => document.removeEventListener("keydown", handleEscapeKey, { capture: true });
+    }
+  }, [showInfo]);
 
   const toggleFullscreen = useCallback((): void => {
     if (!document.fullscreenElement) {
@@ -342,6 +363,31 @@ export default function GameOfLifeInfinite(): ReactElement {
   });
 
   /* --------------------------------------------------------------------- */
+  /*  Info Popup Pause/Resume Logic                                        */
+  /* --------------------------------------------------------------------- */
+  // Pause game when info popup opens, resume if it was running
+  useEffect(() => {
+    if (showInfo) {
+      // Opening popup - save running state and pause
+      wasRunningBeforeInfoRef.current = runningRef.current;
+      if (runningRef.current) {
+        runningRef.current = false;
+        setRunning(false);
+        if (animationFrameRef.current !== null) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = null;
+        }
+      }
+    } else if (wasRunningBeforeInfoRef.current) {
+      // Closing popup - resume if it was running before
+      runningRef.current = true;
+      setRunning(true);
+      lastTickTimeRef.current = performance.now();
+      runTick();
+    }
+  }, [showInfo, runningRef, animationFrameRef, lastTickTimeRef, runTick]);
+
+  /* --------------------------------------------------------------------- */
   /*  Render Board                                                         */
   /* --------------------------------------------------------------------- */
   const offsetX = Math.floor(offset.x);
@@ -407,9 +453,9 @@ export default function GameOfLifeInfinite(): ReactElement {
       {showSplash && (
         <div className={`gol-splash${fadingSplash ? " fading" : ""}`}>
           <div className="gol-splash-text">
-            Conway's
+            conway's
             <br />
-            Game of Life
+            game of life
           </div>
         </div>
       )}
@@ -467,7 +513,7 @@ export default function GameOfLifeInfinite(): ReactElement {
                 }
               }}
             >
-              <option value="empty">Empty</option>
+              <option value="empty">empty</option>
               {patterns.PATTERNS.map((pattern) => (
                 <option key={pattern.name} value={pattern.name}>
                   {pattern.name}
@@ -483,6 +529,12 @@ export default function GameOfLifeInfinite(): ReactElement {
           onClick={onToggleStart}
         >
           {running ? "⏸" : "▶"}
+        </div>
+        <div
+          className={`gol-start-button${resetClicked ? " clearing" : ""}`}
+          onClick={resetBoard}
+        >
+          ⟲
         </div>
 
         {/* speed selector */}
@@ -513,13 +565,62 @@ export default function GameOfLifeInfinite(): ReactElement {
         </div>
 
         {/* reset button */}
-        <div
-          className={`gol-start-button${resetClicked ? " clearing" : ""}`}
-          onClick={resetBoard}
-        >
-          ⟲
-        </div>
       </aside>
+
+      {/* INFO BUTTON */}
+      <div
+        className="gol-info-button"
+        onClick={() => setShowInfo(true)}
+        title="Rules"
+      >
+        ⚙
+      </div>
+
+      {/* INFO POPUP */}
+      {showInfo && (
+        <div className="gol-info-overlay" onClick={() => setShowInfo(false)}>
+          <div className="gol-info-popup" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="gol-info-close"
+              onClick={() => setShowInfo(false)}
+              title="Close (Esc)"
+            >
+              ✕
+            </button>
+            <h2>conway's game of life</h2>
+            <div className="gol-info-content">
+              <p>
+                a cellular automaton in which cells live, die, or reproduce
+                based on simple rules:
+              </p>
+              <ol>
+                <li>
+                  <strong>underpopulation:</strong> a live cell with fewer than
+                  2 live neighbors dies
+                </li>
+                <li>
+                  <strong>survival:</strong> a live cell with 2 or 3 live
+                  neighbors survives
+                </li>
+                <li>
+                  <strong>reproduction:</strong> a dead cell with exactly 3 live
+                  neighbors becomes alive
+                </li>
+                <li>
+                  <strong>overpopulation:</strong> a live cell with more than 3
+                  live neighbors dies
+                </li>
+              </ol>
+              <p className="gol-info-controls">
+                <strong>controls:</strong>
+                <br />
+                click cells to toggle • arrow keys to pan • scroll to zoom •
+                drag to pan • f for fullscreen
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TICK COUNTER */}
       <div className="gol-tick-counter">{tickCount}</div>

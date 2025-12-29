@@ -3,11 +3,11 @@
    ============================================ */
 
 .shufflenator {
-  --bg-color: #27667b !important;
-  --alt-bg-color: #a0c878;
-  --tertiary: #143d60;
-  --text-color: #ddeb9d !important;
-  --alt-text-color: var(--tertiary);
+  --bg-color: #FAF3E1 !important;
+  --alt-bg-color: #a5a091;
+  --tertiary: #FF6D1F;
+  --text-color: #222222 !important;
+  --alt-text-color: var(--bg-color);
 }
 
 
