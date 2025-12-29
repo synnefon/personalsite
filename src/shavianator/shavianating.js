@@ -14,6 +14,7 @@ const SHAVIAN_SHORTHAND = {
   "𐑝": "of",
   "𐑯": "and",
   "𐑑": "to",
+  "𐑩": "a",
 };
 
 // Shavian to ARPABET mapping
@@ -75,6 +76,13 @@ const SHAVIAN_TO_ARPABET = {
   "𐑿": "Y+UW", // Y + UW
 };
 
+const ARPABET_TO_SHAVIAN = Object.fromEntries(
+  Object.entries(SHAVIAN_TO_ARPABET).map(([shavian, arpabet]) => [
+    arpabet,
+    shavian,
+  ])
+);
+
 export const shavianateParagraphs = (paragraphs) =>
   paragraphs.split("\n").map(toShavian).join("\n");
 
@@ -95,67 +103,77 @@ const convertQuotesToGuillemets = (text, quoteState) =>
     return g;
   });
 
-const tokenizeLine = (line, tokens, quoteState) => {
-  line.split(/(\s+)/).forEach((part) => {
-    if (!part) return;
-    if (/^\s+$/.test(part)) {
-      tokens.push({
-        type: TokenType.WHITESPACE,
-        english: part,
-        shavian: part,
-        index: null,
-      });
-      return;
-    }
-    const m = part.match(/^([^\w]*)(\w[\w'\u2019'-]*\w|\w)([^\w]*)$/);
-    if (!m) {
-      // Pure punctuation - don't translate, just convert quotes
-      tokens.push({
-        type: TokenType.PUNCTUATION,
-        english: part,
-        shavian: convertQuotesToGuillemets(part, quoteState),
-        index: null,
-      });
-      return;
-    }
-    const [, pre, word, post] = m;
-    if (pre)
-      tokens.push({
-        type: TokenType.PUNCTUATION,
-        english: pre,
-        shavian: convertQuotesToGuillemets(pre, quoteState),
-        index: null,
-      });
-    const wordIndex = tokens.filter((t) => t.type === TokenType.WORD).length;
-    tokens.push({
-      type: TokenType.WORD,
-      english: word,
-      shavian: toShavian(word),
-      index: wordIndex,
-    });
-    if (post)
-      tokens.push({
-        type: TokenType.PUNCTUATION,
-        english: post,
-        shavian: convertQuotesToGuillemets(post, quoteState),
-        index: null,
-      });
-  });
+const makeWhitespaceToken = (str) => ({
+  type: TokenType.WHITESPACE,
+  english: str,
+  shavian: str,
+  index: null,
+});
+
+const makePunctuationToken = (str, quoteState) => ({
+  type: TokenType.PUNCTUATION,
+  english: str,
+  shavian: convertQuotesToGuillemets(str, quoteState),
+  index: null,
+});
+
+const makeWordToken = (word, wordCount) => ({
+  type: TokenType.WORD,
+  english: word,
+  shavian:
+    word.toLowerCase() === "a" ? ARPABET_TO_SHAVIAN["AX"] : toShavian(word),
+  index: wordCount,
+});
+
+// Helper: Tokenize a single segment, either whitespace, punctuation, or word (with pre/post)
+function tokenizeSegment(part, quoteState, wordCountRef) {
+  const tokens = [];
+  if (/^\s+$/.test(part)) {
+    tokens.push(makeWhitespaceToken(part));
+    return tokens;
+  }
+  const match = part.match(/^([^\w]*)(\w[\w'\u2019'-]*\w|\w)?([^\w]*)$/);
+  if (!match || !match[2]) {
+    tokens.push(makePunctuationToken(part, quoteState));
+    return tokens;
+  }
+  const [, pre, word, post] = match;
+  if (pre) tokens.push(makePunctuationToken(pre, quoteState));
+  tokens.push(makeWordToken(word, wordCountRef.value++));
+  if (post) tokens.push(makePunctuationToken(post, quoteState));
+  return tokens;
+}
+
+// Tokenize a single line into a flat array of tokens.
+const tokenizeLine = (line, quoteState, existingWordCount = 0) => {
+  const tokens = [];
+  let wordCountRef = { value: existingWordCount };
+  // split including whitespace as separate tokens
+  for (const part of line.split(/(\s+)/)) {
+    if (!part) continue;
+    const segTokens = tokenizeSegment(part, quoteState, wordCountRef);
+    tokens.push(...segTokens);
+  }
+  return { tokens, wordCount: wordCountRef.value };
 };
 
 export const tokenizeText = (text) => {
-  const tokens = [];
   const lines = text.split("\n");
   const quoteState = { isOpen: true };
+  let tokens = [];
+  let wordCount = 0;
   lines.forEach((line, i) => {
-    if (i > 0)
+    if (i > 0) {
       tokens.push({
         type: TokenType.NEWLINE,
         english: "\n",
         shavian: "\n",
         index: null,
       });
-    tokenizeLine(line, tokens, quoteState);
+    }
+    const result = tokenizeLine(line, quoteState, wordCount);
+    tokens = tokens.concat(result.tokens);
+    wordCount = result.wordCount;
   });
   return tokens;
 };
