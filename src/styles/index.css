@@ -10,6 +10,22 @@
   font-style: monospace;
 }
 
+@font-face {
+  font-family: "CafeMajestic";
+  src: local("CafeMajestic"),
+    url("../fonts/CafeMajestic/CafeMajestic-Regular.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "HenryHigginsSans";
+  src: local("HenryHigginsSans"),
+    url("../fonts/HenryHigginsSans-Regular.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 /* ============================================
    CSS VARIABLES
    ============================================ */

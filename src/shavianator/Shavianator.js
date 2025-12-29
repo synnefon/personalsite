@@ -132,7 +132,7 @@ export default function Shavianator() {
           key={i}
           className={`shavian-word${
             hovered === token.index ? " highlighted" : ""
-          }`}
+          } ${isShavian ? "shavian-text" : "english-text"}`}
           data-word-index={token.index}
           onMouseEnter={(e) =>
             handleMouseEnter(e, token.shavian, token.index, isShavian)
@@ -153,7 +153,7 @@ export default function Shavianator() {
       <div className="shavian-tooltip-grid">
         <div className="shavian-tooltip-row shavian-tooltip-word">
           {shavianChars.map((c, i) => (
-            <div key={i} className="shavian-tooltip-cell">
+            <div key={i} className="shavian-tooltip-cell shavian-text">
               {c}
             </div>
           ))}
@@ -185,15 +185,18 @@ export default function Shavianator() {
             </a>
             .
             <br />
-            𐑱 𐑑𐑵𐑤 𐑓𐑸 𐑑𐑮𐑨𐑯𐑟𐑤𐑦𐑑𐑩𐑮𐑱𐑑𐑦𐑙 𐑦𐑙𐑜𐑤𐑦𐑖 𐑑{" "}
+            <span className="shavian-text">
+              𐑱 𐑑𐑵𐑤 𐑓𐑸 𐑑𐑮𐑨𐑯𐑟𐑤𐑦𐑑𐑩𐑮𐑱𐑑𐑦𐑙 𐑦𐑙𐑜𐑤𐑦𐑖 𐑑{" "}
+            </span>
             <a
               href="https://en.wikipedia.org/wiki/Shavian_alphabet"
               target="_blank"
               rel="noopener noreferrer"
+              className="shavian-text"
             >
               𐑖𐑱𐑝𐑰𐑩𐑯
             </a>
-            .
+            <span className="shavian-text">.</span>
           </p>
         </div>
         <div className="shavianator-layout">
