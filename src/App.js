@@ -8,6 +8,7 @@ import Home from './home/Home';
 import MatchGame from './match_game/MatchGame';
 import Projects from './projects/Projects';
 import Wip from './projects/Wip';
+import Shavianator from './shavianator/Shavianator';
 import Shufflenator from './shufflenator/Shufflenator';
 import Snek from './snek/Snek';
 import Sudoku from './sudoku/Sudoku';
@@ -26,6 +27,7 @@ function App() {
         <Route path="/sudoku" element={<Sudoku />} />
         <Route path="/matchgame" element={<MatchGame />} />
         <Route path="/shufflenator" element={<Shufflenator />} />
+        <Route path="/shavianator" element={<Shavianator />} />
         <Route path="/game-of-life" element={<GameOfLife />} />
         <Route path="/4096" element={<Game4096 />} />
         <Route path="toolbox" element={<Toolbox />} />

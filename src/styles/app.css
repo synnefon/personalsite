@@ -162,6 +162,7 @@ a.link:hover > .tooltip-text {
 .link[href*="img-butler"]::before { content: var(--shavian-if); }
 .link[href*="spagett"]::before { content: var(--shavian-so); }
 .link[href*="shufflenator"]::before { content: var(--shavian-sure); }
+.link[href*="shavianator"]::before { content: var(--shavian-sure); }
 .link[href*="game-of-life"]::before { content: var(--shavian-gag); }
 
 /* Hidden/WIP links */

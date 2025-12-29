@@ -106,6 +106,16 @@ export default function Projects() {
               optimal shuffle pattern calculator
             </p>
           </Link>
+          <Link
+            className="link proj-colors"
+            to="/shavianator"
+            rel="noreferrer"
+          >
+            <p className="link-text proj-colors">shavianator</p>
+            <p className="tooltip-text proj-colors">
+              shavian alphabet converter
+            </p>
+          </Link>
           {/* <Link className="link proj-colors" to="/wip" rel="noreferrer">
             <p className="link-text proj-colors">rpg tabletop</p>
             <p className="tooltip-text proj-colors">real-time updating battle maps, world maps, and images</p>

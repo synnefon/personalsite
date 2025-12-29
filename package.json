@@ -5,6 +5,7 @@
   "homepage": "https://connorhopkins.dev",
   "dependencies": {
     "chroma-js": "^3.1.2",
+    "cmu-pronouncing-dictionary": "^3.0.0",
     "cra-template": "1.2.0",
     "crypto": "^1.0.1",
     "firebase": "^11.3.1",
