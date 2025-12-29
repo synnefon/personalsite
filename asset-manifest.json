@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/static/css/main.d3756eca.css",
-    "main.js": "/static/js/main.38e0432b.js",
+    "main.css": "/static/css/main.966936fc.css",
+    "main.js": "/static/js/main.a2fd62bd.js",
     "static/media/the_gathering.mp3": "/static/media/the_gathering.2d97c4755109d9278151.mp3",
     "static/media/self.gif": "/static/media/self.ad1e6f139233db344487.gif",
     "static/media/HenryHigginsSans-Regular.otf": "/static/media/HenryHigginsSans-Regular.a9487a236b0536c6f834.otf",
@@ -37,11 +37,11 @@
     "static/media/redo_focus.svg": "/static/media/redo_focus.29d549ae26b9af2e7d38.svg",
     "static/media/timer.svg": "/static/media/timer.4ee7cd0799986c827fe0.svg",
     "static/media/timer_focus.svg": "/static/media/timer_focus.d078fce01e3307044491.svg",
-    "main.d3756eca.css.map": "/static/css/main.d3756eca.css.map",
-    "main.38e0432b.js.map": "/static/js/main.38e0432b.js.map"
+    "main.966936fc.css.map": "/static/css/main.966936fc.css.map",
+    "main.a2fd62bd.js.map": "/static/js/main.a2fd62bd.js.map"
   },
   "entrypoints": [
-    "static/css/main.d3756eca.css",
-    "static/js/main.38e0432b.js"
+    "static/css/main.966936fc.css",
+    "static/js/main.a2fd62bd.js"
   ]
 }
