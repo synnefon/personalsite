@@ -9,18 +9,25 @@ export default function Shavianator() {
   const handleSentenceChange = (e) => {
     setSentence(e.target.value);
   };
+
+  const words = shavianateSentence(sentence);
+
   return (
     <div id="app-base" className="shavianator-colors">
       <div className="content-wrapper shavianator-colors">
         <h2 className="title shavianator-colors">shavianator</h2>
-        <input
-          type="text"
+        <textarea
           className="shavianator-input"
-          placeholder="Enter a sentence to shavianate"
+          placeholder="Enter text to shavianate"
           value={sentence}
           onChange={handleSentenceChange}
+          rows={5}
         />
-        <p className="shavianator-output">{shavianateSentence(sentence)}</p>
+        <div className="shavianator-output">
+          {words.map((word, index) => (
+            <span key={index}>{word.text}</span>
+          ))}
+        </div>
       </div>
     </div>
   );

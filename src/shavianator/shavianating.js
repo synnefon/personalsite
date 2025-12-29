@@ -1,6 +1,5 @@
 import { dictionary as CMU_DICTIONARY } from "cmu-pronouncing-dictionary";
 
-// These words are conventionally spelled with one letter in Shavian: https://www.shavian.info/spelling/
 const DEFAULT_WORD_OVERRIDES = {
   the: "𐑞",
   of: "𐑝",
@@ -76,14 +75,16 @@ function getArpabetLetters(arpabetSpelling) {
 }
 
 const shavianateWord = (word) => {
-  if (!CMU_DICTIONARY[word]) {
-    return "???";
+  const cleanWord = word.toLowerCase();
+
+  if (!CMU_DICTIONARY[cleanWord]) {
+    return { text: "_", recognized: false };
   }
-  if (DEFAULT_WORD_OVERRIDES[word]) {
-    return DEFAULT_WORD_OVERRIDES[word];
+  if (DEFAULT_WORD_OVERRIDES[cleanWord]) {
+    return { text: DEFAULT_WORD_OVERRIDES[cleanWord], recognized: true };
   }
 
-  let letters = getArpabetLetters(CMU_DICTIONARY[word]).map(
+  let letters = getArpabetLetters(CMU_DICTIONARY[cleanWord]).map(
     (phoneme) => APRABET_TO_SHAVIAN[phoneme]
   );
 
@@ -97,13 +98,21 @@ const shavianateWord = (word) => {
     }
   }
 
-  return letters.join("");
+  return { text: letters.join(""), recognized: true };
 };
 
 export const shavianateSentence = (sentence) => {
-  const words = splitOnSpace(sentence)
-    .map((word) => word.toLowerCase())
-    .map((word) => shavianateWord(word));
+  const tokens = sentence.split(/(\s+)/).filter((token) => token.length > 0);
 
-  return words.join(" ");
+  return tokens.map((token) => {
+    if (/^\s+$/.test(token))
+      return { text: token, recognized: true, isWhitespace: true };
+
+    const match = token.match(/^([^\w]*)(\w+)([^\w]*)$/);
+    if (!match) return { text: token, recognized: true, isPunctuation: true };
+
+    const [, lead, word, trail] = match;
+    const { text, recognized } = shavianateWord(word);
+    return { text: lead + text + trail, recognized };
+  });
 };

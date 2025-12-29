@@ -1,12 +1,12 @@
 :root {
-  --shavianator-bg: #4E61D3;
-  --shavianator-accent: #FFE52A;
-  --shavianator-accent-rgb: white;
+  --shavianator-bg: #000000;
+  --shavianator-accent-bg: #4A70A9;
+  --shavianator-text: #E3E3E3;
 }
 
 #app-base.shavianator-colors {
   background-color: var(--shavianator-bg);
-  color: var(--shavianator-accent);
+  color: var(--shavianator-text);
 }
 
 .shavianator-colors .content-wrapper {
@@ -14,7 +14,7 @@
 }
 
 .shavianator-colors .title {
-  color: var(--shavianator-accent);
+  color: var(--shavianator-text);
   margin-bottom: 2em;
 }
 
@@ -22,29 +22,32 @@
   width: 100%;
   padding: 1em;
   font-size: 1.2em;
-  background-color: rgba(var(--shavianator-accent-rgb), 0.1);
-  border: 2px solid var(--shavianator-accent);
+  background-color: var(--shavianator-accent-bg);
+  border: 2px solid var(--shavianator-text);
   border-radius: 8px;
-  color: var(--shavianator-accent);
+  color: var(--shavianator-text);
   margin-bottom: 1.5em;
   font-family: inherit;
+  resize: vertical;
+  min-height: 150px;
 }
 
 .shavianator-input::placeholder {
-  color: rgba(var(--shavianator-accent-rgb), 0.5);
+  color: var(--shavianator-accent-bg);
 }
 
 .shavianator-input:focus {
   outline: none;
-  border-color: var(--shavianator-accent);
-  background-color: rgba(var(--shavianator-accent-rgb), 0.15);
+  border-color: var(--shavianator-text);
+  background-color: var(--shavianator-accent-bg);
 }
 
 .shavianator-output {
-  font-size: 2em;
+  font-size: 1.2em;
   line-height: 1.6;
   word-wrap: break-word;
-  color: var(--shavianator-accent);
+  color: var(--shavianator-text);
   margin-top: 1em;
   min-height: 3em;
+  white-space: pre-wrap;
 }
