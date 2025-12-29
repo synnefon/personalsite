@@ -1,8 +1,8 @@
 :root {
   --shavianator-bg: #f4efe9;
   --shavianator-accent-bg: #eee5da;
-  --shavianator-text: #7f5539;
-  --shavianator-text-accent: black;
+  --shavianator-text: black;
+  --shavianator-text-accent: #0077b6;
 }
 
 #app-base.shavianator-colors {

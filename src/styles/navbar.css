@@ -13,6 +13,7 @@
   background-color: transparent;
   font-size: calc(16px + 1vmin);
   user-select: none;
+  pointer-events: none;
 }
 
 .hamburger-react {
@@ -20,6 +21,7 @@
   z-index: 999;
   background-color: transparent;
   color: var(--text-color);
+  pointer-events: auto;
 }
 
 /* ============================================
