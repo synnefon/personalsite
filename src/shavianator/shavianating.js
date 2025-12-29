@@ -1,8 +1,18 @@
 const toShavian = require("to-shavian");
 
+// Shavian shorthand words (single character representations)
+const SHAVIAN_SHORTHAND = {
+  "𐑞": "the",
+  "𐑝": "of",
+  "𐑯": "and",
+  "𐑑": "to",
+};
+
 // Shavian to ARPABET mapping
 const SHAVIAN_TO_ARPABET = {
-  "·": "", // shavian-only punctuation
+  // Shavian-Only Punctuation
+  "·": "",
+  
   // Consonants
   "𐑐": "P",
   "𐑚": "B",
@@ -65,6 +75,17 @@ export const shavianateParagraphs = (paragraphs) => {
 };
 
 export const getArpabetFromShavian = (word) => {
-  const characters = [...word];
-  return characters.map((c) => SHAVIAN_TO_ARPABET[c] ?? c).join(" ");
+  // Strip punctuation from the word to check if it's shorthand
+  const cleanWord = word.replace(/[^\u{10450}-\u{1047F}]/gu, "");
+
+  // Map each character to ARPABET
+  const characters = [...cleanWord];
+  const arpabet = characters.map((c) => SHAVIAN_TO_ARPABET[c] ?? c).join(" ");
+
+  // Check if it's a single-character shorthand word and add that info
+  if (characters.length === 1 && SHAVIAN_SHORTHAND[cleanWord]) {
+    return `${arpabet} (${SHAVIAN_SHORTHAND[cleanWord]})`;
+  }
+
+  return arpabet;
 };

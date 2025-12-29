@@ -87,6 +87,28 @@ export default function Shavianator() {
     };
   }, []);
 
+  const handleWordClick = (e, token, isShavian) => {
+    if (!isShavian && textareaRef.current) {
+      // Clicked on English word - focus textarea and position cursor at start of word
+      const textarea = textareaRef.current;
+      textarea.focus();
+
+      // Find the position of this word in the text
+      let pos = 0;
+      for (const t of tokens) {
+        if (t === token) break;
+        if (t.type === 'newline') {
+          pos += 1;
+        } else {
+          pos += t.english.length;
+        }
+      }
+
+      textarea.setSelectionRange(pos, pos);
+      e.stopPropagation();
+    }
+  };
+
   const handleWordMouseEnter = (e, word, wordIndex, isShavian) => {
     setHoveredWordIndex(wordIndex);
 
@@ -145,6 +167,7 @@ export default function Shavianator() {
             data-word-index={token.index}
             onMouseEnter={(e) => handleWordMouseEnter(e, token.shavian, token.index, isShavian)}
             onMouseLeave={handleWordMouseLeave}
+            onClick={(e) => handleWordClick(e, token, isShavian)}
           >
             {text}
           </span>

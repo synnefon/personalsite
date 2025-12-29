@@ -2,7 +2,7 @@
   --shavianator-bg: #f4efe9;
   --shavianator-accent-bg: #eee5da;
   --shavianator-text: #7f5539;
-  --shavianator-text-accent: #7e8d6c;
+  --shavianator-text-accent: black;
 }
 
 #app-base.shavianator-colors {
@@ -46,7 +46,7 @@
 
 .shavianator-input {
   width: 100%;
-  padding: 1em;
+  padding: 0.5em;
   font-size: 1.2em;
   background-color: var(--shavianator-accent-bg);
   border: 2px solid var(--shavianator-text);
@@ -66,6 +66,7 @@
   color: transparent;
   caret-color: var(--shavianator-text);
   z-index: 1;
+  pointer-events: auto;
 }
 
 .shavianator-input-overlay {
@@ -94,7 +95,7 @@
 .shavianator-output {
   position: relative;
   width: 100%;
-  padding: 1em;
+  padding: 0.5em;
   font-size: 1.2em;
   background-color: var(--shavianator-accent-bg);
   border: 2px solid var(--shavianator-text);
@@ -110,10 +111,13 @@
 }
 
 .copy-button {
-  position: absolute;
-  top: 0.5em;
-  right: 0.5em;
-  background-color: var(--shavianator-bg);
+  position: sticky;
+  top: 0em;
+  right: 0em;
+  height: fit-content;
+  width: fit-content;
+  float: right;
+  background-color: transparent;
   border: none;
   color: var(--shavianator-text);
   padding: 0.5em;
@@ -127,7 +131,7 @@
 }
 
 .copy-button:hover {
-  background-color: var(--shavianator-bg);
+  background-color: transparent;
   color: var(--shavianator-text-accent);
   border: none;
   transition: all 0.3s ease;
