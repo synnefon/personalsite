@@ -12,7 +12,7 @@ const SHAVIAN_SHORTHAND = {
 const SHAVIAN_TO_ARPABET = {
   // Shavian-Only Punctuation
   "·": "",
-  
+
   // Consonants
   "𐑐": "P",
   "𐑚": "B",
@@ -88,4 +88,81 @@ export const getArpabetFromShavian = (word) => {
   }
 
   return arpabet;
+};
+
+// Process line parts into tokens
+const tokenizeLine = (line, tokens) => {
+  line.split(/(\s+)/).forEach((part) => {
+    if (!part) return;
+
+    if (/^\s+$/.test(part)) {
+      tokens.push({
+        type: "whitespace",
+        english: part,
+        shavian: part,
+        index: null,
+      });
+      return;
+    }
+
+    const match = part.match(/^([^\w]*)(\w+)([^\w]*)$/);
+    if (!match) {
+      // Pure punctuation - no word part
+      tokens.push({
+        type: "punctuation",
+        english: part,
+        shavian: toShavian(part),
+        index: null,
+      });
+      return;
+    }
+
+    const [, leadPunct, word, trailPunct] = match;
+    if (leadPunct)
+      tokens.push({
+        type: "punctuation",
+        english: leadPunct,
+        shavian: toShavian(leadPunct),
+        index: null,
+      });
+
+    const wordIndex = tokens.filter((t) => t.type === "word").length;
+    tokens.push({
+      type: "word",
+      english: word,
+      shavian: toShavian(word),
+      index: wordIndex,
+    });
+
+    if (trailPunct)
+      tokens.push({
+        type: "punctuation",
+        english: trailPunct,
+        shavian: toShavian(trailPunct),
+        index: null,
+      });
+  });
+};
+
+// Parse text into tokens with word mappings
+export const tokenizeText = (text) => {
+  const tokens = [];
+  const lines = text.split("\n");
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex];
+
+    if (lineIndex > 0) {
+      tokens.push({
+        type: "newline",
+        english: "\n",
+        shavian: "\n",
+        index: null,
+      });
+    }
+
+    tokenizeLine(line, tokens);
+  }
+
+  return tokens;
 };

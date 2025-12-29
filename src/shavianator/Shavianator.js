@@ -1,183 +1,127 @@
 import React, { useEffect, useRef, useState } from "react";
 import "../styles/shavianator.css";
-import { getArpabetFromShavian } from "./shavianating";
-
-const toShavian = require("to-shavian");
+import { getArpabetFromShavian, tokenizeText } from "./shavianating";
 
 export default function Shavianator() {
-  const [paragraphs, setParagraphs] = useState("");
+  const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
-  const [hoveredWordIndex, setHoveredWordIndex] = useState(null);
-  const outputRef = useRef(null);
-  const inputDisplayRef = useRef(null);
-  const textareaRef = useRef(null);
-  const [tooltip, setTooltip] = useState({ show: false, shavianWord: "", text: "", x: 0, y: 0 });
-  const tooltipRef = useRef(null);
+  const [hovered, setHovered] = useState(null);
+  const [tooltip, setTooltip] = useState({ show: false, word: "", arpabet: "", x: 0, y: 0 });
+  const textareaRef = useRef();
+  const inputOverlayRef = useRef();
+  const outputRef = useRef();
+  const tooltipRef = useRef();
 
-  const handleChange = (e) => setParagraphs(e.target.value);
+  const tokens = tokenizeText(text);
 
-  // Parse text into tokens with word mappings
-  const parseTextIntoTokens = (text) => {
-    const tokens = [];
-    const lines = text.split('\n');
+  // Sync scroll positions
+  useEffect(() => {
+    const textarea = textareaRef.current, overlay = inputOverlayRef.current, output = outputRef.current;
+    if (!textarea || !overlay || !output) return;
 
-    lines.forEach((line, lineIndex) => {
-      if (lineIndex > 0) {
-        tokens.push({ type: 'newline', english: '\n', shavian: '\n', index: null });
-      }
+    const tScroll = () => {
+      overlay.scrollTop = textarea.scrollTop;
+      overlay.scrollLeft = textarea.scrollLeft;
+      output.scrollTop = (textarea.scrollTop / (textarea.scrollHeight - textarea.clientHeight || 1)) * (output.scrollHeight - output.clientHeight);
+    };
+    const oScroll = () => {
+      textarea.scrollTop = (output.scrollTop / (output.scrollHeight - output.clientHeight || 1)) * (textarea.scrollHeight - textarea.clientHeight);
+      overlay.scrollTop = textarea.scrollTop;
+    };
+    textarea.addEventListener("scroll", tScroll);
+    output.addEventListener("scroll", oScroll);
+    return () => {
+      textarea.removeEventListener("scroll", tScroll);
+      output.removeEventListener("scroll", oScroll);
+    };
+  }, []);
 
-      const parts = line.split(/(\s+)/);
-      parts.forEach((part) => {
-        if (!part) return;
-
-        if (/^\s+$/.test(part)) {
-          // Whitespace
-          tokens.push({ type: 'whitespace', english: part, shavian: part, index: null });
-        } else {
-          // Word (might include punctuation)
-          const wordIndex = tokens.filter(t => t.type === 'word').length;
-          const shavian = toShavian(part);
-          tokens.push({ type: 'word', english: part, shavian, index: wordIndex });
-        }
-      });
-    });
-
-    return tokens;
-  };
-
-  const tokens = parseTextIntoTokens(paragraphs);
-
+  // Copy Shavian output
   const handleCopy = () => {
-    const shavianText = tokens.map(t => t.shavian).join('');
-    navigator.clipboard.writeText(shavianText);
+    navigator.clipboard.writeText(tokens.map(t => t.shavian).join(""));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Sync the scroll positions
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    const inputDisplay = inputDisplayRef.current;
-    const output = outputRef.current;
-
-    if (!textarea || !inputDisplay || !output) return;
-
-    const handleTextareaScroll = () => {
-      inputDisplay.scrollTop = textarea.scrollTop;
-      inputDisplay.scrollLeft = textarea.scrollLeft;
-
-      const scrollPercentage =
-        textarea.scrollTop / (textarea.scrollHeight - textarea.clientHeight || 1);
-      output.scrollTop = scrollPercentage * (output.scrollHeight - output.clientHeight);
-    };
-
-    const handleOutputScroll = () => {
-      const scrollPercentage =
-        output.scrollTop / (output.scrollHeight - output.clientHeight || 1);
-      textarea.scrollTop = scrollPercentage * (textarea.scrollHeight - textarea.clientHeight);
-      inputDisplay.scrollTop = textarea.scrollTop;
-    };
-
-    textarea.addEventListener("scroll", handleTextareaScroll);
-    output.addEventListener("scroll", handleOutputScroll);
-
-    return () => {
-      textarea.removeEventListener("scroll", handleTextareaScroll);
-      output.removeEventListener("scroll", handleOutputScroll);
-    };
-  }, []);
-
-  const handleWordClick = (e, token, isShavian) => {
-    if (!isShavian && textareaRef.current) {
-      // Clicked on English word - focus textarea and position cursor at start of word
-      const textarea = textareaRef.current;
-      textarea.focus();
-
-      // Find the position of this word in the text
+  // Word highlight/cursor placing
+  const handleWordClick = (e, token) => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
       let pos = 0;
       for (const t of tokens) {
         if (t === token) break;
-        if (t.type === 'newline') {
-          pos += 1;
-        } else {
-          pos += t.english.length;
-        }
+        pos += t.type === "newline" ? 1 : t.english.length;
       }
-
-      textarea.setSelectionRange(pos, pos);
+      textareaRef.current.setSelectionRange(pos, pos);
       e.stopPropagation();
     }
   };
 
-  const handleWordMouseEnter = (e, word, wordIndex, isShavian) => {
-    setHoveredWordIndex(wordIndex);
+  // Tooltip logic
+  const handleMouseEnter = (e, shavianWord, idx, isShavian) => {
+    setHovered(idx);
+    const arpabet = getArpabetFromShavian(shavianWord);
 
-    const arpabet = getArpabetFromShavian(word);
+    // Only show tooltip if there's actual content
+    const shavianChars = [...shavianWord.replace(/[^\u{10450}-\u{1047F}]/gu, "")];
+    const phonemes = arpabet.split(" ").filter(Boolean);
+    if (shavianChars.length === 0 || phonemes.length === 0) return;
 
+    let rect;
     if (isShavian) {
-      // Hovering over Shavian word - use its position
-      const rect = e.target.getBoundingClientRect();
-      setTooltip({
-        show: true,
-        shavianWord: word,
-        text: arpabet,
-        x: rect.left + rect.width / 2,
-        y: rect.top,
-      });
+      rect = e.target.getBoundingClientRect();
     } else {
-      // Hovering over English word - find corresponding Shavian word
-      const shavianWord = document.querySelector(
-        `.shavianator-output .shavian-word[data-word-index="${wordIndex}"]`
-      );
-      if (shavianWord) {
-        const rect = shavianWord.getBoundingClientRect();
-        setTooltip({
-          show: true,
-          shavianWord: word,
-          text: arpabet,
-          x: rect.left + rect.width / 2,
-          y: rect.top,
-        });
-      }
+      const el = document.querySelector(`.shavianator-output .shavian-word[data-word-index="${idx}"]`);
+      rect = el?.getBoundingClientRect();
     }
+    if (rect) setTooltip({ show: true, word: shavianWord, arpabet, x: rect.left + rect.width / 2, y: rect.top });
+  };
+  const handleMouseLeave = () => {
+    setHovered(null);
+    setTooltip({ show: false, word: "", arpabet: "", x: 0, y: 0 });
   };
 
-  const handleWordMouseLeave = () => {
-    setHoveredWordIndex(null);
-    setTooltip({ show: false, shavianWord: "", text: "", x: 0, y: 0 });
-  };
-
-  // Render tokens with highlighting
-  const renderTokens = (tokens, isShavian = false) => {
-    return tokens.map((token, index) => {
+  // Token renderer
+  const renderTokens = (isShavian = false) =>
+    tokens.map((token, i) => {
       const text = isShavian ? token.shavian : token.english;
-
-      if (token.type === 'newline') {
-        return <br key={index} />;
-      }
-
-      if (token.type === 'whitespace') {
-        return <span key={index}>{text}</span>;
-      }
-
-      if (token.type === 'word') {
-        const isHovered = token.index === hoveredWordIndex;
+      if (token.type === "newline") return <br key={i} />;
+      if (token.type === "whitespace" || token.type === "punctuation")
+        return <span key={i}>{text}</span>;
+      if (token.type === "word")
         return (
           <span
-            key={index}
-            className={`shavian-word ${isHovered ? 'highlighted' : ''}`}
+            key={i}
+            className={`shavian-word${hovered === token.index ? " highlighted" : ""}`}
             data-word-index={token.index}
-            onMouseEnter={(e) => handleWordMouseEnter(e, token.shavian, token.index, isShavian)}
-            onMouseLeave={handleWordMouseLeave}
-            onClick={(e) => handleWordClick(e, token, isShavian)}
+            onMouseEnter={e => handleMouseEnter(e, token.shavian, token.index, isShavian)}
+            onMouseLeave={handleMouseLeave}
+            onClick={e => !isShavian && handleWordClick(e, token)}
           >
             {text}
           </span>
         );
-      }
-
       return null;
     });
+
+  // Tooltip grid
+  const TooltipGrid = ({ word, arpabet }) => {
+    const shavianChars = [...word.replace(/[^\u{10450}-\u{1047F}]/gu, "")];
+    const phonemes = arpabet.split(" ").filter(Boolean);
+    return (
+      <div className="shavian-tooltip-grid">
+        <div className="shavian-tooltip-row shavian-tooltip-word">
+          {shavianChars.map((char, i) => (
+            <div key={`c${i}`} className="shavian-tooltip-cell">{char}</div>
+          ))}
+        </div>
+        <div className="shavian-tooltip-row shavian-tooltip-pronunciation">
+          {phonemes.map((p, i) => (
+            <div key={`p${i}`} className="shavian-tooltip-cell">{p}</div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -192,37 +136,27 @@ export default function Shavianator() {
                 ref={textareaRef}
                 className="shavianator-input shavianator-textarea"
                 placeholder="Enter text to shavianate"
-                value={paragraphs}
-                onChange={handleChange}
+                value={text}
+                onChange={e => setText(e.target.value)}
                 rows={5}
               />
               <div
-                ref={inputDisplayRef}
+                ref={inputOverlayRef}
                 className="shavianator-input shavianator-input-overlay"
               >
-                {renderTokens(tokens, false)}
+                {renderTokens(false)}
               </div>
             </div>
           </div>
           <div className="shavianator-output-container">
             <label className="shavianator-label">shavian</label>
-            <div
-              className="shavianator-output"
-              ref={outputRef}
-            >
+            <div className="shavianator-output" ref={outputRef}>
               <button
                 className="copy-button"
                 onClick={handleCopy}
                 title={copied ? "Copied!" : "Copy to clipboard"}
               >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   {copied ? (
                     <path d="M20 6L9 17l-5-5" />
                   ) : (
@@ -233,7 +167,7 @@ export default function Shavianator() {
                   )}
                 </svg>
               </button>
-              {renderTokens(tokens, true)}
+              {renderTokens(true)}
               {tooltip.show && (
                 <div
                   ref={tooltipRef}
@@ -246,25 +180,7 @@ export default function Shavianator() {
                     marginTop: "-8px",
                   }}
                 >
-                  {(() => {
-                    const shavianChars = [...tooltip.shavianWord.replace(/[^\u{10450}-\u{1047F}]/gu, '')];
-                    const phonemes = tooltip.text.split(' ').filter(p => p.trim());
-
-                    return (
-                      <div className="shavian-tooltip-grid">
-                        <div className="shavian-tooltip-row shavian-tooltip-word">
-                          {shavianChars.map((char, i) => (
-                            <div key={`char-${i}`} className="shavian-tooltip-cell">{char}</div>
-                          ))}
-                        </div>
-                        <div className="shavian-tooltip-row shavian-tooltip-pronunciation">
-                          {phonemes.map((phoneme, i) => (
-                            <div key={`phoneme-${i}`} className="shavian-tooltip-cell">{phoneme}</div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  <TooltipGrid word={tooltip.word} arpabet={tooltip.arpabet} />
                 </div>
               )}
             </div>
