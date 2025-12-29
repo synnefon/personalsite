@@ -60,7 +60,7 @@ body:has(#app-base.shavianator-colors) {
 .shavianator-input {
   width: 100%;
   padding: 0.5em;
-  font-size: 1.2em;
+  font-size: 1em;
   background-color: var(--shavianator-accent-bg);
   border: 2px solid var(--shavianator-text);
   border-radius: 8px;
@@ -84,11 +84,18 @@ body:has(#app-base.shavianator-colors) {
 
 .shavianator-input-overlay {
   pointer-events: none;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   white-space: pre-wrap;
   word-wrap: break-word;
   z-index: 2;
   background-color: transparent;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.shavianator-input-overlay::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 .shavianator-input::placeholder {
@@ -109,7 +116,7 @@ body:has(#app-base.shavianator-colors) {
   position: relative;
   width: 100%;
   padding: 0.5em;
-  font-size: 1.2em;
+  font-size: 1em;
   background-color: var(--shavianator-accent-bg);
   border: 2px solid var(--shavianator-text);
   border-radius: 8px;
