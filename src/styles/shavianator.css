@@ -1,0 +1,50 @@
+:root {
+  --shavianator-bg: #4E61D3;
+  --shavianator-accent: #FFE52A;
+  --shavianator-accent-rgb: white;
+}
+
+#app-base.shavianator-colors {
+  background-color: var(--shavianator-bg);
+  color: var(--shavianator-accent);
+}
+
+.shavianator-colors .content-wrapper {
+  max-width: 800px;
+}
+
+.shavianator-colors .title {
+  color: var(--shavianator-accent);
+  margin-bottom: 2em;
+}
+
+.shavianator-input {
+  width: 100%;
+  padding: 1em;
+  font-size: 1.2em;
+  background-color: rgba(var(--shavianator-accent-rgb), 0.1);
+  border: 2px solid var(--shavianator-accent);
+  border-radius: 8px;
+  color: var(--shavianator-accent);
+  margin-bottom: 1.5em;
+  font-family: inherit;
+}
+
+.shavianator-input::placeholder {
+  color: rgba(var(--shavianator-accent-rgb), 0.5);
+}
+
+.shavianator-input:focus {
+  outline: none;
+  border-color: var(--shavianator-accent);
+  background-color: rgba(var(--shavianator-accent-rgb), 0.15);
+}
+
+.shavianator-output {
+  font-size: 2em;
+  line-height: 1.6;
+  word-wrap: break-word;
+  color: var(--shavianator-accent);
+  margin-top: 1em;
+  min-height: 3em;
+}
