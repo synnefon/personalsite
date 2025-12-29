@@ -15,17 +15,29 @@ body:has(#app-base.shavianator-colors) {
 }
 
 .shavianator-colors .content-wrapper {
-  max-width: 90%;
+  max-width: 85%;
   width: 100%;
 }
 
-.shavianator-colors .title {
+.shavianator-header {
+  display: flex;
+  gap: 2em;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 2em;
+  margin-top: 0.3em;
+}
+
+.shavianator-header .title {
   color: var(--shavianator-text-accent);
-  /* margin-bottom: 0.5em; */
+  margin: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .shavianator-description {
-  margin-bottom: 2em;
+  margin: 0;
+  flex: 1;
 }
 
 .shavianator-description a {

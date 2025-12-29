@@ -172,28 +172,30 @@ export default function Shavianator() {
   return (
     <div id="app-base" className="shavianator-colors">
       <div className="content-wrapper shavianator-colors">
-        <h2 className="title shavianator-colors">shavianator</h2>
-        <p className="shavianator-description">
-          a tool for transliterating english to{" "}
-          <a
-            href="https://en.wikipedia.org/wiki/Shavian_alphabet"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            shavian
-          </a>
-          .
-          <br />
-          𐑱 𐑑𐑵𐑤 𐑓𐑸 𐑑𐑮𐑨𐑯𐑟𐑤𐑦𐑑𐑩𐑮𐑱𐑑𐑦𐑙 𐑦𐑙𐑜𐑤𐑦𐑖 𐑑{" "}
-          <a
-            href="https://en.wikipedia.org/wiki/Shavian_alphabet"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            𐑖𐑱𐑝𐑰𐑩𐑯
-          </a>
-          .
-        </p>
+        <div className="shavianator-header">
+          <h2 className="title shavianator-colors">shavianator</h2>
+          <p className="shavianator-description">
+            a tool for transliterating english to{" "}
+            <a
+              href="https://en.wikipedia.org/wiki/Shavian_alphabet"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              shavian
+            </a>
+            .
+            <br />
+            𐑱 𐑑𐑵𐑤 𐑓𐑸 𐑑𐑮𐑨𐑯𐑟𐑤𐑦𐑑𐑩𐑮𐑱𐑑𐑦𐑙 𐑦𐑙𐑜𐑤𐑦𐑖 𐑑{" "}
+            <a
+              href="https://en.wikipedia.org/wiki/Shavian_alphabet"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              𐑖𐑱𐑝𐑰𐑩𐑯
+            </a>
+            .
+          </p>
+        </div>
         <div className="shavianator-layout">
           <div className="shavianator-input-container">
             <label className="shavianator-label">english</label>
