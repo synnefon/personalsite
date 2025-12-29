@@ -1,4 +1,4 @@
-const toShavian = require("to-shavian");
+import toShavian from "to-shavian";
 
 // Token types enum
 export const TokenType = {

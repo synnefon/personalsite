@@ -1,4 +1,3 @@
-import chroma from "chroma-js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { TypeAnimation } from "react-type-animation";
@@ -6,12 +5,30 @@ import { TypeAnimation } from "react-type-animation";
 import "../styles/app.css";
 import "../styles/home.css";
 
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+};
+
+const interpolateColor = (color1, color2, factor) => {
+  const c1 = hexToRgb(color1);
+  const c2 = hexToRgb(color2);
+  const r = Math.round(c1.r + factor * (c2.r - c1.r));
+  const g = Math.round(c1.g + factor * (c2.g - c1.g));
+  const b = Math.round(c1.b + factor * (c2.b - c1.b));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+};
+
+const COLORS = ["#201658", "#1D24CA"];
+
 export default function Home() {
-  const colors = ["#201658", "#1D24CA"];
-  const [color, setColor] = useState(colors[0]);
+  const [color, setColor] = useState(COLORS[0]);
   // const maxX = useRef(window.innerWidth);
   const maxY = useRef(window.innerHeight);
-  const scale = chroma.scale([colors[0], colors[1]]);
 
   const onMouseMove = useCallback(
     (e) => {
@@ -20,10 +37,10 @@ export default function Home() {
         const percentY = e.clientY / maxY.current;
         // const average = (percentX + percentY) / 2;
 
-        setColor(scale(percentY).hex());
+        setColor(interpolateColor(COLORS[0], COLORS[1], percentY));
       }
     },
-    [scale]
+    []
   );
 
   const onResize = () => {
