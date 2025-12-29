@@ -1,7 +1,8 @@
 :root {
-  --shavianator-bg: #452829;
-  --shavianator-accent-bg: #57595B;
-  --shavianator-text: #E8D1C5;
+  --shavianator-bg: #f4efe9;
+  --shavianator-accent-bg: #eee5da;
+  --shavianator-text: #7f5539;
+  --shavianator-text-accent: #7e8d6c;
 }
 
 #app-base.shavianator-colors {
@@ -10,12 +11,31 @@
 }
 
 .shavianator-colors .content-wrapper {
-  max-width: 800px;
+  max-width: 90%;
+  width: 100%;
 }
 
 .shavianator-colors .title {
-  color: var(--shavianator-text);
+  color: var(--shavianator-text-accent);
   margin-bottom: 2em;
+}
+
+.shavianator-layout {
+  display: flex;
+  gap: 2em;
+  align-items: flex-start;
+}
+
+.shavianator-input-container {
+  flex: 1;
+}
+
+.shavianator-label {
+  display: block;
+  font-size: 0.9em;
+  /* color: var(--shavianator-text-accent); */
+  margin-bottom: 0.5em;
+  font-weight: 500;
 }
 
 .shavianator-input {
@@ -26,10 +46,10 @@
   border: 2px solid var(--shavianator-text);
   border-radius: 8px;
   color: var(--shavianator-text);
-  margin-bottom: 1.5em;
   font-family: inherit;
-  resize: vertical;
-  min-height: 150px;
+  resize: none;
+  height: 500px;
+  box-sizing: border-box;
 }
 
 .shavianator-input::placeholder {
@@ -42,18 +62,58 @@
   background-color: var(--shavianator-accent-bg);
 }
 
+.shavianator-output-container {
+  flex: 1;
+}
+
 .shavianator-output {
+  position: relative;
+  width: 100%;
+  padding: 1em;
   font-size: 1.2em;
+  background-color: var(--shavianator-accent-bg);
+  border: 2px solid var(--shavianator-text);
+  border-radius: 8px;
+  color: var(--shavianator-text);
+  font-family: inherit;
+  height: 500px;
+  box-sizing: border-box;
   line-height: 1.6;
   word-wrap: break-word;
-  color: var(--shavianator-text);
-  margin-top: 1em;
-  min-height: 3em;
   white-space: pre-wrap;
+  overflow-y: auto;
+}
+
+.copy-button {
+  position: absolute;
+  top: 0.5em;
+  right: 0.5em;
+  background-color: var(--shavianator-bg);
+  border: none;
+  color: var(--shavianator-text);
+  padding: 0.5em;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.copy-button:hover {
+  background-color: var(--shavianator-bg);
+  color: var(--shavianator-text-accent);
+  border: none;
+  transition: all 0.3s ease;
 }
 
 .shavian-word {
   cursor: help;
+}
+
+.shavian-word:hover {
+  color: var(--shavianator-text-accent);
 }
 
 .shavian-tooltip {
