@@ -48,7 +48,7 @@ div#app-base {
 
 .description {
   position: relative;
-  margin: 0 0 1.5em 0;
+  margin: 0 0 0.5em 0;
   margin-top: 1em;
   display: flex;
   align-items: center;
@@ -74,7 +74,7 @@ div#app-base {
   grid-template-columns: 100%;
   grid-auto-rows: 2.8em;
   margin-bottom: 0;
-  margin-top: 1.5em;
+  margin-top: 0.5em;
   user-select: none !important;
 }
 
