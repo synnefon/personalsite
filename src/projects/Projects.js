@@ -42,7 +42,16 @@ export default function Projects() {
               cellular automata simulator
             </p>
           </Link>
-
+          <Link
+            className="link proj-colors"
+            to="/shavianator"
+            rel="noreferrer"
+          >
+            <p className="link-text proj-colors">shavianator</p>
+            <p className="tooltip-text proj-colors">
+              shavian alphabet transliterator
+            </p>
+          </Link>
           {
             <Link className="link proj-colors" to="/snek" rel="noreferrer">
               <p className="link-text proj-colors">snek</p>
@@ -104,16 +113,6 @@ export default function Projects() {
             <p className="link-text proj-colors">shufflenator</p>
             <p className="tooltip-text proj-colors">
               optimal shuffle pattern calculator
-            </p>
-          </Link>
-          <Link
-            className="link proj-colors"
-            to="/shavianator"
-            rel="noreferrer"
-          >
-            <p className="link-text proj-colors">shavianator</p>
-            <p className="tooltip-text proj-colors">
-              shavian alphabet converter
             </p>
           </Link>
           {/* <Link className="link proj-colors" to="/wip" rel="noreferrer">

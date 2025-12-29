@@ -2,6 +2,10 @@
    COLOR THEME
    ============================================ */
 
+body:has(#app-base.sudoku-colors) {
+  --text-color: rgb(234, 234, 247) !important;
+}
+
 .sudoku-colors {
   --bg-color: rgb(78, 129, 98) !important;
   --secondary-bg-color: rgb(78, 129, 98) !important;

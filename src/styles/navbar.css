@@ -16,6 +16,7 @@
   pointer-events: none;
 }
 
+
 .hamburger-react {
   position: relative;
   z-index: 999;
@@ -85,12 +86,17 @@
    NAV ICONS - SHAVIAN CHARACTERS
    ============================================ */
 
+.nav-icon {
+  color: var(--text-color);
+}
+
 .nav-icon.home,
 .nav-icon.projects,
 .nav-icon.about {
   mask-image: none;
   -webkit-mask-image: none;
   background-color: transparent;
+  color: var(--text-color);
 }
 
 .nav-icon.home::before {
@@ -119,8 +125,9 @@
    ACTIVE STATE
    ============================================ */
 
-.nav-icon.active::before {
-  color: orange;
+.nav-icon.active::before,
+.nav-link:hover .nav-icon::before {
+  color: orange !important;
 }
 
 /* ============================================

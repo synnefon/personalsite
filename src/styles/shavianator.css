@@ -5,6 +5,10 @@
   --shavianator-text-accent: #0077b6;
 }
 
+body:has(#app-base.shavianator-colors) {
+  --text-color: black !important;
+}
+
 #app-base.shavianator-colors {
   background-color: var(--shavianator-bg);
   color: var(--shavianator-text);
