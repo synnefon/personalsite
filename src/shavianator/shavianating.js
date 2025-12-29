@@ -78,27 +78,43 @@ const shavianateWord = (word) => {
   const cleanWord = word.toLowerCase();
 
   if (!CMU_DICTIONARY[cleanWord]) {
-    return { text: "_", recognized: false };
+    return {
+      chars: [{ char: "_", arpabet: null }],
+      recognized: false
+    };
   }
+
   if (DEFAULT_WORD_OVERRIDES[cleanWord]) {
-    return { text: DEFAULT_WORD_OVERRIDES[cleanWord], recognized: true };
+    return {
+      chars: [{
+        char: DEFAULT_WORD_OVERRIDES[cleanWord],
+        arpabet: `_${cleanWord}_`
+      }],
+      recognized: true
+    };
   }
 
-  let letters = getArpabetLetters(CMU_DICTIONARY[cleanWord]).map(
-    (phoneme) => APRABET_TO_SHAVIAN[phoneme]
-  );
+  const phonemes = getArpabetLetters(CMU_DICTIONARY[cleanWord]);
+  let chars = phonemes.map((phoneme) => ({
+    char: APRABET_TO_SHAVIAN[phoneme],
+    arpabet: phoneme
+  }));
 
-  for (let i = 0; i < letters.length - 1; ) {
-    const pair = letters[i] + letters[i + 1];
+  // Combine compound letters
+  for (let i = 0; i < chars.length - 1; ) {
+    const pair = chars[i].char + chars[i + 1].char;
     const compound = SHAVIAN_COMPOUND_LETTERS[pair];
     if (compound) {
-      letters.splice(i, 2, compound);
+      chars.splice(i, 2, {
+        char: compound,
+        arpabet: `${chars[i].arpabet}+${chars[i + 1].arpabet}`
+      });
     } else {
       i++;
     }
   }
 
-  return { text: letters.join(""), recognized: true };
+  return { chars, recognized: true };
 };
 
 export const shavianateSentence = (sentence) => {
@@ -106,13 +122,20 @@ export const shavianateSentence = (sentence) => {
 
   return tokens.map((token) => {
     if (/^\s+$/.test(token))
-      return { text: token, recognized: true, isWhitespace: true };
+      return { chars: [{ char: token, arpabet: null }], recognized: true, isWhitespace: true };
 
     const match = token.match(/^([^\w]*)(\w+)([^\w]*)$/);
-    if (!match) return { text: token, recognized: true, isPunctuation: true };
+    if (!match)
+      return { chars: [{ char: token, arpabet: null }], recognized: true, isPunctuation: true };
 
     const [, lead, word, trail] = match;
-    const { text, recognized } = shavianateWord(word);
-    return { text: lead + text + trail, recognized };
+    const { chars, recognized } = shavianateWord(word);
+
+    const allChars = [];
+    if (lead) allChars.push({ char: lead, arpabet: null });
+    allChars.push(...chars);
+    if (trail) allChars.push({ char: trail, arpabet: null });
+
+    return { chars: allChars, recognized };
   });
 };

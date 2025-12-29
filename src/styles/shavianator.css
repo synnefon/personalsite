@@ -1,7 +1,7 @@
 :root {
-  --shavianator-bg: #000000;
-  --shavianator-accent-bg: #4A70A9;
-  --shavianator-text: #E3E3E3;
+  --shavianator-bg: #452829;
+  --shavianator-accent-bg: #57595B;
+  --shavianator-text: #E8D1C5;
 }
 
 #app-base.shavianator-colors {
@@ -50,4 +50,20 @@
   margin-top: 1em;
   min-height: 3em;
   white-space: pre-wrap;
+}
+
+.shavian-word {
+  cursor: help;
+}
+
+.shavian-tooltip {
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5em 1em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
