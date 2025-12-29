@@ -163,6 +163,35 @@ body:has(#app-base.shavianator-colors) {
   font-size: 0.9em;
   pointer-events: none;
   z-index: 1000;
-  white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.shavian-tooltip-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+
+.shavian-tooltip-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.5em;
+}
+
+.shavian-tooltip-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5em;
+  flex: 1;
+}
+
+.shavian-tooltip-word {
+  font-size: 0.9em;
+}
+
+.shavian-tooltip-pronunciation {
+  font-size: 0.9em;
+  opacity: 0.9;
 }

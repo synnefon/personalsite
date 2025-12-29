@@ -11,7 +11,7 @@ export default function Shavianator() {
   const outputRef = useRef(null);
   const inputDisplayRef = useRef(null);
   const textareaRef = useRef(null);
-  const [tooltip, setTooltip] = useState({ show: false, text: "", x: 0, y: 0 });
+  const [tooltip, setTooltip] = useState({ show: false, shavianWord: "", text: "", x: 0, y: 0 });
   const tooltipRef = useRef(null);
 
   const handleChange = (e) => setParagraphs(e.target.value);
@@ -119,6 +119,7 @@ export default function Shavianator() {
       const rect = e.target.getBoundingClientRect();
       setTooltip({
         show: true,
+        shavianWord: word,
         text: arpabet,
         x: rect.left + rect.width / 2,
         y: rect.top,
@@ -132,6 +133,7 @@ export default function Shavianator() {
         const rect = shavianWord.getBoundingClientRect();
         setTooltip({
           show: true,
+          shavianWord: word,
           text: arpabet,
           x: rect.left + rect.width / 2,
           y: rect.top,
@@ -142,7 +144,7 @@ export default function Shavianator() {
 
   const handleWordMouseLeave = () => {
     setHoveredWordIndex(null);
-    setTooltip({ show: false, text: "", x: 0, y: 0 });
+    setTooltip({ show: false, shavianWord: "", text: "", x: 0, y: 0 });
   };
 
   // Render tokens with highlighting
@@ -244,7 +246,25 @@ export default function Shavianator() {
                     marginTop: "-8px",
                   }}
                 >
-                  {tooltip.text}
+                  {(() => {
+                    const shavianChars = [...tooltip.shavianWord.replace(/[^\u{10450}-\u{1047F}]/gu, '')];
+                    const phonemes = tooltip.text.split(' ').filter(p => p.trim());
+
+                    return (
+                      <div className="shavian-tooltip-grid">
+                        <div className="shavian-tooltip-row shavian-tooltip-word">
+                          {shavianChars.map((char, i) => (
+                            <div key={`char-${i}`} className="shavian-tooltip-cell">{char}</div>
+                          ))}
+                        </div>
+                        <div className="shavian-tooltip-row shavian-tooltip-pronunciation">
+                          {phonemes.map((phoneme, i) => (
+                            <div key={`phoneme-${i}`} className="shavian-tooltip-cell">{phoneme}</div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
