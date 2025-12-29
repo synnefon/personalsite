@@ -38,6 +38,12 @@
   font-weight: 500;
 }
 
+.shavianator-input-wrapper {
+  position: relative;
+  width: 100%;
+  height: 500px;
+}
+
 .shavianator-input {
   width: 100%;
   padding: 1em;
@@ -50,6 +56,25 @@
   resize: none;
   height: 500px;
   box-sizing: border-box;
+  line-height: 1.6;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.shavianator-textarea {
+  color: transparent;
+  caret-color: var(--shavianator-text);
+  z-index: 1;
+}
+
+.shavianator-input-overlay {
+  pointer-events: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  z-index: 2;
+  background-color: transparent;
 }
 
 .shavianator-input::placeholder {
@@ -109,10 +134,16 @@
 }
 
 .shavian-word {
-  cursor: help;
+  /* cursor: help; */
+  pointer-events: auto;
 }
 
 .shavian-word:hover {
+  color: var(--shavianator-text-accent);
+}
+
+.shavian-word.highlighted {
+  background-color: rgba(126, 141, 108, 0.3);
   color: var(--shavianator-text-accent);
 }
 
