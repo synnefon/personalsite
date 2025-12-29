@@ -1,0 +1,2 @@
+#root{background-color:var(--bg-color)}div#bounce-room{height:80vh;left:10vw;position:absolute;top:10vh;width:80vw}div#bouncing-text{align-items:start;font-size:min(4vw,4vh)!important;height:min(4vw,4vh);position:absolute;-webkit-user-select:none;user-select:none;width:-webkit-fit-content;width:fit-content}@media screen and (max-width:500px){div#bouncing-text{height:2em;width:calc(min(2vw, 4vh)*11)}}
+/*# sourceMappingURL=477.bcbefeeb.chunk.css.map*/
