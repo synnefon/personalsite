@@ -1,3 +1,3 @@
-can be found here: https://connorhopkins.dev
+can be found here: https://connorhopkins.xyz
 
 npm run deploy
