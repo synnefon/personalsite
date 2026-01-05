@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import "../styles/shavianator.css";
-import { getArpabetFromShavian, tokenizeText, TokenType } from "./shavianating";
+import { getArpabetFromShavian, tokenizeText, TokenType, setToShavian } from "./shavianating";
 
 export default function Shavianator() {
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
   const [hovered, setHovered] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [tooltip, setTooltip] = useState({
     show: false,
     word: "",
@@ -13,6 +14,16 @@ export default function Shavianator() {
     x: 0,
     y: 0,
   });
+
+  // Load to-shavian module on mount
+  useEffect(() => {
+    const loadToShavian = async () => {
+      const { default: toShavianFn } = await import("to-shavian");
+      setToShavian(toShavianFn);
+      setIsLoading(false);
+    };
+    loadToShavian();
+  }, []);
 
   const textareaRef = useRef(),
     inputOverlayRef = useRef(),
@@ -168,6 +179,19 @@ export default function Shavianator() {
       </div>
     );
   };
+
+  if (isLoading) {
+    return (
+      <div id="app-base" className="shavianator-colors">
+        <div className="content-wrapper shavianator-colors">
+          <div className="shavianator-loading">
+            <div className="shavianator-spinner"></div>
+            <p>Loading Shavian...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="app-base" className="shavianator-colors">

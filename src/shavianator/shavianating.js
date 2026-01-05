@@ -1,11 +1,16 @@
-import toShavian from "to-shavian";
-
 // Token types enum
 export const TokenType = {
   WORD: "word",
   PUNCTUATION: "punctuation",
   WHITESPACE: "whitespace",
   NEWLINE: "newline",
+};
+
+// Global reference to toShavian function, set externally
+let toShavian = null;
+
+export const setToShavian = (fn) => {
+  toShavian = fn;
 };
 
 // Shavian shorthand words (single character representations)
