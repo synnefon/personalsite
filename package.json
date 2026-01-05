@@ -2,7 +2,7 @@
   "name": "personalsite",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://connorhopkins.dev",
+  "homepage": "https://connorhopkins.xyz",
   "dependencies": {
     "cra-template": "1.2.0",
     "firebase": "^11.3.1",

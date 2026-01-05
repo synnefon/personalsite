@@ -131,7 +131,7 @@ export default function Home() {
           >
             <p className="link-text home-colors">about</p>
             <p className="tooltip-text home-colors">
-              $ whois connorhopkins.dev
+              $ whois connorhopkins.xyz
             </p>
           </Link>
           <a
