@@ -53,7 +53,7 @@ export default function Self({listExpanded}) {
 
     if (!listExpanded || hasWiggled.current) return;
 
-    for (let t of [3, 6, 15, 25]) {
+    for (let t of [6, 12, 22, 35]) {
       const first = t * 1_000;
       const second = first + 450;
       const duration = 410;

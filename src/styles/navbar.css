@@ -58,6 +58,7 @@
   height: fit-content;
   margin-left: 0.3em;
   pointer-events: none;
+  transition: color 0.4s;
 }
 
 /* ============================================
@@ -70,6 +71,11 @@
   cursor: var(--pointer);
   pointer-events: all;
   filter: brightness(0) saturate(100%) invert(100%);
+  transition: filter 0.4s;
+  user-drag: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* ============================================

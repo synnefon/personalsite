@@ -99,6 +99,14 @@ body:has(#app-base.about-colors) {
   cursor: var(--pointer);
 }
 
+.me-fact::after,
+.me-fact .react-type-animation-cursor,
+.description-text::after {
+  background-color: transparent !important;
+  color: var(--text-color) !important;
+  caret-color: var(--text-color) !important;
+}
+
 .me-fact:hover {
   color: orange !important;
   font-weight: bold !important;
@@ -133,7 +141,10 @@ button#skip-button {
   display: inline-block;
   align-self: center;
   border: none;
+  background-color: transparent;
+  color: var(--text-color);
   font-size: calc(12px + 1.5vmin) !important;
+  cursor: var(--pointer);
   opacity: 0;
   visibility: hidden;
   transition: visibility 0.3s linear, opacity 0.3s linear;

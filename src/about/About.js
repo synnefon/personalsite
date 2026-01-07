@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TypeAnimation } from "react-type-animation";
 import { PersonalAudio } from "../util/Audio";
 import Self from "./Self";
@@ -68,12 +68,10 @@ export default function About() {
   );
 
   const toggleSkipButton = (shouldShow) => {
-    setTimeout(() => {
-      const skipButton = document.getElementById("skip-button");
-      if (!skipButton) return;
-      skipButton.style.opacity = shouldShow ? "1" : "0";
-      skipButton.style.visibility = shouldShow ? "visible" : "hidden";
-    }, 500);
+    const skipButton = document.getElementById("skip-button");
+    if (!skipButton) return;
+    skipButton.style.opacity = shouldShow ? "1" : "0";
+    skipButton.style.visibility = shouldShow ? "visible" : "hidden";
   };
 
   const TypeIt = ({ idx, desc, audioSrc }) => {
