@@ -1,6 +1,6 @@
 {
   "files": {
-    "main.css": "/static/css/main.9f1804d8.css",
+    "main.css": "/static/css/main.1de23529.css",
     "main.js": "/static/js/main.abd3bc15.js",
     "static/css/371.909339d5.chunk.css": "/static/css/371.909339d5.chunk.css",
     "static/js/371.a817ba24.chunk.js": "/static/js/371.a817ba24.chunk.js",
@@ -63,7 +63,7 @@
     "static/media/redo_focus.svg": "/static/media/redo_focus.29d549ae26b9af2e7d38.svg",
     "static/media/timer.svg": "/static/media/timer.4ee7cd0799986c827fe0.svg",
     "static/media/timer_focus.svg": "/static/media/timer_focus.d078fce01e3307044491.svg",
-    "main.9f1804d8.css.map": "/static/css/main.9f1804d8.css.map",
+    "main.1de23529.css.map": "/static/css/main.1de23529.css.map",
     "main.abd3bc15.js.map": "/static/js/main.abd3bc15.js.map",
     "371.909339d5.chunk.css.map": "/static/css/371.909339d5.chunk.css.map",
     "371.a817ba24.chunk.js.map": "/static/js/371.a817ba24.chunk.js.map",
@@ -93,7 +93,7 @@
     "782.91b3a257.chunk.js.map": "/static/js/782.91b3a257.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.9f1804d8.css",
+    "static/css/main.1de23529.css",
     "static/js/main.abd3bc15.js"
   ]
 }
