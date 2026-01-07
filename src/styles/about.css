@@ -7,7 +7,7 @@ body:has(#app-base.about-colors) {
 }
 
 .about-colors {
-  --bg-color: rgb(118, 111, 14) !important;
+  --bg-color: rgb(70, 27, 241) !important;
   --text-color: rgb(234, 234, 247);
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);

@@ -71,6 +71,16 @@ div#app-base {
   user-select: none;
 }
 
+.description::before {
+  content: '\200B';
+  display: inline-block;
+  width: 0;
+}
+
+.description-text {
+  display: inline-block;
+}
+
 .description-text::after {
   color: orange;
 }

@@ -26,33 +26,33 @@ const interpolateColor = (color1, color2, factor) => {
 const COLORS = ["#201658", "#1D24CA"];
 
 export default function Home() {
-  const [color, setColor] = useState(COLORS[0]);
-  // const maxX = useRef(window.innerWidth);
-  const maxY = useRef(window.innerHeight);
+  // const [color, setColor] = useState(COLORS[0]);
+  // // const maxX = useRef(window.innerWidth);
+  // const maxY = useRef(window.innerHeight);
 
-  const onMouseMove = useCallback(
-    (e) => {
-      if (maxY.current > 0) {
-        // const percentX = e.clientX / maxX.current;
-        const percentY = e.clientY / maxY.current;
-        // const average = (percentX + percentY) / 2;
+  // const onMouseMove = useCallback(
+  //   (e) => {
+  //     if (maxY.current > 0) {
+  //       // const percentX = e.clientX / maxX.current;
+  //       const percentY = e.clientY / maxY.current;
+  //       // const average = (percentX + percentY) / 2;
 
-        setColor(interpolateColor(COLORS[0], COLORS[1], percentY));
-      }
-    },
-    []
-  );
+  //       setColor(interpolateColor(COLORS[0], COLORS[1], percentY));
+  //     }
+  //   },
+  //   []
+  // );
 
-  const onResize = () => {
-    // maxX.current = window.innerWidth;
-    maxY.current = window.innerHeight;
-  };
+  // const onResize = () => {
+  //   // maxX.current = window.innerWidth;
+  //   maxY.current = window.innerHeight;
+  // };
 
-  useEffect(() => {
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("mousemove", onMouseMove);
-  }, [onMouseMove]);
+  // useEffect(() => {
+  //   window.addEventListener("mousemove", onMouseMove);
+  //   window.addEventListener("resize", onResize);
+  //   return () => window.removeEventListener("mousemove", onMouseMove);
+  // }, [onMouseMove]);
 
   const descriptors = [
     "software engineer",
@@ -95,24 +95,25 @@ export default function Home() {
     <div
       id="app-base"
       className="home-colors"
-      style={{
-        "--bg-color": color,
-        "--inv-text-color": color,
-      }}
+      // style={{
+      //   "--bg-color": color,
+      //   "--inv-text-color": color,
+      // }}
     >
       <div className="content-wrapper home-colors">
         <div className="header-line">
           <h2 className="title">connor hopkins</h2>
           <h5 className="description home-colors">
-            <span className="bracket home-colors">{'{'}&nbsp;</span>
+            {/* <span className="bracket home-colors">{'{'}&nbsp;</span> */}
             <TypeAnimation
               className="description-text home-colors"
               sequence={descriptors.flatMap((d) => extractDescription(d))}
               wrapper="span"
               deletionSpeed={60}
               repeat={Infinity}
+              cursor={false}
             />
-            <span className="bracket home-colors">{"}"}</span>
+            {/* <span className="bracket home-colors">{"}"}</span> */}
           </h5>
         </div>
         <div className="links home-colors">
@@ -122,6 +123,9 @@ export default function Home() {
             rel="noreferrer"
           >
             <p className="link-text home-colors">projects</p>
+            <p className="tooltip-text home-colors">
+              an assortment of web-accessible work
+            </p>
           </Link>
           <Link
             className="link about home-colors top right"
@@ -133,6 +137,14 @@ export default function Home() {
               $ whois connorhopkins.xyz
             </p>
           </Link>
+          <a
+            className="link bottom left home-colors"
+            href="https://www.linkedin.com/in/connor-j-hopkins"
+            rel="noreferrer"
+          >
+            <p className="link-text home-colors">linkedin</p>
+            <p className="tooltip-text home-colors">let's network!</p>
+          </a>
           <a
             className="link resume middle left home-colors"
             href="https://docs.google.com/document/d/1A77LelAqhLE98pvkOYpHjUAs7l3LW-mcSQr-_MpbP6I"
@@ -153,21 +165,13 @@ export default function Home() {
               where you can see some code i've written
             </p>
           </a>
-          <a
-            className="link bottom left home-colors"
-            href="https://www.linkedin.com/in/connor-j-hopkins"
-            rel="noreferrer"
-          >
-            <p className="link-text home-colors">linkedin</p>
-            <p className="tooltip-text home-colors">let's network!</p>
-          </a>
-          <a
+          {/* <a
             className="link bottom right home-colors"
             href="mailto:connorjhopkins@gmail.com?subject=let's%20collab!%20"
           >
             <p className="link-text home-colors">get in touch</p>
             <p className="tooltip-text home-colors">shoot me an email</p>
-          </a>
+          </a> */}
         </div>
       </div>
     </div>

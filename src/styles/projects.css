@@ -3,7 +3,7 @@
    ============================================ */
 
 .proj-colors {
-  --bg-color: var(--alt-text-color);
+  --bg-color: rgb(70, 27, 241) !important;
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);
 }
