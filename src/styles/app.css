@@ -33,6 +33,21 @@ div#app-base {
   font-size: calc(8px + 2vmin);
 }
 
+.header-line {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.header-line > .title {
+  margin-right: 0.5em;
+}
+
+.header-line > .description {
+  margin-top: 1.3em;
+}
+
 /* ============================================
    TYPOGRAPHY & CONTENT
    ============================================ */
@@ -84,7 +99,7 @@ div#app-base {
 
 .link {
   position: relative;
-  margin-left: 2em;
+  margin-left: 0;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -115,61 +130,6 @@ a.link:hover > .tooltip-text {
   animation: boing 0.3s ease-in-out alternate;
 }
 
-/* ============================================
-   LINKS - SHAVIAN CHARACTERS (::before)
-   ============================================ */
-
-.link::before {
-  position: absolute;
-  left: -1.7em;
-  top: 0.75em;
-  color: var(--text-color);
-  background-color: transparent;
-  animation: none !important;
-}
-
-/* Map of link selectors to Shavian Unicode glyphs.
-   If adding new links with icons, add them here. */
-:root {
-  --shavian-peep: "𐑐";
-  --shavian-ado: "𐑩";
-  --shavian-roar: "𐑮";
-  --shavian-gag: "𐑜";
-  --shavian-loll: "𐑤";
-  --shavian-mime: "𐑥";
-  --shavian-so: "𐑕";
-  --shavian-thigh: "𐑔";
-  --shavian-if: "𐑦";
-  --shavian-sure: "𐑖";
-  --shavian-tot: "𐑑";
-  --shavian-woe: "𐑢";
-  --shavian-ha: "𐑣";
-}
-
-/* Main site links */
-.link[href*="projects"]::before { content: var(--shavian-peep); }
-.link[class*="about"]::before { content: var(--shavian-ado); }
-.link[class*="resume"]::before { content: var(--shavian-roar); }
-.link[href*="github"]::before { content: var(--shavian-gag); }
-.link[href*="linkedin"]::before { content: var(--shavian-loll); }
-.link[href*="mailto"]::before { content: var(--shavian-mime); }
-
-/* Project links */
-.link[href*="mapinator"]::before { content: var(--shavian-mime); }
-.link[href*="sudoku"]::before { content: var(--shavian-so); }
-.link[href*="thangs"]::before { content: var(--shavian-thigh); }
-.link[href*="snek"]::before { content: var(--shavian-so); }
-.link[href*="img-butler"]::before { content: var(--shavian-if); }
-.link[href*="spagett"]::before { content: var(--shavian-so); }
-.link[href*="shufflenator"]::before { content: var(--shavian-sure); }
-.link[href*="shavianator"]::before { content: var(--shavian-sure); }
-.link[href*="game-of-life"]::before { content: var(--shavian-gag); }
-
-/* Hidden/WIP links */
-.link[href*="toolbox"]::before { content: var(--shavian-tot); }
-.link[href*="infinite-terrain"]::before { content: var(--shavian-if); }
-.link[href*="rpg-tabletop"]::before { content: var(--shavian-roar); }
-.link[href*="wip"]::before { content: var(--shavian-woe); }
 
 /* ============================================
    LINKS - TEXT CONTENT

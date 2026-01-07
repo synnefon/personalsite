@@ -101,18 +101,20 @@ export default function Home() {
       }}
     >
       <div className="content-wrapper home-colors">
-        <h2 className="title">connor hopkins</h2>
-        <h5 className="description home-colors">
-          <span className="bracket home-colors">{'{'}&nbsp;</span>
-          <TypeAnimation
-            className="description-text home-colors"
-            sequence={descriptors.flatMap((d) => extractDescription(d))}
-            wrapper="span"
-            deletionSpeed={60}
-            repeat={Infinity}
-          />
-          <span className="bracket home-colors">{"}"}</span>
-        </h5>
+        <div className="header-line">
+          <h2 className="title">connor hopkins</h2>
+          <h5 className="description home-colors">
+            <span className="bracket home-colors">{'{'}&nbsp;</span>
+            <TypeAnimation
+              className="description-text home-colors"
+              sequence={descriptors.flatMap((d) => extractDescription(d))}
+              wrapper="span"
+              deletionSpeed={60}
+              repeat={Infinity}
+            />
+            <span className="bracket home-colors">{"}"}</span>
+          </h5>
+        </div>
         <div className="links home-colors">
           <Link
             className="link top left home-colors"

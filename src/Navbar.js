@@ -3,6 +3,15 @@ import { Link, useLocation } from 'react-router-dom';
 import Hamburger from 'hamburger-react'
 
 import './styles/navbar.css'
+import homeIcon from './assets/nav_icons/duck.svg';
+import projectsIcon from './assets/nav_icons/paper-plane.svg';
+import aboutIcon from './assets/nav_icons/child-head.svg';
+
+const iconMap = {
+  home: homeIcon,
+  projects: projectsIcon,
+  about: aboutIcon,
+};
 
 const Navbar=()=>{
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
@@ -22,7 +31,7 @@ const Navbar=()=>{
     const isActive = location.pathname === to;
     return (
       <Link className={`nav-link ${title} ${isActive ? 'active' : ''}`} to={to} onClick={closePopup}>
-        <span className={`nav-icon ${title} ${isActive ? 'active' : ''}`} aria-hidden="true" />
+        <img src={iconMap[title]} alt={title} className={`nav-icon ${title} ${isActive ? 'active' : ''}`} />
         <div className="nav-link-text">{title}</div>
       </Link>
     );

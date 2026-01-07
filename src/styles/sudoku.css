@@ -220,11 +220,15 @@ body:has(#app-base.sudoku-colors) {
 
 .sudoku-selection:hover {
   cursor: var(--pointer);
+  color: var(--alt-text-color);
 }
 
 .sudoku-selection.selected {
-  background-color: var(--alt-text-color);
-  color: var(--inv-text-color) !important;
+  color: var(--text-highlight);
+}
+
+.sudoku-selection.selected:hover {
+  color: var(--text-highlight);
 }
 
 /* ============================================
@@ -607,9 +611,5 @@ img.database.upload {
 
   .sudoku-control-pane.pencil.selected:hover > p.control.pencil {
     color: var(--text-color);
-  }
-
-  .sudoku-selection:hover {
-    color: var(--text-highlight);
   }
 }

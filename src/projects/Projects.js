@@ -17,10 +17,12 @@ export default function Projects() {
     // <div id="app-base" className={`proj-colors ${showLightning ? 'lightning' : ''}`}>
     <div id="app-base" className="proj-colors">
       <div className="content-wrapper proj-colors">
-        <h2 className="title proj-colors">projects</h2>
-        <h5 className="description proj-colors">
-          assortment of web-accessible work{" "}
-        </h5>
+        <div className="header-line">
+          <h2 className="title proj-colors">projects</h2>
+          <h5 className="description proj-colors">
+            assortment of web-accessible work{" "}
+          </h5>
+        </div>
         <div className="links proj-colors">
           <a
             className="link proj-colors"
