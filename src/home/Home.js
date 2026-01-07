@@ -1,11 +1,19 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { TypeAnimation } from "react-type-animation";
 
+import duckIcon from "../assets/nav_icons/duck.svg";
+import { playRandom8BitSound } from "../utils/eightBitSynth";
 import "../styles/app.css";
 import "../styles/home.css";
 
 export default function Home() {
+  const [duckOrange, setDuckOrange] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duckPosition, setDuckPosition] = useState({ left: 30, top: null, bottom: 10 });
+  const soundStopRef = useRef(null);
+  const contentWrapperRef = useRef(null);
+
   // const [color, setColor] = useState(COLORS[0]);
   // // const maxX = useRef(window.innerWidth);
   // const maxY = useRef(window.innerHeight);
@@ -66,6 +74,94 @@ export default function Home() {
     document.getElementById("app-base").setAttribute("class", "");
   }, []);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (soundStopRef.current) {
+        soundStopRef.current();
+      }
+    };
+  }, []);
+
+  const calculateSafePosition = () => {
+    const duckSize = 96;
+    const navbarSafeZone = { width: 200, height: 200 }; // Avoid top-left navbar area
+    const margin = 20; // Minimum margin from edges
+
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // Get content wrapper bounds
+    let contentBounds = null;
+    if (contentWrapperRef.current) {
+      const rect = contentWrapperRef.current.getBoundingClientRect();
+      contentBounds = {
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
+      };
+    }
+
+    // Generate random position until we find a safe one
+    let attempts = 0;
+    const maxAttempts = 100;
+
+    while (attempts < maxAttempts) {
+      const left = margin + Math.random() * (windowWidth - duckSize - 2 * margin);
+      const top = margin + Math.random() * (windowHeight - duckSize - 2 * margin);
+
+      // Check if position overlaps with navbar (top-left)
+      const overlapsNavbar = left < navbarSafeZone.width && top < navbarSafeZone.height;
+
+      // Check if position overlaps with content wrapper
+      let overlapsContent = false;
+      if (contentBounds) {
+        overlapsContent = !(
+          left + duckSize < contentBounds.left ||
+          left > contentBounds.right ||
+          top + duckSize < contentBounds.top ||
+          top > contentBounds.bottom
+        );
+      }
+
+      if (!overlapsNavbar && !overlapsContent) {
+        return { left, top, bottom: null };
+      }
+
+      attempts++;
+    }
+
+    // Fallback: place in bottom-right corner
+    return {
+      left: windowWidth - duckSize - margin,
+      top: null,
+      bottom: margin,
+    };
+  };
+
+  const handleClick = () => {
+    // Prevent new inputs while already playing
+    if (isPlaying) return;
+
+    // Move duck to random position
+    setDuckPosition(calculateSafePosition());
+
+    // Start playing sound
+    setIsPlaying(true);
+    const stopSound = playRandom8BitSound();
+    soundStopRef.current = stopSound;
+
+    // Stop after 1 second
+    setTimeout(() => {
+      setIsPlaying(false);
+      if (soundStopRef.current) {
+        soundStopRef.current();
+        soundStopRef.current = null;
+      }
+    }, 1000);
+  };
+
   const extractDescription = (descriptor) =>
     descriptor.constructor === Array
       ? [descriptor[0], 500, descriptor[1], 3_500]
@@ -80,7 +176,7 @@ export default function Home() {
       //   "--inv-text-color": color,
       // }}
     >
-      <div className="content-wrapper home-colors">
+      <div className="content-wrapper home-colors" ref={contentWrapperRef}>
         <div className="header-line">
           <h2 className="title">connor hopkins</h2>
           <h5 className="description home-colors">
@@ -153,6 +249,26 @@ export default function Home() {
             <p className="tooltip-text home-colors">shoot me an email</p>
           </a> */}
         </div>
+      </div>
+
+      {/* Duck SVG */}
+      <div
+        className={`duck-container ${isPlaying ? 'wiggle' : ''}`}
+        style={{
+          left: duckPosition.left !== null ? `${duckPosition.left}px` : 'auto',
+          top: duckPosition.top !== null ? `${duckPosition.top}px` : 'auto',
+          bottom: duckPosition.bottom !== null ? `${duckPosition.bottom}px` : 'auto',
+        }}
+        onMouseEnter={() => setDuckOrange(true)}
+        onMouseLeave={() => setDuckOrange(false)}
+        onClick={handleClick}
+      >
+        <img
+          src={duckIcon}
+          alt="duck"
+          draggable={false}
+          className={`duck-icon ${duckOrange || isPlaying ? 'orange' : ''}`}
+        />
       </div>
     </div>
   );
