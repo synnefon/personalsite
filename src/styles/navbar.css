@@ -66,8 +66,8 @@
    ============================================ */
 
 .nav-icon {
-  width: calc(4vmin);
-  height: calc(4vmin);
+  width: calc(5vmin);
+  height: calc(5vmin);
   cursor: var(--pointer);
   pointer-events: all;
   filter: brightness(0) saturate(100%) invert(94%) sepia(13%) saturate(124%) hue-rotate(318deg) brightness(106%) contrast(100%);
@@ -138,6 +138,8 @@ body:has(#app-base.shavianator-colors) .nav-link:hover .nav-icon {
   }
 
   .nav-icon {
+    width: calc(6vmin);
+    height: calc(6vmin);
     margin-right: 0 !important;
   }
 }

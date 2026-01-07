@@ -15,13 +15,30 @@ div#app-base {
 }
 
 /* ============================================
+   HOME PAGE LAYOUT
+   ============================================ */
+
+.home-vertical {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+}
+
+.home-subtitle {
+  color: orange !important;
+  margin: 1px !important;
+  margin-top: 0.3em !important;
+  margin-left: 4px !important;
+  padding-left: 0 !important;
+}
+
+/* ============================================
    DUCK
    ============================================ */
 
 .duck-container {
   position: fixed;
-  width: 96px;
-  height: 96px;
+  width: 72px;
+  height: 72px;
   cursor: pointer;
   z-index: 1000;
   user-select: none;

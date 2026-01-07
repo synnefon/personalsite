@@ -7,12 +7,22 @@
 export function playRandom8BitSound() {
   const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-  // Random oscillator type (8-bit typically uses square or sawtooth)
-  const waveTypes = ['square', 'sawtooth', 'triangle'];
+  // Prefer softer waveforms (triangle and sine more likely than square)
+  const waveTypes = ['triangle', 'triangle', 'sine', 'square'];
   const waveType = waveTypes[Math.floor(Math.random() * waveTypes.length)];
 
-  // Random frequency (musical notes in a reasonable range)
-  const frequencies = [130.81, 146.83, 164.81, 174.61, 196.00, 220.00, 246.94, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+  // Hindustani raga scale with all komal (flat) notes except Sa, Ma, and Pa
+  // Sa Re(k) Ga(k) Ma Pa Dha(k) Ni(k) Sa'
+  const frequencies = [
+    261.63,  // Sa (C4) - Tonic
+    277.18,  // Re komal (D♭4) - Flat
+    311.13,  // Ga komal (E♭4) - Flat
+    349.23,  // Ma (F4) - Natural
+    392.00,  // Pa (G4) - Natural
+    415.30,  // Dha komal (A♭4) - Flat
+    466.16,  // Ni komal (B♭4) - Flat
+    523.25   // Sa' (C5) - Octave
+  ];
   const baseFreq = frequencies[Math.floor(Math.random() * frequencies.length)];
 
   // Create oscillator
@@ -20,38 +30,38 @@ export function playRandom8BitSound() {
   oscillator.type = waveType;
   oscillator.frequency.setValueAtTime(baseFreq, audioContext.currentTime);
 
-  // Random frequency modulation (vibrato/pitch bend)
-  const freqMod = Math.random() > 0.5;
+  // Subtle frequency modulation (vibrato only, no harsh pitch bends)
+  const freqMod = Math.random() > 0.6;
   if (freqMod) {
-    const targetFreq = baseFreq * (0.8 + Math.random() * 0.4);
-    oscillator.frequency.exponentialRampToValueAtTime(targetFreq, audioContext.currentTime + Math.random() * 0.5);
+    const targetFreq = baseFreq * (0.98 + Math.random() * 0.04); // Very subtle
+    oscillator.frequency.exponentialRampToValueAtTime(targetFreq, audioContext.currentTime + 0.3);
   }
 
   // Create gain node for envelope
   const gainNode = audioContext.createGain();
 
-  // Random envelope shape
-  const attackTime = Math.random() * 0.1;
-  const sustainLevel = 0.2 + Math.random() * 0.4;
+  // Smoother envelope shape with lower volume
+  const attackTime = 0.05 + Math.random() * 0.05;
+  const sustainLevel = 0.15 + Math.random() * 0.15;
 
   // Attack to sustain (no release until stop is called)
   gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-  gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + attackTime);
-  gainNode.gain.linearRampToValueAtTime(sustainLevel * 0.3, audioContext.currentTime + attackTime + 0.1);
+  gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + attackTime);
+  gainNode.gain.linearRampToValueAtTime(sustainLevel * 0.15, audioContext.currentTime + attackTime + 0.08);
 
-  // Optional: Add a second oscillator for harmony (50% chance)
+  // Add harmony more often with consonant intervals
   let oscillator2 = null;
   let gainNode2 = null;
-  if (Math.random() > 0.5) {
+  if (Math.random() > 0.3) {
     oscillator2 = audioContext.createOscillator();
-    oscillator2.type = waveTypes[Math.floor(Math.random() * waveTypes.length)];
-    const interval = [1.5, 2, 2.5, 3][Math.floor(Math.random() * 4)]; // Perfect fifth, octave, etc
+    oscillator2.type = 'triangle'; // Always use triangle for harmony
+    const interval = [1.5, 2][Math.floor(Math.random() * 2)]; // Perfect fifth or octave only
     oscillator2.frequency.setValueAtTime(baseFreq * interval, audioContext.currentTime);
 
     gainNode2 = audioContext.createGain();
     gainNode2.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode2.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + attackTime);
-    gainNode2.gain.linearRampToValueAtTime(sustainLevel * 0.15, audioContext.currentTime + attackTime + 0.1);
+    gainNode2.gain.linearRampToValueAtTime(0.08, audioContext.currentTime + attackTime);
+    gainNode2.gain.linearRampToValueAtTime(sustainLevel * 0.08, audioContext.currentTime + attackTime + 0.08);
 
     oscillator2.connect(gainNode2);
     gainNode2.connect(audioContext.destination);

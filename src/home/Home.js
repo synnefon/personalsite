@@ -91,13 +91,18 @@ export default function Home() {
     };
   }, []);
 
-  const calculateSafePosition = () => {
-    const duckSize = 96;
+  const calculateSafePosition = (currentPos) => {
+    const duckSize = 72;
     const navbarSafeZone = { width: 200, height: 200 }; // Avoid top-left navbar area
     const margin = 20; // Minimum margin from edges
+    const minDistance = 150; // Minimum distance from current position
 
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
+
+    // Get current position coordinates
+    const currentX = currentPos.left !== null ? currentPos.left : windowWidth - duckSize - margin;
+    const currentY = currentPos.top !== null ? currentPos.top : windowHeight - (currentPos.bottom || margin) - duckSize;
 
     // Get content wrapper bounds
     let contentBounds = null;
@@ -119,6 +124,9 @@ export default function Home() {
       const left = margin + Math.random() * (windowWidth - duckSize - 2 * margin);
       const top = margin + Math.random() * (windowHeight - duckSize - 2 * margin);
 
+      // Calculate distance from current position
+      const distance = Math.sqrt(Math.pow(left - currentX, 2) + Math.pow(top - currentY, 2));
+
       // Check if position overlaps with navbar (top-left)
       const overlapsNavbar = left < navbarSafeZone.width && top < navbarSafeZone.height;
 
@@ -133,7 +141,7 @@ export default function Home() {
         );
       }
 
-      if (!overlapsNavbar && !overlapsContent) {
+      if (!overlapsNavbar && !overlapsContent && distance >= minDistance) {
         return { left, top, bottom: null };
       }
 
@@ -153,7 +161,7 @@ export default function Home() {
     if (isPlaying) return;
 
     // Move duck to random position
-    setDuckPosition(calculateSafePosition());
+    setDuckPosition(calculateSafePosition(duckPosition));
 
     // Start playing sound
     setIsPlaying(true);
@@ -185,9 +193,9 @@ export default function Home() {
       // }}
     >
       <div className="content-wrapper home-colors" ref={contentWrapperRef}>
-        <div className="header-line">
+        <div className="header-line home-vertical">
           <h2 className="title">connor hopkins</h2>
-          <h5 className="description home-colors">
+          <h5 className="description home-colors home-subtitle">
             {/* <span className="bracket home-colors">{'{'}&nbsp;</span> */}
             <TypeAnimation
               className="description-text home-colors"
