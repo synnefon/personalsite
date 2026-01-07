@@ -19,11 +19,12 @@ const selectStyles = {
     ...baseStyles,
     color:'var(--alt-text-color)',
   }),
-  option: (baseStyles, { isFocused }) => ({
+  option: (baseStyles, { isFocused, isSelected }) => ({
     ...baseStyles,
     cursor: "var(--pointer)",
-    color:'var(--alt-text-color)',
-    backgroundColor: isFocused ?  "var(--text-color)" : "var(--alt-bg-color)" ,
+    color: isSelected ? 'var(--bg-color)' : 'var(--alt-text-color)',
+    backgroundColor: isSelected ? 'var(--tertiary)' : (isFocused ? "var(--text-color)" : "var(--alt-bg-color)"),
+    fontWeight: isSelected ? 'bold' : 'normal',
   }),
   menu: (baseStyles) => ({
     ...baseStyles,
@@ -40,6 +41,7 @@ export default function Shufflenator() {
   const [shuffleStrat, setShuffleStrat] = useState({value: "PILE", label: "PILE"});
   const [scoreType, setScoreType] = useState({value: "SHANNON_ENTROPY", label: "SHANNON_ENTROPY"});
   const [results, setResults] = useState(null);
+  const [showExplainer, setShowExplainer] = useState(false);
 
   const CardsInDeck = () => {
     return (
@@ -86,7 +88,7 @@ export default function Shufflenator() {
           maxValue={pileMax}
           onChange={onChange}
           preventWheel={true}
-          stepOnly={true}
+          stepOnly={false}
           ruler={false}
           label={false}
         />
@@ -177,6 +179,43 @@ export default function Shufflenator() {
 
   return (
     <div className="shufflenator">
+      <div className="shufflenator-header">
+        <h1 className="shufflenator-title">shufflenator</h1>
+        <button className="shufflenator-help-button" onClick={() => setShowExplainer(true)}>
+          ?
+        </button>
+      </div>
+
+      {showExplainer && (
+        <div className="shufflenator-modal-overlay" onClick={() => setShowExplainer(false)}>
+          <div className="shufflenator-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="shufflenator-modal-close" onClick={() => setShowExplainer(false)}>
+              ×
+            </button>
+            <div className="shufflenator-explainer">
+              <h2>how it works</h2>
+              <p>
+                this tool calculates the best pile shuffle pattern for thoroughly randomizing a deck of cards.
+                pile shuffling alone doesn't randomize—it performs a deterministic permutation.
+                but the right sequence of pile shuffles can spread cards maximally before you do your riffle shuffles.
+              </p>
+              <p>
+                configure your deck size, pile size range, and how many shuffles you want to perform.
+                the calculator will find the permutation that maximizes entropy (randomness) given your constraints.
+              </p>
+              <h2>understanding the output</h2>
+              <p>
+                the output shows the optimal number of piles to use for each shuffle. for example, if the output is <code>(8,8,10)</code>,
+                it means: do a pile shuffle into 8 piles, collect and shuffle into 8 piles again, then collect and shuffle into 10 piles.
+              </p>
+              <p>
+                this sequence spreads your cards maximally throughout the deck before you finish with your riffle shuffles.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className='shufflenator-selector'>
         {cardsInDeckInput.current}
         <PileSizeRange/>

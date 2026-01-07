@@ -12,6 +12,13 @@ export class PersonalAudio extends Audio {
         && this.readyState > 2;
   };
 
+  isPlaying = () => {
+    return this.currentTime > 0
+        && !this.paused
+        && !this.ended
+        && this.readyState > 2;
+  };
+
   timeLeft = () => this.duration - this.currentTime;
 
   reset = () => {

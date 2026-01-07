@@ -174,7 +174,7 @@ button:hover {
 
 .score {
   position: absolute;
-  top: calc(min(45vh, 55vw) + 13vh);
+  top: calc(10vh + 440px + 1em);
   font-size: 24px;
   color: var(--food-color);
   font-weight: bold;

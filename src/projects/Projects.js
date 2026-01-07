@@ -114,6 +114,16 @@ export default function Projects() {
             <p className="link-text proj-colors">sudoku</p>
             <p className="tooltip-text proj-colors">eternal classic</p>
           </Link>
+          <Link
+            className="link proj-colors"
+            to="/shufflenator"
+            rel="noreferrer"
+          >
+            <p className="link-text proj-colors">shufflenator</p>
+            <p className="tooltip-text proj-colors">
+              optimal shuffle pattern calculator
+            </p>
+          </Link>
           {/* <Link className="link proj-colors" to="/matchgame" rel="noreferrer">
             <p className="link-text proj-colors">sea match</p>
             <p className="tooltip-text proj-colors">a sea-themed memory game</p>
@@ -156,16 +166,6 @@ export default function Projects() {
             <p className="link-text proj-colors">toolbox</p>
             <p className="tooltip-text proj-colors">various utilities</p>
           </Link> */}
-          <Link
-            className="link proj-colors"
-            to="/shufflenator"
-            rel="noreferrer"
-          >
-            <p className="link-text proj-colors">shufflenator</p>
-            <p className="tooltip-text proj-colors">
-              optimal shuffle pattern calculator
-            </p>
-          </Link>
           {/* <Link className="link proj-colors" to="/wip" rel="noreferrer">
             <p className="link-text proj-colors">rpg tabletop</p>
             <p className="tooltip-text proj-colors">real-time updating battle maps, world maps, and images</p>

@@ -77,10 +77,10 @@ export default function About() {
   const TypeIt = ({ idx, desc, audioSrc }) => {
     const onFinishedTyping = () => {
       setTimeout(() => {
-        if (sfx.current.isPlayingSrc(audioSrc)) {
+        if (sfx.current.isPlaying()) {
           return setTimeout(
             onFinishedTyping,
-            sfx.current.timeLeft() * 1_000 - 2_000
+            sfx.current.timeLeft() * 1_000
           );
         }
         descriptions.at(idx + 1)?.setShowSelf(true);
