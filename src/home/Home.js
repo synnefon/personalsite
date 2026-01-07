@@ -122,9 +122,6 @@ export default function Home() {
             rel="noreferrer"
           >
             <p className="link-text home-colors">projects</p>
-            <p className="tooltip-text home-colors">
-              an assortment of web-accessible work
-            </p>
           </Link>
           <Link
             className="link about home-colors top right"

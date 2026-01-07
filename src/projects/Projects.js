@@ -19,9 +19,6 @@ export default function Projects() {
       <div className="content-wrapper proj-colors">
         <div className="header-line">
           <h2 className="title proj-colors">projects</h2>
-          <h5 className="description proj-colors">
-            assortment of web-accessible work{" "}
-          </h5>
         </div>
         <div className="links proj-colors">
           <a
@@ -49,9 +46,9 @@ export default function Projects() {
             to="/shavianator"
             rel="noreferrer"
           >
-            <p className="link-text proj-colors">shavianator</p>
+            <p className="link-text proj-colors">shavian transliterator</p>
             <p className="tooltip-text proj-colors">
-              shavian alphabet transliterator
+              english → shavian
             </p>
           </Link>
           {

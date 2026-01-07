@@ -37,6 +37,7 @@ export default function Sudoku() {
   const history = useRef([]);
   const future = useRef([]);
   const startTime = useRef(Date.now());
+  const previousSelectedVal = useRef(null);
 
   const [selectedVal, setSelectedVal] = useState(null);
   const [takingNotes, setTakingNotes] = useState(false);
@@ -158,6 +159,10 @@ export default function Sudoku() {
   const clearHighlights = () => {
     if (!highlightCell) return;
     setHighlightCell(null);
+    if (previousSelectedVal.current !== null) {
+      setSelectedVal(previousSelectedVal.current);
+      previousSelectedVal.current = null;
+    }
     const update = { highlightColor: null, textHighlight: null };
     for (let ridx = 0; ridx < 9; ridx++) {
       for (let cidx = 0; cidx < 9; cidx++) {
@@ -191,10 +196,18 @@ export default function Sudoku() {
   }
 
   const onBoardClick = (ridx, cidx) => {
+    const clickedCell = board.current[ridx][cidx];
+    const isClickingHighlightedCell = cellsEq(clickedCell, highlightCell);
+
     clearHighlights();
 
-    if (board.current[ridx][cidx].val === solvedBoard.current[ridx][cidx].val) {
-      highlightStuff(ridx, cidx);
+    if (clickedCell.val === solvedBoard.current[ridx][cidx].val) {
+      if (!isClickingHighlightedCell) {
+        // Highlighting - save current selectedVal and clear it
+        previousSelectedVal.current = selectedVal;
+        highlightStuff(ridx, cidx);
+        setSelectedVal(null);
+      }
     } else if (selectedVal === null) {
       forceRefresh();
     } else if (takingNotes) {
@@ -206,6 +219,7 @@ export default function Sudoku() {
 
   const onSelectorClick = (n) => {
     clearHighlights();
+    previousSelectedVal.current = null;
     if (selectedVal === null || selectedVal !== n) {
       setSelectedVal(n);
     } else {
