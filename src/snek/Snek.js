@@ -22,7 +22,7 @@ const COLs = 35;
 const ROWs = 20;
 const DEFAULT_SNEK_LENGTH = 6;
 const TICK_SPEED_MS = 125;
-const POINTS_PER_LEVEL = 1;
+const POINTS_PER_LEVEL = 5;
 const CELL = 22; // px per cell
 
 const UP = 0;
