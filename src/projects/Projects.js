@@ -1,16 +1,41 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import PaperPlaneAnimation from '../components/PaperPlaneAnimation';
+import PaperPlaneAnimation from "../components/PaperPlaneAnimation";
 
-import "../styles/projects.css";
 import "../styles/app.css";
+import "../styles/projects.css";
 
 export default function Projects() {
   const [planes, setPlanes] = useState([]);
+  const [gustState, setGustState] = useState({ strength: 0, angle: 0 });
+
+  // Generate gusts that affect all planes
+  useEffect(() => {
+    const generateGust = () => {
+      const gustStrength = 0.3 + Math.random() * 0.7; // 0.3 to 1.0
+      const gustAngle = (Math.random() - 0.5) * 0.3; // ±0.15 radians
+
+      setGustState({
+        strength: gustStrength,
+        angle: gustAngle,
+        timestamp: Date.now(),
+      });
+
+      // Schedule next gust (1.5 to 4 seconds later)
+      const nextGustDelay = (Math.random() * 2.5 + 1.5) * 1000;
+      return setTimeout(generateGust, nextGustDelay);
+    };
+
+    // Start first gust after 0.5-2.5 seconds
+    const firstGustDelay = (Math.random() * 2 + 0.5) * 1000;
+    const timeout = setTimeout(generateGust, firstGustDelay);
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   const handlePageClick = useCallback((e) => {
     // Check if click is on a link or inside a link
-    const isLink = e.target.closest('a') || e.target.closest('.link');
+    const isLink = e.target.closest("a") || e.target.closest(".link");
     if (isLink) return;
 
     // Get click position
@@ -22,10 +47,10 @@ export default function Projects() {
     // Determine direction: fly towards the further side
     // If click is on left half, fly right; if on right half, fly left
     const screenMidpoint = window.innerWidth / 2;
-    const direction = clickPosition.x < screenMidpoint ? 'right' : 'left';
+    const direction = clickPosition.x < screenMidpoint ? "right" : "left";
 
     // Random scenario selection for variety
-    const scenarios = ['equilibrium', 'zero-angle', 'fast'];
+    const scenarios = ["equilibrium", "zero-angle", "fast"];
     const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
 
     // Add new plane to the list
@@ -36,15 +61,19 @@ export default function Projects() {
       direction,
     };
 
-    setPlanes(prev => [...prev, newPlane]);
+    setPlanes((prev) => [...prev, newPlane]);
   }, []);
 
   const handleAnimationComplete = useCallback((planeId) => {
-    setPlanes(prev => prev.filter(p => p.id !== planeId));
+    setPlanes((prev) => prev.filter((p) => p.id !== planeId));
   }, []);
 
   return (
-    <div id="app-base" className="proj-colors paper-plane-cursor" onClick={handlePageClick}>
+    <div
+      id="app-base"
+      className="proj-colors paper-plane-cursor"
+      onClick={handlePageClick}
+    >
       <div className="content-wrapper proj-colors">
         <div className="header-line">
           <h2 className="title proj-colors">projects</h2>
@@ -70,15 +99,9 @@ export default function Projects() {
               cellular automata simulator
             </p>
           </Link>
-          <Link
-            className="link proj-colors"
-            to="/shavianator"
-            rel="noreferrer"
-          >
+          <Link className="link proj-colors" to="/shavianator" rel="noreferrer">
             <p className="link-text proj-colors">shavian transliterator</p>
-            <p className="tooltip-text proj-colors">
-              english → shavian
-            </p>
+            <p className="tooltip-text proj-colors">english → shavian</p>
           </Link>
           {
             <Link className="link proj-colors" to="/snek" rel="noreferrer">
@@ -156,12 +179,13 @@ export default function Projects() {
       </div>
 
       {/* Render all active paper planes */}
-      {planes.map(plane => (
+      {planes.map((plane) => (
         <PaperPlaneAnimation
           key={plane.id}
           startPosition={plane.startPosition}
           scenario={plane.scenario}
           direction={plane.direction}
+          gustState={gustState}
           onComplete={() => handleAnimationComplete(plane.id)}
         />
       ))}

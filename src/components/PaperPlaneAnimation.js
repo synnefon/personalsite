@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { simulateFlight, getInitialConditions, trajectoryToScreenCoordinates } from '../utils/paperPlanePhysics';
+import { getInitialConditions } from '../utils/paperPlanePhysics';
 
 import '../styles/paperPlane.css';
 
@@ -7,35 +7,67 @@ import '../styles/paperPlane.css';
  * Animated paper airplane component
  * Simulates realistic glide physics when triggered
  */
-const PaperPlaneAnimation = ({ startPosition, onComplete, scenario = 'equilibrium', direction = 'right' }) => {
-  const [currentFrame, setCurrentFrame] = useState(0);
-  const [trajectory, setTrajectory] = useState([]);
+const PaperPlaneAnimation = ({ startPosition, onComplete, scenario = 'equilibrium', direction = 'right', gustState }) => {
+  const [position, setPosition] = useState(null);
   const animationRef = useRef(null);
-  const startTimeRef = useRef(null);
+  const stateRef = useRef(null);
+  const lastGustTimestampRef = useRef(0);
+  const offscreenTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (!startPosition) return;
 
-    // Generate flight trajectory
+    // Initialize simulation state
     const initialConditions = getInitialConditions(scenario);
-    const flightPath = simulateFlight(initialConditions);
-    const screenPath = trajectoryToScreenCoordinates(flightPath, startPosition, direction);
+    stateRef.current = { ...initialConditions };
 
-    setTrajectory(screenPath);
-    startTimeRef.current = Date.now();
+    // Physics constants
+    const S = 0.017, m = 0.003, rho = 1.225, g = 9.8;
+    const AR = 0.86, e = 0.9, CD0 = 0.02;
+    const K = 1 / (Math.PI * e * AR);
+    const CLeq = Math.sqrt(CD0 / K);
+    const CDeq = CD0 + K * CLeq ** 2;
+    const dt = 0.01;
+    const initialHeight = stateRef.current.H;
+    const scale = 100;
 
-    // Animate
+    // Animate with real-time simulation
     const animate = () => {
-      const elapsed = (Date.now() - startTimeRef.current) / 1000; // seconds
-      const frameIndex = Math.floor(elapsed / 0.01); // Match physics dt = 0.01s
+      const state = stateRef.current;
+      if (!state) return;
 
-      if (frameIndex < screenPath.length) {
-        setCurrentFrame(frameIndex);
-        animationRef.current = requestAnimationFrame(animate);
-      } else {
-        // Animation complete
-        onComplete?.();
+      // Step physics (simple Euler integration)
+      const q = 0.5 * rho * state.V ** 2;
+      const L = q * S * CLeq, D = q * S * CDeq;
+      const dVdt = -(D + m * g * Math.sin(state.Gam)) / m;
+      const dGamdt = (L - m * g * Math.cos(state.Gam)) / (m * state.V);
+      const dHdt = state.V * Math.sin(state.Gam);
+      const dRangedt = state.V * Math.cos(state.Gam);
+
+      state.V += dVdt * dt;
+      state.Gam += dGamdt * dt;
+      state.H += dHdt * dt;
+      state.Range += dRangedt * dt;
+
+      // Convert to screen coordinates
+      const directionMultiplier = direction === 'left' ? -1 : 1;
+      const x = startPosition.x + state.Range * scale * directionMultiplier;
+      const y = startPosition.y + (initialHeight - state.H) * scale;
+      const angle = (Math.PI / 4 - state.Gam) * (180 / Math.PI);
+
+      // Check if plane is off screen
+      const isOffScreen = x < -100 || x > window.innerWidth + 100 ||
+                          y < -100 || y > window.innerHeight + 100;
+
+      if (isOffScreen && !offscreenTimeoutRef.current) {
+        // Schedule cleanup 1 second after going offscreen
+        offscreenTimeoutRef.current = setTimeout(() => {
+          onComplete?.();
+        }, 1000);
       }
+
+      setPosition({ x, y, angle });
+      animationRef.current = requestAnimationFrame(animate);
     };
 
     animationRef.current = requestAnimationFrame(animate);
@@ -44,15 +76,28 @@ const PaperPlaneAnimation = ({ startPosition, onComplete, scenario = 'equilibriu
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      if (offscreenTimeoutRef.current) {
+        clearTimeout(offscreenTimeoutRef.current);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startPosition, scenario, direction]);
 
-  if (!trajectory.length || currentFrame >= trajectory.length) {
+  // Apply gusts without restarting the simulation
+  useEffect(() => {
+    if (gustState?.timestamp && gustState.timestamp !== lastGustTimestampRef.current && stateRef.current) {
+      stateRef.current.V *= (1 + gustState.strength * 0.3);
+      stateRef.current.Gam += gustState.angle;
+      lastGustTimestampRef.current = gustState.timestamp;
+    }
+  }, [gustState]);
+
+  if (!position) {
     return null;
   }
 
-  const position = trajectory[currentFrame];
+  // Determine scaleX based on initial direction
+  const scaleX = direction === 'left' ? -1 : 1;
 
   return (
     <div
@@ -61,7 +106,7 @@ const PaperPlaneAnimation = ({ startPosition, onComplete, scenario = 'equilibriu
         position: 'fixed',
         left: `${position.x}px`,
         top: `${position.y}px`,
-        transform: `translate(-50%, -50%) scaleX(${direction === 'left' ? -1 : 1}) rotate(${position.angle}deg)`,
+        transform: `translate(-50%, -50%) scaleX(${scaleX}) rotate(${position.angle}deg)`,
         pointerEvents: 'none',
         zIndex: 9999,
         transition: 'none',
