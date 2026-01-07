@@ -22,7 +22,7 @@ const COLs = 35;
 const ROWs = 20;
 const DEFAULT_SNEK_LENGTH = 6;
 const TICK_SPEED_MS = 125;
-const POINTS_PER_LEVEL = 5;
+const POINTS_PER_LEVEL = 1;
 const CELL = 22; // px per cell
 
 const UP = 0;
@@ -346,16 +346,25 @@ export default function Snek() {
   }, [validFoodCell, eraseFood, drawFood]);
 
   const eatFood = useCallback(() => {
-    setPoints((p) => {
-      const next = p + 1;
-      if (!isColorBlindMode && next % POINTS_PER_LEVEL === 0)
-        setHueRotateDeg((d) => d + 43.5); // keep the original bump
-      if (next >= POINTS_PER_LEVEL && next % POINTS_PER_LEVEL === 0) {
+    setPoints((prevPoints) => {
+      const newPoints = prevPoints + 1;
+
+      if (!isColorBlindMode && newPoints % POINTS_PER_LEVEL === 0) {
+        setHueRotateDeg((deg) =>
+          deg === 0
+            ? Math.floor(Math.random() * (360 - (deg + 43.5)))
+            : deg + 43.5
+        );
+      }
+
+      if (newPoints >= POINTS_PER_LEVEL && newPoints % POINTS_PER_LEVEL === 0) {
         spawnObstacle();
         spawnObstacle();
       }
-      return next;
+
+      return newPoints;
     });
+
     populateFoodBall();
   }, [isColorBlindMode, spawnObstacle, populateFoodBall]);
 
@@ -621,7 +630,10 @@ export default function Snek() {
   return (
     <>
       <ColorBlindToggle />
-      <div id="app-base" className={`snek-colors ${isColorBlindMode ? 'colorblind-mode' : ''}`}>
+      <div
+        id="app-base"
+        className={`snek-colors ${isColorBlindMode ? "colorblind-mode" : ""}`}
+      >
         <div
           className="game-container"
           style={{ cursor: isPlaying ? "none" : "inherit" }}
