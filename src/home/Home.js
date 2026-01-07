@@ -10,7 +10,10 @@ import "../styles/home.css";
 export default function Home() {
   const [duckOrange, setDuckOrange] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [duckPosition, setDuckPosition] = useState({ left: 30, top: null, bottom: 10 });
+  const [duckPosition, setDuckPosition] = useState(() => {
+    const saved = sessionStorage.getItem('duckPosition');
+    return saved ? JSON.parse(saved) : { left: 30, top: null, bottom: 10 };
+  });
   const soundStopRef = useRef(null);
   const contentWrapperRef = useRef(null);
 
@@ -73,6 +76,11 @@ export default function Home() {
   useEffect(() => {
     document.getElementById("app-base").setAttribute("class", "");
   }, []);
+
+  // Save duck position to sessionStorage whenever it changes
+  useEffect(() => {
+    sessionStorage.setItem('duckPosition', JSON.stringify(duckPosition));
+  }, [duckPosition]);
 
   // Cleanup on unmount
   useEffect(() => {
