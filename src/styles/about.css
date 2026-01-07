@@ -143,6 +143,7 @@ button#skip-button {
   border: none;
   background-color: transparent;
   color: var(--text-color);
+  font-family: ShareTechMono, sans-serif;
   font-size: calc(12px + 1.5vmin) !important;
   cursor: var(--pointer);
   opacity: 0;
