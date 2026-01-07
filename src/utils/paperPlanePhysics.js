@@ -116,6 +116,7 @@ export function simulateFlight(initialConditions, duration = 30, dt = 0.01) {
   const trajectory = [];
   let state = { ...initialConditions };
   let time = 0;
+  let nextGustTime = Math.random() * 2 + 0.5; // First gust between 0.5-2.5 seconds
 
   trajectory.push({ time, ...state });
 
@@ -123,6 +124,21 @@ export function simulateFlight(initialConditions, duration = 30, dt = 0.01) {
   while (state.H > 0) {
     state = rungeKutta4Step(state, CL, CD, dt);
     time += dt;
+
+    // Apply occasional strong gusts
+    if (time >= nextGustTime) {
+      // Random gust strength and direction
+      const gustStrength = 0.3 + Math.random() * 0.7; // 0.3 to 1.0
+      const gustAngle = (Math.random() - 0.5) * 0.3; // ±0.15 radians (~8.6 degrees)
+
+      // Apply gust as sudden change in velocity and flight path angle
+      state.V *= (1 + gustStrength * 0.3); // Up to 30% velocity change
+      state.Gam += gustAngle; // Angle perturbation
+
+      // Schedule next gust (1.5 to 4 seconds later)
+      nextGustTime = time + Math.random() * 2.5 + 1.5;
+    }
+
     trajectory.push({ time, ...state });
   }
 

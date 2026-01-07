@@ -1,9 +1,17 @@
 .paper-plane-animated {
   will-change: transform, left, top;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .paper-plane-icon {
   display: block;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .paper-plane-cursor {
