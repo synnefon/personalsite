@@ -2,16 +2,14 @@
    COLOR THEME
    ============================================ */
 
-body:has(#app-base.snek-colors) {
-  --text-color: rgb(234, 234, 247) !important;
-}
-
 .snek-colors {
   --bg-color: rgb(95, 93, 156) !important;
+  --text-color: rgb(234, 234, 247) !important;
   --inv-text-color: var(--bg-color) !important;
   --inv-bg-color: var(--text-color) !important;
   --hue-rotate: 0deg;
   --food-color: #3cff00;
+  background-color: rgb(95, 93, 156) !important;
 }
 
 
@@ -59,7 +57,7 @@ body:has(#app-base.snek-colors) {
   top: 10vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-color);
+  background-color: transparent;
   border: 2px solid var(--text-color);
 }
 
@@ -238,4 +236,41 @@ button:hover {
 
 #board-wrap .game-over {
   z-index: 3;
+}
+
+
+/* ============================================
+   COLORBLIND MODE OVERRIDES
+   ============================================ */
+
+.snek-colors.colorblind-mode {
+  --bg-color: #000000 !important;
+  --text-color: #ffffff !important;
+  --food-color: #ffffff !important;
+  background-color: #000000 !important;
+}
+
+.snek-colors.colorblind-mode .board {
+  background-color: transparent !important;
+  border-color: #ffffff !important;
+}
+
+.snek-colors.colorblind-mode button {
+  background-color: #000000 !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+.snek-colors.colorblind-mode button:hover {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+.snek-colors.colorblind-mode .score {
+  color: #ffffff !important;
+}
+
+.snek-colors.colorblind-mode .game-over-text {
+  color: #ffffff !important;
 }
