@@ -84,7 +84,20 @@
 
 .nav-icon.active,
 .nav-link:hover .nav-icon {
-  filter: brightness(0) saturate(100%) invert(50%) sepia(100%) saturate(500%) hue-rotate(10deg);
+  filter: brightness(0) saturate(100%) invert(59%) sepia(89%) saturate(1588%) hue-rotate(360deg) brightness(102%) contrast(101%);
+}
+
+/* ============================================
+   SHAVIANATOR PAGE OVERRIDE
+   ============================================ */
+
+body:has(#app-base.shavianator-colors) .nav-icon {
+  filter: brightness(0) saturate(100%) invert(0%);
+}
+
+body:has(#app-base.shavianator-colors) .nav-icon.active,
+body:has(#app-base.shavianator-colors) .nav-link:hover .nav-icon {
+  filter: brightness(0) saturate(100%) invert(59%) sepia(89%) saturate(1588%) hue-rotate(360deg) brightness(102%) contrast(101%);
 }
 
 /* ============================================
