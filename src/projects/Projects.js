@@ -1,21 +1,50 @@
-// import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Link } from "react-router-dom";
-
-// import Raincloud from '../raincloud/Raincloud';
+import PaperPlaneAnimation from '../components/PaperPlaneAnimation';
 
 import "../styles/projects.css";
 import "../styles/app.css";
 
 export default function Projects() {
-  // const [showLightning, setShowLightning] = useState(false);
+  const [planes, setPlanes] = useState([]);
 
-  // useEffect(() => {
-  //   document.getElementById("footer").style.backgroundColor = `${showLightning ? 'transparent' : ''}`;
-  // }, [showLightning])
+  const handlePageClick = useCallback((e) => {
+    // Check if click is on a link or inside a link
+    const isLink = e.target.closest('a') || e.target.closest('.link');
+    if (isLink) return;
+
+    // Get click position
+    const clickPosition = {
+      x: e.clientX,
+      y: e.clientY,
+    };
+
+    // Determine direction: fly towards the further side
+    // If click is on left half, fly right; if on right half, fly left
+    const screenMidpoint = window.innerWidth / 2;
+    const direction = clickPosition.x < screenMidpoint ? 'right' : 'left';
+
+    // Random scenario selection for variety
+    const scenarios = ['equilibrium', 'zero-angle', 'fast'];
+    const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+
+    // Add new plane to the list
+    const newPlane = {
+      id: Date.now(),
+      startPosition: clickPosition,
+      scenario,
+      direction,
+    };
+
+    setPlanes(prev => [...prev, newPlane]);
+  }, []);
+
+  const handleAnimationComplete = useCallback((planeId) => {
+    setPlanes(prev => prev.filter(p => p.id !== planeId));
+  }, []);
 
   return (
-    // <div id="app-base" className={`proj-colors ${showLightning ? 'lightning' : ''}`}>
-    <div id="app-base" className="proj-colors">
+    <div id="app-base" className="proj-colors paper-plane-cursor" onClick={handlePageClick}>
       <div className="content-wrapper proj-colors">
         <div className="header-line">
           <h2 className="title proj-colors">projects</h2>
@@ -125,6 +154,17 @@ export default function Projects() {
         </div>
         {/* <Raincloud showLightning={showLightning} setShowLightning={setShowLightning}/> */}
       </div>
+
+      {/* Render all active paper planes */}
+      {planes.map(plane => (
+        <PaperPlaneAnimation
+          key={plane.id}
+          startPosition={plane.startPosition}
+          scenario={plane.scenario}
+          direction={plane.direction}
+          onComplete={() => handleAnimationComplete(plane.id)}
+        />
+      ))}
     </div>
   );
 }
