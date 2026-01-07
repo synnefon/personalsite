@@ -242,7 +242,7 @@ body:has(#app-base.sudoku-colors) {
   margin-top: 5px;
   margin-bottom: 20px;
   display: inline-grid;
-  grid-template-columns: 16.66% 16.66% 33.33% 33.33%;
+  grid-template-columns: 20% 20% 60%;
   justify-content: center;
 }
 
@@ -258,12 +258,7 @@ body:has(#app-base.sudoku-colors) {
   justify-self: start;
 }
 .sudoku-control-pane.redo {
-  justify-self: start;
-}
-.sudoku-control-pane.timer {
   justify-self: center;
-  justify-content: center;
-  text-align: center;
 }
 .sudoku-control-pane.pencil {
   justify-self: end;
@@ -349,6 +344,8 @@ p.control.timer.selected {
   margin-top: 20%;
   text-align: center;
   font-size: var(--small-font);
+  grid-column: 1 / 2;
+  justify-self: center;
 }
 
 /* ============================================
@@ -454,6 +451,33 @@ p.control.timer.selected {
   color: var(--text-color);
 }
 
+.sudoku-top-bar {
+  position: relative;
+  width: 100%;
+  height: fit-content;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.timer-display {
+  font-size: var(--large-font);
+  font-family: ShareTechMono;
+  color: var(--text-color);
+  cursor: var(--pointer);
+}
+
+.timer-display.paused {
+  color: var(--text-highlight);
+}
+
+.mistakes-display {
+  font-size: var(--large-font);
+  font-family: ShareTechMono;
+  color: var(--text-color);
+}
+
 .save-load {
   width: 100%;
   display: inline-grid;
@@ -465,11 +489,14 @@ p.control.timer.selected {
   top: inherit;
   width: fit-content;
   height: fit-content;
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: center;
   border: 0 !important;
   border-radius: 10%;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  cursor: var(--pointer);
   transition: color, background-color, display 0.8s ease-in !important;
 }
 
@@ -481,8 +508,8 @@ p.control.timer.selected {
 }
 
 .save-load-button:hover {
-  background-color: inherit;
-  color: inherit;
+  background-color: var(--bg-color);
+  color: var(--text-color);
   border: 3px solid var(--text-color);
 }
 
@@ -515,6 +542,8 @@ img.database.upload {
 .save-load-text {
   margin-bottom: 5px;
   font-size: var(--small-font) !important;
+  font-family: ShareTechMono;
+  color: var(--text-color);
 }
 
 .save-key-button {
@@ -568,9 +597,13 @@ img.database.upload {
 
 @media screen and (min-width: 501px) {
   .save-load-button:hover {
-    color: var(--bg-color);
+    color: var(--bg-color) !important;
     background-color: var(--alt-text-color);
     border: none;
+  }
+
+  .save-load-button:hover .save-load-text {
+    color: var(--bg-color) !important;
   }
 
   .save-load-button:hover > .database.upload {

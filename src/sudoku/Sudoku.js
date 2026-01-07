@@ -218,6 +218,11 @@ export default function Sudoku() {
   }
 
   const onBoardClick = (ridx, cidx) => {
+    // Start timer if not running
+    if (!runTimer) {
+      toggleTime(true);
+    }
+
     const clickedCell = board.current[ridx][cidx];
     const isClickingHighlightedCell = cellsEq(clickedCell, highlightCell);
 
@@ -240,6 +245,11 @@ export default function Sudoku() {
   }
 
   const onSelectorClick = (n) => {
+    // Start timer if not running
+    if (!runTimer) {
+      toggleTime(true);
+    }
+
     clearHighlights();
     previousSelectedVal.current = null;
     if (selectedVal === null || selectedVal !== n) {
@@ -251,6 +261,11 @@ export default function Sudoku() {
 
   const travelThroughTime = (from, to) => {
     if (to.current.length === 0) return;
+
+    // Start timer if not running
+    if (!runTimer) {
+      toggleTime(true);
+    }
 
     clearHighlights();
 
@@ -370,6 +385,7 @@ export default function Sudoku() {
               toggleTime={toggleTime}
               runTimer={runTimer}
               loadBoard={loadBoard}
+              timerMillis={timerMillis}
             />
             <DisplayableBoard
               onBoardClick={onBoardClick}
@@ -386,11 +402,11 @@ export default function Sudoku() {
             <ControlPanel
               onUndo={onUndo}
               onRedo={onRedo}
-              runTimer={runTimer}
-              toggleTime={toggleTime}
-              timerMillis={timerMillis}
               takingNotes={takingNotes}
-              setTakingNotes={setTakingNotes}
+              setTakingNotes={(b) => {
+                if (!runTimer) toggleTime(true);
+                setTakingNotes(b);
+              }}
             />
           </>
           : <WinScreen

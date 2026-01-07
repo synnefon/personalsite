@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { formatTime } from './Util';
 
-export default function TopBar({ mistakes, saveBoard, toggleTime, runTimer, loadBoard }) {
+export default function TopBar({ mistakes, saveBoard, toggleTime, runTimer, loadBoard, timerMillis }) {
   const [showLoadPopup, setShowLoadPopup] = useState(false);
   const [showNotifyPopup, setShowNotifyPopup] = useState(false);
   const [NotifyPopupMsg, setNotifyPopupMsg] = useState("");
@@ -73,14 +74,17 @@ export default function TopBar({ mistakes, saveBoard, toggleTime, runTimer, load
   };
 
   return (
-    <div className='save-load'>
+    <div className='sudoku-top-bar'>
+      <div className={`timer-display${!runTimer ? ' paused' : ''}`} onClick={() => toggleTime(!runTimer)}>
+        {formatTime(timerMillis)}
+      </div>
+      <div className='mistakes-display'>{mistakes}</div>
       <button className="save-load-button" onClick={onOpenLoadPopup}>
         <img alt="download" className="database download" />
         <div className="save-load-text">load game</div>
       </button>
       <LoadPopup />
       <NotifyPopup />
-      <div className='mistakes'>mistakes: {mistakes}</div>
       <button className="save-load-button" onClick={onSave}>
         <img alt="upload" className="database upload" />
         <div className="save-load-text">save game</div>
