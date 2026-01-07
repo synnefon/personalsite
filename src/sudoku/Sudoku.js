@@ -31,7 +31,29 @@ const countInstances = (board, n) => {
 export default function Sudoku() {
   const ALL_NUMS = useMemo(() => Array.from({ length: 9 }, (_, i) => String(i + 1)), []);
 
-  const sudoku = useMemo(() => makeSudoku(), []);
+  const getSeedFromUrl = () => {
+    const hash = window.location.hash;
+    const hashParts = hash.split('?');
+    const params = new URLSearchParams(hashParts[1] || '');
+    return params.get('seed') || null;
+  };
+
+  const [currentSeed, setCurrentSeed] = useState(() => {
+    // On initial load, clear any seed from URL to generate a new puzzle
+    const hash = window.location.hash;
+    const hashParts = hash.split('?');
+    if (hashParts[1]) {
+      const params = new URLSearchParams(hashParts[1]);
+      if (params.has('seed')) {
+        // Clear the seed from URL on reload
+        params.delete('seed');
+        const newHash = params.toString() ? `${hashParts[0]}?${params.toString()}` : hashParts[0];
+        window.history.replaceState({}, '', `${window.location.pathname}${newHash}`);
+      }
+    }
+    return null;
+  });
+  const sudoku = useMemo(() => makeSudoku(currentSeed), [currentSeed]);
   const board = useRef(makeColorBoard(sudoku.board));
   const solvedBoard = useRef(makeColorBoard(sudoku.solvedBoard));
   const history = useRef([]);
@@ -292,6 +314,48 @@ export default function Sudoku() {
 
     return () => clearTimeout(timeout);
   }, [timerMillis, runTimer]);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const newSeed = getSeedFromUrl();
+      if (newSeed !== currentSeed) {
+        setCurrentSeed(newSeed);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [currentSeed]);
+
+  useEffect(() => {
+    board.current = makeColorBoard(sudoku.board);
+    solvedBoard.current = makeColorBoard(sudoku.solvedBoard);
+    history.current = [];
+    future.current = [];
+    startTime.current = Date.now();
+    previousSelectedVal.current = null;
+    setSelectedVal(null);
+    setTakingNotes(false);
+    setHighlightCell(null);
+    setMistakes(0);
+    setTimerMillis(0);
+    setRunTimer(true);
+    setNotesTaken(0);
+    forceRefresh();
+  }, [sudoku]);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    const hashParts = hash.split('?');
+    const hashPath = hashParts[0];
+    const params = new URLSearchParams(hashParts[1] || '');
+    const urlSeed = params.get('seed');
+
+    if (urlSeed !== String(sudoku.randomSeed)) {
+      params.set('seed', sudoku.randomSeed);
+      window.history.replaceState({}, '', `${window.location.pathname}${hashPath}?${params.toString()}`);
+    }
+  }, [sudoku.randomSeed]);
 
   const valCounts = ALL_NUMS.map(n => countInstances(board.current, n));
 

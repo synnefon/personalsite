@@ -103,9 +103,18 @@ const unsolveSudoku = (board, rng) => {
   }
 }
 
-export const makeSudoku = () => {
+const generateRandomSeed = () => {
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+  let seed = '';
+  for (let i = 0; i < 16; i++) {
+    seed += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return seed;
+};
+
+export const makeSudoku = (providedSeed = null) => {
   console.log(new Date())
-  const seed = Math.random() * 1_000;
+  const seed = providedSeed !== null ? providedSeed : generateRandomSeed();
   const rng = seedrandom(seed);
   const board = makeBlankBoard(9);
   solveSudoku({ board: board, rng });
