@@ -172,23 +172,23 @@ button#skip-button:hover::before {
 
 img#person-icon {
   position: absolute;
-  left: 4%;
+  left: 2%;
   bottom: 0;
-  width: min(5em, 11vw);
-  content: url("../assets/about/person.png");
+  width: min(7em, 14vw);
   cursor: var(--pointer);
-  transition: left 0.7s ease-in-out;
+  filter: brightness(0) saturate(100%) invert(94%) sepia(13%) saturate(124%) hue-rotate(318deg) brightness(106%) contrast(100%);
+  transition: left 0.7s ease-in-out, filter 0.4s ease-out;
 }
 
 *.hovered-person {
-  content: url("../assets/about/orange_person.png") !important;
+  filter: brightness(0) saturate(100%) invert(59%) sepia(89%) saturate(1588%) hue-rotate(360deg) brightness(102%) contrast(101%) !important;
   pointer-events: auto;
   animation: wiggle 0.3s linear;
 }
 
 .invisible {
-  left: -6em !important;
-  content: url("../assets/about/orange_person.png") !important;
+  left: -8em !important;
+  filter: brightness(0) saturate(100%) invert(59%) sepia(89%) saturate(1588%) hue-rotate(360deg) brightness(102%) contrast(101%) !important;
 }
 
 img#self-gif {

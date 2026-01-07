@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import selfGif from '../assets/about/self.gif';
+import personIcon from '../assets/nav_icons/child-head.svg';
 
 
 export default function Self({listExpanded}) {
@@ -71,17 +72,18 @@ export default function Self({listExpanded}) {
 
   return (
     <>
-      <img 
+      <img
         id="person-icon"
+        src={personIcon}
         className={`${showSelf ? 'invisible' : ''}`}
         alt="a pixelated person"
         onClick={toggleShowSelf}
         onMouseEnter={() => hasWiggled.current = true}
       />
-      <img 
+      <img
         id="self-gif"
         alt="a gif of the author waving"
-        src={selfGif} 
+        src={selfGif}
         style={{display: showSelf ? 'block' : 'none'}}
         onMouseEnter={() => hasWiggled.current = true}
       />
