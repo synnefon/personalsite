@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { Route, HashRouter as Router, Routes } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { Route, HashRouter as Router, Routes, useLocation } from "react-router-dom";
 import Footer from "./Footer";
 import Navbar from "./Navbar";
 import { ColorBlindModeProvider } from "./context/ColorBlindModeContext";
@@ -17,10 +17,23 @@ const Snek = lazy(() => import("./snek/Snek"));
 const Sudoku = lazy(() => import("./sudoku/Sudoku"));
 const Toolbox = lazy(() => import("./toolbox/Toolbox.js"));
 
+function TitleUpdater() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const path = location.pathname;
+    const pageName = path === "/" ? "home" : path.substring(1);
+    document.title = `connor.${pageName}`;
+  }, [location]);
+
+  return null;
+}
+
 function App() {
   return (
     <ColorBlindModeProvider>
       <Router>
+        <TitleUpdater />
         <Navbar />
         <Suspense
           fallback={
