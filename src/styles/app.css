@@ -203,14 +203,18 @@ div#footer {
 
 @media screen and (max-width: 600px) {
   .content-wrapper {
-    width: 80%;
+    width: 90%;
     margin-top: 50px;
+  }
+
+  .tooltip-text {
+    display: none;
   }
 }
 
 @media screen and (max-width: 500px) {
   .content-wrapper {
-    width: 90%;
+    width: 95%;
     overflow-y: hidden;
   }
 
