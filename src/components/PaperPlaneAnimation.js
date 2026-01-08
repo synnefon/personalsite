@@ -49,7 +49,6 @@ const PaperPlaneAnimation = ({
   const offscreenCheckRef = useRef(null);
   const wasOffscreenRef = useRef(false);
   const windVelocityRef = useRef({ vx: 0, vy: 0 }); // Current wind velocity affecting the plane
-  const initialHeightRef = useRef(null);
 
   // Helper functions for gust handling
   function getPlaneXPosition(state, startPosition, direction) {
@@ -60,8 +59,9 @@ const PaperPlaneAnimation = ({
     );
   }
 
-  function getPlaneYPosition(state, startPosition, initialHeight) {
-    return startPosition.y + (initialHeight - state.H) * COORDINATE_SCALE;
+  function getPlaneYPosition(state, startPosition) {
+    // state.H is altitude change: negative = descended, positive = ascended
+    return startPosition.y - state.H * COORDINATE_SCALE;
   }
 
   function calculatePositionalGustEffect(gustState, planeX, planeY) {
@@ -72,19 +72,13 @@ const PaperPlaneAnimation = ({
       return null; // Plane is outside gust column
     }
 
-    // Calculate vertical distance from fan (negative = plane is above fan)
-    const verticalDistance = planeY - gustState.sourceY;
+    // Calculate vertical distance from fan (both above and below)
+    const verticalDistance = Math.abs(planeY - gustState.sourceY);
 
-    // Only affect planes above the fan
-    if (verticalDistance >= 0) {
-      return null; // Plane is below or at fan level
-    }
-
-    // Inverse falloff based on vertical distance: 100% at fan, 50% at referenceDistance above
+    // Inverse falloff based on vertical distance: 100% at fan, 50% at referenceDistance away
     const refDist =
       gustState.referenceDistance || DEFAULT_GUST_REFERENCE_DISTANCE;
-    const distanceAboveFan = Math.abs(verticalDistance);
-    const effectMultiplier = 1 / (1 + distanceAboveFan / refDist);
+    const effectMultiplier = 1 / (1 + verticalDistance / refDist);
 
     // Calculate wind speed (m/s)
     const windSpeed =
@@ -112,11 +106,10 @@ const PaperPlaneAnimation = ({
     state,
     startPosition,
     direction,
-    initialHeight,
     windVelocityRef
   ) {
     const planeX = getPlaneXPosition(state, startPosition, direction);
-    const planeY = getPlaneYPosition(state, startPosition, initialHeight);
+    const planeY = getPlaneYPosition(state, startPosition);
     const windVelocity = calculatePositionalGustEffect(
       gustState,
       planeX,
@@ -132,7 +125,7 @@ const PaperPlaneAnimation = ({
 
   // Update wind velocity based on gusts
   useEffect(() => {
-    if (!stateRef.current || !initialHeightRef.current) return;
+    if (!stateRef.current) return;
 
     if (
       gustState?.sourceX !== undefined &&
@@ -145,13 +138,13 @@ const PaperPlaneAnimation = ({
         stateRef.current,
         startPosition,
         direction,
-        initialHeightRef.current,
         windVelocityRef
       );
     } else if (gustState?.timestamp) {
       // Global gust - instant velocity boost
       applyGlobalGust(stateRef.current, gustState, lastGustTimestampRef);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gustState, direction, startPosition.x, startPosition.y]);
 
   useEffect(() => {
@@ -161,19 +154,17 @@ const PaperPlaneAnimation = ({
     const initialConditions = getInitialConditions();
     stateRef.current = { ...initialConditions };
 
-    const initialHeight = stateRef.current.H;
-    initialHeightRef.current = initialHeight;
     const scale = COORDINATE_SCALE;
 
     function getScreenCoords(
       startPosition,
       state,
-      initialHeight,
       scale,
       directionMultiplier
     ) {
       const x = startPosition.x + state.Range * scale * directionMultiplier;
-      const y = startPosition.y + (initialHeight - state.H) * scale;
+      // state.H is altitude change: negative = descended, positive = ascended
+      const y = startPosition.y - state.H * scale;
       const angle = (ANGLE_OFFSET_RADIANS - state.Gam) * RADIANS_TO_DEGREES;
       return { x, y, angle };
     }
@@ -202,7 +193,6 @@ const PaperPlaneAnimation = ({
       const { x, y, angle } = getScreenCoords(
         startPosition,
         state,
-        initialHeight,
         scale,
         directionMultiplier
       );
@@ -236,7 +226,7 @@ const PaperPlaneAnimation = ({
       const directionMultiplier =
         direction === "left" ? DIRECTION_LEFT : DIRECTION_RIGHT;
       const x = startPosition.x + state.Range * scale * directionMultiplier;
-      const y = startPosition.y + (initialHeight - state.H) * scale;
+      const y = startPosition.y - state.H * scale;
 
       const isOffScreen =
         x < -OFFSCREEN_BUFFER ||

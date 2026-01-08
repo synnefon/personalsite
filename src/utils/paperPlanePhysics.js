@@ -34,12 +34,10 @@ export const DEGREES_TO_RADIANS = Math.PI / 180;
 const degToRad = (deg) => deg * DEGREES_TO_RADIANS;
 
 // Initial conditions ranges
-export const MAX_SPEED_MULTIPLIER = 1.2;
-export const MIN_SPEED_MULTIPLIER = 0.8;
-export const MAX_ANGLE = 10;
+export const MAX_SPEED_MULTIPLIER = 1.3;
+export const MIN_SPEED_MULTIPLIER = 0.7;
+export const MAX_ANGLE = 25;
 export const MIN_ANGLE = -15;
-export const MAX_HEIGHT = 20;
-export const MIN_HEIGHT = 10;
 
 // ============================================================================
 // CALCULATED VALUES (derived from global constants)
@@ -82,8 +80,8 @@ export function getInitialConditions() {
     degToRad(MIN_ANGLE) +
     Math.random() * (degToRad(MAX_ANGLE) - degToRad(MIN_ANGLE));
 
-  // Random starting height: 10m to 20m
-  const H = MIN_HEIGHT + Math.random() * (MAX_HEIGHT - MIN_HEIGHT);
+  // Start at H=0, track altitude change from click position
+  const H = 0;
 
   return {
     V,
