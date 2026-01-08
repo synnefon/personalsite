@@ -403,6 +403,7 @@ export default function Snek() {
 
     drawSnakeInitial();
     populateFoodBall();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     clickSFX,
     gameMusic,
@@ -518,6 +519,7 @@ export default function Snek() {
       snekSet.current.delete(idxOf(tail.row, tail.col));
       clearCell(dynCtx.current, tail.row, tail.col); // transparent hole shows bg grid
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collisionDetected, eraseFood, colors.body, colors.head, eatFood]);
 
   const redrawBoard = useCallback(() => {
