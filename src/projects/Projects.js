@@ -1,68 +1,183 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import fanIcon from "../assets/projects/fan.svg";
 import PaperPlaneAnimation from "../components/PaperPlaneAnimation";
 
 import "../styles/app.css";
 import "../styles/projects.css";
 
+// Fan dimensions - must match .fan-container in projects.css
+const FAN_SIZE = 60;
+const LONG_PRESS_DELAY_MS = 200;
+
 export default function Projects() {
   const [planes, setPlanes] = useState([]);
   const [gustState, setGustState] = useState({ strength: 0, angle: 0 });
+  const [fanVisible, setFanVisible] = useState(false);
+  const [fanSpinning, setFanSpinning] = useState(false);
+  const [fanPosition, setFanPosition] = useState({ x: null, y: null }); // null means centered
+  const [isDragging, setIsDragging] = useState(false);
+  const [hasDragged, setHasDragged] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [pressActive, setPressActive] = useState(false);
+  const fanPositionRef = useRef({ x: null, y: null });
+  const longPressTimeoutRef = useRef(null);
+  const longPressMetRef = useRef(false);
 
-  // Generate gusts that affect all planes
+  // No random gusts - only fan-generated wind
+
+  // Generate strong upward gusts when fan is spinning
   useEffect(() => {
-    const generateGust = () => {
-      const gustStrength = 0.3 + Math.random() * 0.7; // 0.3 to 1.0
-      const gustAngle = (Math.random() - 0.5) * 0.3; // ±0.15 radians
+    if (!fanSpinning) return;
 
+    const generateFanGust = () => {
+      // Fan position - use actual position if dragged, otherwise center
+      const fanX =
+        fanPositionRef.current.x !== null
+          ? fanPositionRef.current.x
+          : window.innerWidth / 2;
       setGustState({
-        strength: gustStrength,
-        angle: gustAngle,
+        strength: 1.5, // Moderate upward force (at fan center)
+        angle: 0, // Not used with physics-based wind
         timestamp: Date.now(),
+        sourceX: fanX, // Position of the gust source
+        radius: FAN_SIZE, // Column extends full fan width on each side
+        referenceDistance: window.innerHeight, // Distance at which effect is 20%
       });
-
-      // Schedule next gust (1.5 to 4 seconds later)
-      const nextGustDelay = (Math.random() * 2.5 + 1.5) * 1000;
-      return setTimeout(generateGust, nextGustDelay);
     };
 
-    // Start first gust after 0.5-2.5 seconds
-    const firstGustDelay = (Math.random() * 2 + 0.5) * 1000;
-    const timeout = setTimeout(generateGust, firstGustDelay);
+    // Generate gusts continuously while spinning
+    const interval = setInterval(generateFanGust, 100);
 
-    return () => clearTimeout(timeout);
+    return () => clearInterval(interval);
+  }, [fanSpinning]);
+
+  const handleFanClick = useCallback(
+    (e) => {
+      e.stopPropagation();
+      if (!hasDragged) {
+        setFanSpinning((prev) => !prev);
+      }
+      setHasDragged(false);
+    },
+    [hasDragged]
+  );
+
+  const handleFanMouseDown = useCallback((e) => {
+    e.stopPropagation();
+    setHasDragged(false);
+    setPressActive(true);
+    longPressMetRef.current = false;
+
+    // Calculate offset from fan center to mouse
+    const fanElement = e.currentTarget;
+    const rect = fanElement.getBoundingClientRect();
+    const fanCenterX = rect.left + rect.width / 2;
+    const fanCenterY = rect.top + rect.height / 2;
+
+    setDragOffset({
+      x: e.clientX - fanCenterX,
+      y: e.clientY - fanCenterY,
+    });
+
+    // Mark long press threshold met after delay
+    longPressTimeoutRef.current = setTimeout(() => {
+      longPressMetRef.current = true;
+      longPressTimeoutRef.current = null;
+    }, LONG_PRESS_DELAY_MS);
   }, []);
 
-  const handlePageClick = useCallback((e) => {
-    // Check if click is on a link or inside a link
-    const isLink = e.target.closest("a") || e.target.closest(".link");
-    if (isLink) return;
+  const handleMouseMove = useCallback(
+    (e) => {
+      // Only drag if long press threshold met
+      if (!longPressMetRef.current) return;
 
-    // Get click position
-    const clickPosition = {
-      x: e.clientX,
-      y: e.clientY,
-    };
+      if (!isDragging) {
+        setIsDragging(true);
+      }
 
-    // Determine direction: fly towards the further side
-    // If click is on left half, fly right; if on right half, fly left
-    const screenMidpoint = window.innerWidth / 2;
-    const direction = clickPosition.x < screenMidpoint ? "right" : "left";
+      setHasDragged(true);
+      const newPosition = {
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y,
+      };
+      setFanPosition(newPosition);
+      fanPositionRef.current = newPosition;
+    },
+    [isDragging, dragOffset]
+  );
 
-    // Random scenario selection for variety
-    const scenarios = ["equilibrium", "zero-angle", "fast"];
-    const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
-
-    // Add new plane to the list
-    const newPlane = {
-      id: Date.now(),
-      startPosition: clickPosition,
-      scenario,
-      direction,
-    };
-
-    setPlanes((prev) => [...prev, newPlane]);
+  const handleMouseUp = useCallback(() => {
+    // Clear long press timeout if still pending
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+    longPressMetRef.current = false;
+    setPressActive(false);
+    setIsDragging(false);
   }, []);
+
+  useEffect(() => {
+    if (pressActive) {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+      return () => {
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mouseup", handleMouseUp);
+      };
+    }
+  }, [pressActive, handleMouseMove, handleMouseUp]);
+
+  // Cleanup long press timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimeoutRef.current) {
+        clearTimeout(longPressTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handlePageClick = useCallback(
+    (e) => {
+      // Check if click is on a link or inside a link
+      const isLink = e.target.closest("a") || e.target.closest(".link");
+      if (isLink) return;
+
+      // Get click position
+      const clickPosition = {
+        x: e.clientX,
+        y: e.clientY,
+      };
+
+      // Determine direction: fly towards the further side
+      // If click is on left half, fly right; if on right half, fly left
+      const screenMidpoint = window.innerWidth / 2;
+      const direction = clickPosition.x < screenMidpoint ? "right" : "left";
+
+      // Random scenario selection for variety
+      const scenarios = ["equilibrium", "zero-angle", "fast"];
+      const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+
+      // Add new plane to the list
+      const newPlane = {
+        id: Date.now(),
+        startPosition: clickPosition,
+        scenario,
+        direction,
+      };
+
+      setPlanes((prev) => {
+        const updatedPlanes = [...prev, newPlane];
+        // Show fan after 2+ planes
+        if (updatedPlanes.length >= 2 && !fanVisible) {
+          setFanVisible(true);
+        }
+        return updatedPlanes;
+      });
+    },
+    [fanVisible]
+  );
 
   const handleAnimationComplete = useCallback((planeId) => {
     setPlanes((prev) => prev.filter((p) => p.id !== planeId));
@@ -189,6 +304,34 @@ export default function Projects() {
           onComplete={() => handleAnimationComplete(plane.id)}
         />
       ))}
+
+      {/* Fan appears at bottom after 2+ planes fired */}
+      {fanVisible && (
+        <div
+          className={`fan-container ${fanSpinning ? "spinning" : ""} ${
+            isDragging ? "dragging" : ""
+          }`}
+          style={
+            fanPosition.x !== null && fanPosition.y !== null
+              ? {
+                  width: `${FAN_SIZE}px`,
+                  height: `${FAN_SIZE}px`,
+                  left: `${fanPosition.x}px`,
+                  top: `${fanPosition.y}px`,
+                  bottom: "auto",
+                  transform: "translate(-50%, -50%)",
+                }
+              : {
+                  width: `${FAN_SIZE}px`,
+                  height: `${FAN_SIZE}px`,
+                }
+          }
+          onClick={handleFanClick}
+          onMouseDown={handleFanMouseDown}
+        >
+          <img src={fanIcon} alt="fan" className="fan-icon" draggable={false} />
+        </div>
+      )}
     </div>
   );
 }

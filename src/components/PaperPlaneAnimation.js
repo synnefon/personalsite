@@ -3,6 +3,9 @@ import { getInitialConditions } from '../utils/paperPlanePhysics';
 
 import '../styles/paperPlane.css';
 
+// Offscreen cleanup timing
+const OFFSCREEN_CLEANUP_DELAY_MS = 10000; // 10 seconds
+
 /**
  * Animated paper airplane component
  * Simulates realistic glide physics when triggered
@@ -12,7 +15,73 @@ const PaperPlaneAnimation = ({ startPosition, onComplete, scenario = 'equilibriu
   const animationRef = useRef(null);
   const stateRef = useRef(null);
   const lastGustTimestampRef = useRef(0);
-  const offscreenTimeoutRef = useRef(null);
+  const offscreenCheckRef = useRef(null);
+  const wasOffscreenRef = useRef(false);
+  const windVelocityRef = useRef({ vx: 0, vy: 0 }); // Current wind velocity affecting the plane
+
+  // Helper functions for gust handling
+  function getPlaneXPosition(state, startPosition, direction) {
+    const directionMultiplier = direction === 'left' ? -1 : 1;
+    return startPosition.x + state.Range * 100 * directionMultiplier;
+  }
+
+  function calculatePositionalGustEffect(gustState, planeX) {
+    const distanceFromSource = Math.abs(planeX - gustState.sourceX);
+    
+    if (distanceFromSource > gustState.radius) {
+      return null; // Plane is outside gust radius
+    }
+
+    // Inverse falloff: 100% at center, 20% at referenceDistance
+    const refDist = gustState.referenceDistance || 800;
+    const effectMultiplier = 1 / (1 + 4 * distanceFromSource / refDist);
+    
+    // Calculate wind speed (m/s)
+    const windSpeed = gustState.strength * effectMultiplier * 3;
+    
+    return {
+      vx: 0,
+      vy: windSpeed, // Positive is upward
+    };
+  }
+
+  function applyGlobalGust(state, gustState, lastTimestampRef) {
+    if (gustState.timestamp && gustState.timestamp !== lastTimestampRef.current) {
+      state.V *= (1 + gustState.strength * 0.3);
+      state.Gam += gustState.angle;
+      lastTimestampRef.current = gustState.timestamp;
+    }
+  }
+
+  function handlePositionalGust(gustState, state, startPosition, direction, windVelocityRef) {
+    const planeX = getPlaneXPosition(state, startPosition, direction);
+    const windVelocity = calculatePositionalGustEffect(gustState, planeX);
+    
+    if (windVelocity) {
+      windVelocityRef.current = windVelocity;
+    } else {
+      windVelocityRef.current = { vx: 0, vy: 0 };
+    }
+  }
+
+  // Update wind velocity based on gusts
+  useEffect(() => {
+    if (!stateRef.current) return;
+
+    if (gustState?.sourceX !== undefined && gustState.radius !== undefined) {
+      // Positional gust (fan) - calculate current effect
+      handlePositionalGust(
+        gustState,
+        stateRef.current,
+        startPosition,
+        direction,
+        windVelocityRef
+      );
+    } else if (gustState?.timestamp) {
+      // Global gust - instant velocity boost
+      applyGlobalGust(stateRef.current, gustState, lastGustTimestampRef);
+    }
+  }, [gustState, direction, startPosition.x]);
 
   useEffect(() => {
     if (!startPosition) return;
@@ -32,42 +101,137 @@ const PaperPlaneAnimation = ({ startPosition, onComplete, scenario = 'equilibriu
     const scale = 100;
 
     // Animate with real-time simulation
+    // --- Helper functions to break up animate ---
+    function computeAirVelocity(state, wind) {
+      const Vx = state.V * Math.cos(state.Gam) - wind.vx;
+      const Vy = state.V * Math.sin(state.Gam) - wind.vy;
+      return { Vx, Vy };
+    }
+
+    function computeLiftDrag(Vair, CLeq, CDeq) {
+      const q = 0.5 * rho * Vair ** 2;
+      const L = q * S * CLeq;
+      const D = q * S * CDeq;
+      return { L, D };
+    }
+
+    function computeForces(L, D, GamAir, m, g) {
+      const Fx = -D * Math.cos(GamAir) - L * Math.sin(GamAir);
+      const Fy = -D * Math.sin(GamAir) + L * Math.cos(GamAir) - m * g;
+      return { Fx, Fy };
+    }
+
+    function updateVelocity(state, ax, ay, dt) {
+      const Vx_ground = state.V * Math.cos(state.Gam) + ax * dt;
+      const Vy_ground = state.V * Math.sin(state.Gam) + ay * dt;
+      return { Vx_ground, Vy_ground };
+    }
+
+    function updateState(state, Vx_ground, Vy_ground, dt) {
+      state.V = Math.sqrt(Vx_ground * Vx_ground + Vy_ground * Vy_ground);
+      state.Gam = Math.atan2(Vy_ground, Vx_ground);
+      state.H += Vy_ground * dt;
+      state.Range += Vx_ground * dt;
+    }
+
+    function getScreenCoords(startPosition, state, initialHeight, scale, directionMultiplier) {
+      const x = startPosition.x + state.Range * scale * directionMultiplier;
+      const y = startPosition.y + (initialHeight - state.H) * scale;
+      const angle = (Math.PI / 4 - state.Gam) * (180 / Math.PI);
+      return { x, y, angle };
+    }
+
+    function checkIfOffScreen(x, y) {
+      return (
+        x < -100 ||
+        x > window.innerWidth + 100 ||
+        y < -100 ||
+        y > window.innerHeight + 100
+      );
+    }
+
     const animate = () => {
       const state = stateRef.current;
       if (!state) return;
 
-      // Step physics (simple Euler integration)
-      const q = 0.5 * rho * state.V ** 2;
-      const L = q * S * CLeq, D = q * S * CDeq;
-      const dVdt = -(D + m * g * Math.sin(state.Gam)) / m;
-      const dGamdt = (L - m * g * Math.cos(state.Gam)) / (m * state.V);
-      const dHdt = state.V * Math.sin(state.Gam);
-      const dRangedt = state.V * Math.cos(state.Gam);
+      const wind = windVelocityRef.current;
 
-      state.V += dVdt * dt;
-      state.Gam += dGamdt * dt;
-      state.H += dHdt * dt;
-      state.Range += dRangedt * dt;
+      // --- Main physics step ---
 
-      // Convert to screen coordinates
+      // 1. Air relative velocity and angle
+      const { Vx, Vy } = computeAirVelocity(state, wind);
+      const Vair = Math.sqrt(Vx * Vx + Vy * Vy);
+      const GamAir = Math.atan2(Vy, Vx);
+
+      // 2. Lift & Drag
+      const { L, D } = computeLiftDrag(Vair, CLeq, CDeq);
+
+      // 3. Forces
+      const { Fx, Fy } = computeForces(L, D, GamAir, m, g);
+
+      // 4. Accelerations
+      const ax = Fx / m;
+      const ay = Fy / m;
+
+      // 5. Update ground-relative velocities
+      const { Vx_ground, Vy_ground } = updateVelocity(state, ax, ay, dt);
+
+      // 6. Update state with new velocities
+      updateState(state, Vx_ground, Vy_ground, dt);
+
+      // 7. Convert to screen coords
       const directionMultiplier = direction === 'left' ? -1 : 1;
-      const x = startPosition.x + state.Range * scale * directionMultiplier;
-      const y = startPosition.y + (initialHeight - state.H) * scale;
-      const angle = (Math.PI / 4 - state.Gam) * (180 / Math.PI);
+      const { x, y, angle } = getScreenCoords(
+        startPosition,
+        state,
+        initialHeight,
+        scale,
+        directionMultiplier
+      );
 
-      // Check if plane is off screen
-      const isOffScreen = x < -100 || x > window.innerWidth + 100 ||
-                          y < -100 || y > window.innerHeight + 100;
+      // 8. Offscreen check/cleanup
+      const isOffScreen = checkIfOffScreen(x, y);
 
-      if (isOffScreen && !offscreenTimeoutRef.current) {
-        // Schedule cleanup 1 second after going offscreen
-        offscreenTimeoutRef.current = setTimeout(() => {
-          onComplete?.();
-        }, 1000);
+      if (isOffScreen) {
+        if (!wasOffscreenRef.current) {
+          wasOffscreenRef.current = true;
+          offscreenCheckRef.current = setTimeout(() => {
+            checkAndCleanup();
+          }, OFFSCREEN_CLEANUP_DELAY_MS);
+        }
+      } else {
+        wasOffscreenRef.current = false;
+        if (offscreenCheckRef.current) {
+          clearTimeout(offscreenCheckRef.current);
+          offscreenCheckRef.current = null;
+        }
       }
 
       setPosition({ x, y, angle });
       animationRef.current = requestAnimationFrame(animate);
+    };
+
+    const checkAndCleanup = () => {
+      if (!stateRef.current) return;
+
+      const state = stateRef.current;
+      const directionMultiplier = direction === 'left' ? -1 : 1;
+      const x = startPosition.x + state.Range * scale * directionMultiplier;
+      const y = startPosition.y + (initialHeight - state.H) * scale;
+
+      const isOffScreen = x < -100 || x > window.innerWidth + 100 ||
+                          y < -100 || y > window.innerHeight + 100;
+
+      if (isOffScreen) {
+        // Still offscreen after delay, clean up
+        onComplete?.();
+      } else {
+        // Back onscreen, check again after another full delay period
+        wasOffscreenRef.current = false;
+        offscreenCheckRef.current = setTimeout(() => {
+          checkAndCleanup();
+        }, OFFSCREEN_CLEANUP_DELAY_MS);
+      }
     };
 
     animationRef.current = requestAnimationFrame(animate);
@@ -76,21 +240,12 @@ const PaperPlaneAnimation = ({ startPosition, onComplete, scenario = 'equilibriu
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
-      if (offscreenTimeoutRef.current) {
-        clearTimeout(offscreenTimeoutRef.current);
+      if (offscreenCheckRef.current) {
+        clearTimeout(offscreenCheckRef.current);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startPosition, scenario, direction]);
-
-  // Apply gusts without restarting the simulation
-  useEffect(() => {
-    if (gustState?.timestamp && gustState.timestamp !== lastGustTimestampRef.current && stateRef.current) {
-      stateRef.current.V *= (1 + gustState.strength * 0.3);
-      stateRef.current.Gam += gustState.angle;
-      lastGustTimestampRef.current = gustState.timestamp;
-    }
-  }, [gustState]);
 
   if (!position) {
     return null;

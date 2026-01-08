@@ -20,3 +20,46 @@ div#app.lightning {
   background-image: url('../assets/raincloud/bolt_backgroud.gif') !important;
   background-size: cover;
 }
+
+/* ============================================
+   FAN
+   ============================================ */
+
+.fan-container {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: var(--pointer);
+  z-index: 1000;
+  user-select: none;
+}
+
+.fan-container.dragging {
+  cursor: url('../assets/cursors/Dark/Hands/Hand_Drag2.png'), auto;
+}
+
+.fan-icon {
+  width: 100%;
+  height: 100%;
+  transition: filter 0.3s ease;
+  filter: brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(0%) contrast(100%);
+}
+
+.fan-container:hover .fan-icon {
+  animation: boing 0.3s ease-in-out alternate;
+}
+
+.fan-container.spinning .fan-icon {
+  animation: spin 0.5s linear infinite;
+  filter: brightness(0) saturate(100%) invert(58%) sepia(85%) saturate(2392%) hue-rotate(0deg) brightness(102%) contrast(104%);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
