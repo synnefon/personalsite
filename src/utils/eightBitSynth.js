@@ -1,17 +1,10 @@
-// Simple percussive pop sound
-export function playPopSound() {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = "square";
-  osc.frequency.value = 150;
-  osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.1);
-  gain.gain.value = 0.3;
-  gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-  osc.connect(gain).connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + 0.15);
-  setTimeout(() => ctx.close(), 200);
+// Duck quack sound - plays audio file
+export function playPopSound(audioUrl) {
+  if (!audioUrl) return;
+
+  const audio = new Audio(audioUrl);
+  audio.volume = 0.6;
+  audio.play().catch(err => console.warn('Audio play failed:', err));
 }
 
 // 2 octaves chromatic scale from C4 for 8-bit synth

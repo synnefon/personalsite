@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { TypeAnimation } from "react-type-animation";
 
 import duckIcon from "../assets/nav_icons/duck.svg";
+import quackSound from "../assets/home/quack.wav";
 import { playRandom8BitSound, playPopSound } from "../utils/eightBitSynth";
 import "../styles/app.css";
 import "../styles/home.css";
@@ -184,8 +185,8 @@ export default function Home() {
     if (shouldReplaySameSound) {
       // Check if this is the 6th click (already at max volume)
       if (volumeMultiplier >= MAX_VOLUME_MULTIPLIER) {
-        // Play pop sound and hide the duck
-        playPopSound();
+        // Play quack sound and hide the duck
+        playPopSound(quackSound);
         setDuckVisible(false);
         // Clear saved position so duck resets to original position on next page load
         sessionStorage.removeItem('duckPosition');
