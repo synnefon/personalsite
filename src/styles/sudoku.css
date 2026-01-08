@@ -3,18 +3,18 @@
    ============================================ */
 
 body:has(#app-base.sudoku-colors) {
-  --text-color: rgb(234, 234, 247) !important;
+  --text-color: var(--color-text-light) !important;
 }
 
 .sudoku-colors {
-  --bg-color: rgb(78, 129, 98) !important;
-  --secondary-bg-color: rgb(78, 129, 98) !important;
-  --bg-highlight: rgb(94, 156, 118);
-  --bg-highlight-epi: rgb(111, 183, 140);
-  --text-highlight: yellow;
-  --text-highlight-small: rgb(209, 167, 1);
-  --text-color-small: rgb(169, 169, 169);
-  --new-text: rgb(2, 2, 171);
+  --bg-color: var(--color-green-dark) !important;
+  --secondary-bg-color: var(--color-green-dark) !important;
+  --bg-highlight: var(--color-green-medium);
+  --bg-highlight-epi: var(--color-green-sage);
+  --text-highlight: var(--color-yellow);
+  --text-highlight-small: var(--color-gold);
+  --text-color-small: var(--color-gray-light);
+  --new-text: var(--color-blue-light);
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);
   --hue-rotate: 0deg;
@@ -102,7 +102,7 @@ body:has(#app-base.sudoku-colors) {
    ============================================ */
 
 .sudoku-cell.incorrect {
-  background-color: rgb(161, 101, 137);
+  background-color: var(--color-purple-mauve);
 }
 .sudoku-cell.new-text {
   color: var(--new-text);
@@ -365,7 +365,7 @@ p.control.timer.selected {
 }
 
 .again-button:hover {
-  color: orange;
+  color: var(--color-orange);
   animation: boing 0.3s ease-in-out alternate;
 }
 

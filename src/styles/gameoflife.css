@@ -3,10 +3,10 @@
    ============================================ */
 
 #game-of-life {
-  --bg-color: #000000 !important;
-  --border-color: #1d1d1d;
-  --text-color: #d9a60e !important;
-  --alt-text-color: #a4a0a0;
+  --bg-color: var(--color-black) !important;
+  --border-color: var(--color-gray-dark);
+  --text-color: var(--color-gold-dark) !important;
+  --alt-text-color: var(--color-gray-medium);
 
   width: 100%;
   min-height: 100vh;
@@ -24,19 +24,19 @@
 
 /* Ensure background stays black in fullscreen */
 :root:fullscreen {
-  background: #000000 !important;
+  background: var(--color-black) !important;
 }
 
 :root:-webkit-full-screen {
-  background: #000000 !important;
+  background: var(--color-black) !important;
 }
 
 :root:-moz-full-screen {
-  background: #000000 !important;
+  background: var(--color-black) !important;
 }
 
 :root:-ms-fullscreen {
-  background: #000000 !important;
+  background: var(--color-black) !important;
 }
 
 
@@ -86,11 +86,11 @@
 }
 
 .gol-board:not(.running) .gol-board-cell:hover {
-  background-color: rgba(217, 166, 14, 0.4) !important;
+  background-color: var(--color-gold-dark-04) !important;
 }
 
 .gol-board:not(.running) .gol-board-cell.filled:hover {
-  background-color: rgba(217, 166, 14, 0.8) !important;
+  background-color: var(--color-gold-dark-08) !important;
 }
 
 .gol-board.dragging .gol-board-cell {
@@ -117,7 +117,7 @@
 
 /* Show grid lines when zoomed in */
 .gol-board.zoomed-in .gol-board-cell {
-  border: 0.5px solid rgba(217, 166, 14, 0.15);
+  border: 0.5px solid var(--color-gold-dark-015);
 }
 
 
@@ -352,7 +352,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.85);
+  background: var(--color-black-085);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -369,7 +369,7 @@
   max-width: 600px;
   width: 90%;
   color: var(--alt-text-color);
-  box-shadow: 0 0 40px rgba(217, 166, 14, 0.3);
+  box-shadow: 0 0 40px var(--color-gold-dark-03);
 }
 
 .gol-info-popup h2 {

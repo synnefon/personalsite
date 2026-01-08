@@ -16,11 +16,11 @@ div#fish-match {
   color: var(--text-color);
   user-select: none;
   /* Color overrides */
-  --bg-color: #201658 !important;
-  --text-color: #57a6a1 !important;
-  --back-color: #344c64;
-  --inner-color: #577b8d;
-  --question-mark: #57a6a1;
+  --bg-color: var(--color-purple-deep) !important;
+  --text-color: var(--color-teal) !important;
+  --back-color: var(--color-blue-slate);
+  --inner-color: var(--color-blue-gray);
+  --question-mark: var(--color-teal);
 }
 
 .match-game {
@@ -148,7 +148,7 @@ div#fish-match {
 }
 
 .play-again:hover {
-  color: orange;
+  color: var(--color-orange);
 }
 
 /* ============================================

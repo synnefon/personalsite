@@ -57,7 +57,7 @@ div#app-base {
   top: 0;
   margin: 1px;
   margin-top: 1.3em;
-  color: orange;
+  color: var(--color-orange);
   user-select: none;
 }
 
@@ -82,7 +82,7 @@ div#app-base {
 }
 
 .description-text::after {
-  color: orange;
+  color: var(--color-orange);
 }
 
 .bracket {

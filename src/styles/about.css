@@ -3,12 +3,12 @@
    ============================================ */
 
 body:has(#app-base.about-colors) {
-  --text-color: rgb(234, 234, 247) !important;
+  --text-color: var(--color-text-light) !important;
 }
 
 .about-colors {
-  --bg-color: rgb(70, 27, 241) !important;
-  --text-color: rgb(234, 234, 247);
+  --bg-color: var(--color-purple-primary) !important;
+  --text-color: var(--color-text-light);
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);
   justify-content: center;
@@ -56,7 +56,7 @@ body:has(#app-base.about-colors) {
 .about-title {
   margin-bottom: 1em;
   font-size: calc(25px + 2vmin);
-  color: orange;
+  color: var(--color-orange);
   text-align: left;
 }
 
@@ -109,7 +109,7 @@ body:has(#app-base.about-colors) {
 }
 
 .me-fact:hover {
-  color: orange !important;
+  color: var(--color-orange) !important;
   font-weight: bold !important;
   animation: wiggle 0.3s linear;
 }
@@ -177,7 +177,7 @@ button#skip-button::before {
 
 button#skip-button:hover {
   background-color: transparent;
-  color: orange;
+  color: var(--color-orange);
   animation: boing 0.3s linear;
 }
 

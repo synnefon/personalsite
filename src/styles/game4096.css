@@ -3,9 +3,9 @@
    ============================================ */
 
 div#game-4096 {
-  --bg-color: #18122b !important;
-  --border-color: #443c68;
-  --text-color: #f0f0f0 !important;
+  --bg-color: var(--color-purple-dark) !important;
+  --border-color: var(--color-purple-slate);
+  --text-color: var(--color-off-white) !important;
 
   position: absolute;
   top: 0 !important;
@@ -41,5 +41,5 @@ div#game-4096 {
   display: inline-grid;
   justify-content: center;
   align-items: center;
-  border: 2px solid black;
+  border: 2px solid var(--color-black);
 }

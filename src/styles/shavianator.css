@@ -1,13 +1,13 @@
 :root {
-  --shavianator-bg: #f4efe9;
-  --shavianator-accent-bg: #eee5da;
-  --shavianator-text: black;
-  --shavianator-text-accent: #0077b6;
+  --shavianator-bg: var(--color-beige-light);
+  --shavianator-accent-bg: var(--color-beige);
+  --shavianator-text: var(--color-black);
+  --shavianator-text-accent: var(--color-blue-medium);
   --shavianator-textarea-height: 500px;
 }
 
 body:has(#app-base.shavianator-colors) {
-  --text-color: black !important;
+  --text-color: var(--color-black) !important;
 }
 
 #app-base.shavianator-colors {
@@ -183,19 +183,19 @@ body:has(#app-base.shavianator-colors) {
 }
 
 .shavian-word.highlighted {
-  background-color: rgba(126, 141, 108, 0.3);
+  background-color: var(--color-green-sage-03);
   color: var(--shavianator-text-accent);
 }
 
 .shavian-tooltip {
-  background-color: rgba(0, 0, 0, 0.9);
-  color: white;
+  background-color: var(--color-black-09);
+  color: var(--color-white);
   padding: 0.5em 1em;
   border-radius: 4px;
   font-size: 0.9em;
   pointer-events: none;
   z-index: 1000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px var(--color-black-03);
   text-align: center;
 }
 

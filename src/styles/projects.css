@@ -3,7 +3,7 @@
    ============================================ */
 
 .proj-colors {
-  --bg-color: rgb(70, 27, 241) !important;
+  --bg-color: var(--color-purple-primary) !important;
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);
 }
@@ -16,7 +16,7 @@
 div#app.lightning {
   height: 100%;
   overflow-y: hidden;
-  background-color: transparent;
+  background-color: var(--color-transparent);
   background-image: url('../assets/raincloud/bolt_backgroud.gif') !important;
   background-size: cover;
 }

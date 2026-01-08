@@ -31,10 +31,74 @@
    ============================================ */
 
 :root {
-  /* Colors */
-  --bg-color: transparent;
-  --text-color: rgb(234, 234, 247);
-  --alt-text-color: rgb(5, 4, 4);
+  /* Base Colors */
+  --color-transparent: transparent;
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --color-orange: orange;
+  --color-red: red;
+  --color-yellow: yellow;
+  --color-gray: gray;
+
+  /* Primary Palette */
+  --color-purple-primary: rgb(70, 27, 241);
+  --color-text-light: rgb(234, 234, 247);
+  --color-bg-dark: rgb(5, 4, 4);
+
+  /* Secondary Colors */
+  --color-blue-dark: #00224D;
+  --color-blue-medium: #0077b6;
+  --color-blue-slate: #344c64;
+  --color-blue-gray: #577b8d;
+  --color-blue-light: rgb(2, 2, 171);
+
+  --color-green-lime: #3cff00;
+  --color-green-bright: #80ff00;
+  --color-green-dark: rgb(78, 129, 98);
+  --color-green-medium: rgb(94, 156, 118);
+  --color-green-sage: rgb(111, 183, 140);
+  --color-green-olive: #8b9c0c;
+
+  --color-purple-dark: #18122b;
+  --color-purple-deep: #201658;
+  --color-purple-slate: #443c68;
+  --color-purple-medium: rgb(95, 93, 156);
+  --color-purple-mauve: rgb(161, 101, 137);
+
+  --color-teal: #57a6a1;
+
+  --color-gold: rgb(209, 167, 1);
+  --color-gold-dark: #d9a60e;
+
+  --color-red-bright: #FF204E;
+  --color-red-crimson: #A0153E;
+
+  --color-gray-dark: #1d1d1d;
+  --color-gray-medium: #a4a0a0;
+  --color-gray-light: rgb(169, 169, 169);
+  --color-gray-darker: #040404;
+
+  --color-beige-light: #f4efe9;
+  --color-beige: #eee5da;
+  --color-off-white: #f0f0f0;
+
+  /* Opacity Variants */
+  --color-black-03: rgba(0, 0, 0, 0.3);
+  --color-black-08: rgba(0, 0, 0, 0.8);
+  --color-black-085: rgba(0, 0, 0, 0.85);
+  --color-black-09: rgba(0, 0, 0, 0.9);
+
+  --color-green-sage-03: rgba(126, 141, 108, 0.3);
+
+  --color-gold-dark-015: rgba(217, 166, 14, 0.15);
+  --color-gold-dark-03: rgba(217, 166, 14, 0.3);
+  --color-gold-dark-04: rgba(217, 166, 14, 0.4);
+  --color-gold-dark-08: rgba(217, 166, 14, 0.8);
+
+  /* Semantic Colors */
+  --bg-color: var(--color-transparent);
+  --text-color: var(--color-text-light);
+  --alt-text-color: var(--color-bg-dark);
   --inv-text-color: var(--bg-color);
   --inv-bg-color: var(--text-color);
 
@@ -102,7 +166,7 @@ body {
 }
 
 body {
-  background-color: rgb(5, 4, 4);
+  background-color: var(--color-bg-dark);
   color: var(--text-color);
   cursor: var(--arrow);
 }

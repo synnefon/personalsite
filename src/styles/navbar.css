@@ -46,12 +46,12 @@
 }
 
 .nav-link:hover {
-  color: orange;
+  color: var(--color-orange);
   animation: boing 0.3s ease-in-out alternate;
 }
 
 .nav-link:hover .nav-icon::before {
-  color: orange;
+  color: var(--color-orange);
 }
 
 .nav-link-text {
@@ -134,7 +134,7 @@ body:has(#app-base.shavianator-colors) .nav-link:hover .nav-icon {
 
   .nav-link:hover > .nav-link-text,
   .nav-link.active > .nav-link-text {
-    color: orange;
+    color: var(--color-orange);
   }
 
   .nav-icon {

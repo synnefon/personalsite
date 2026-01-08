@@ -3,9 +3,9 @@
    ============================================ */
 
 .toolbox {
-  --bg-color: #040404 !important;
-  --alt-bg-color: #80ff00;
-  --text-color: #8b9c0c;
+  --bg-color: var(--color-gray-darker) !important;
+  --alt-bg-color: var(--color-green-bright);
+  --text-color: var(--color-green-olive);
 }
 
 

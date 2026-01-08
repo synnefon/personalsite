@@ -3,13 +3,13 @@
    ============================================ */
 
 .snek-colors {
-  --bg-color: rgb(95, 93, 156) !important;
-  --text-color: rgb(234, 234, 247) !important;
+  --bg-color: var(--color-purple-medium) !important;
+  --text-color: var(--color-text-light) !important;
   --inv-text-color: var(--bg-color) !important;
   --inv-bg-color: var(--text-color) !important;
   --hue-rotate: 0deg;
-  --food-color: #3cff00;
-  background-color: rgb(95, 93, 156) !important;
+  --food-color: var(--color-green-lime);
+  background-color: var(--color-purple-medium) !important;
 }
 
 
@@ -130,7 +130,7 @@ button {
 }
 
 button:hover {
-  background-color: #3cff00;
+  background-color: var(--color-green-lime);
   color: var(--inv-text-color);
   border: 3px solid var(--inv-text-color);
   transition: 0.8s;
@@ -244,33 +244,33 @@ button:hover {
    ============================================ */
 
 .snek-colors.colorblind-mode {
-  --bg-color: #000000 !important;
-  --text-color: #ffffff !important;
-  --food-color: #ffffff !important;
-  background-color: #000000 !important;
+  --bg-color: var(--color-black) !important;
+  --text-color: var(--color-white) !important;
+  --food-color: var(--color-white) !important;
+  background-color: var(--color-black) !important;
 }
 
 .snek-colors.colorblind-mode .board {
   background-color: transparent !important;
-  border-color: #ffffff !important;
+  border-color: var(--color-white) !important;
 }
 
 .snek-colors.colorblind-mode button {
-  background-color: #000000 !important;
-  border-color: #ffffff !important;
-  color: #ffffff !important;
+  background-color: var(--color-black) !important;
+  border-color: var(--color-white) !important;
+  color: var(--color-white) !important;
 }
 
 .snek-colors.colorblind-mode button:hover {
-  background-color: #ffffff !important;
-  color: #000000 !important;
-  border-color: #000000 !important;
+  background-color: var(--color-white) !important;
+  color: var(--color-black) !important;
+  border-color: var(--color-black) !important;
 }
 
 .snek-colors.colorblind-mode .score {
-  color: #ffffff !important;
+  color: var(--color-white) !important;
 }
 
 .snek-colors.colorblind-mode .game-over-text {
-  color: #ffffff !important;
+  color: var(--color-white) !important;
 }

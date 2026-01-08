@@ -3,7 +3,7 @@
    ============================================ */
 
 :root {
-  --bg-color: rgb(70, 27, 241) !important;
+  --bg-color: var(--color-purple-primary) !important;
 }
 
 /* ============================================
@@ -24,7 +24,7 @@ div#app-base {
 }
 
 .home-subtitle {
-  color: orange !important;
+  color: var(--color-orange) !important;
   margin: 1px !important;
   margin-top: 0.3em !important;
   margin-left: 4px !important;
