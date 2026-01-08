@@ -3,19 +3,35 @@ import { Link } from "react-router-dom";
 import { TypeAnimation } from "react-type-animation";
 
 import duckIcon from "../assets/nav_icons/duck.svg";
-import { playRandom8BitSound } from "../utils/eightBitSynth";
+import { playRandom8BitSound, playPopSound } from "../utils/eightBitSynth";
 import "../styles/app.css";
 import "../styles/home.css";
+
+// Sound and animation timing constants (single source of truth)
+const SOUND_DURATION_MS = 1300;
+const MAX_VOLUME_MULTIPLIER = 3;
+const NUM_ARPEGGIO_STEPS = 5;
+const VOLUME_INCREMENT = (MAX_VOLUME_MULTIPLIER - 1) / (NUM_ARPEGGIO_STEPS - 1);
 
 export default function Home() {
   const [duckOrange, setDuckOrange] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [duckVisible, setDuckVisible] = useState(true);
   const [duckPosition, setDuckPosition] = useState(() => {
     const saved = sessionStorage.getItem('duckPosition');
-    return saved ? JSON.parse(saved) : { left: 30, top: null, bottom: 10 };
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    // Convert initial bottom position to top on first load
+    const windowHeight = window.innerHeight;
+    const duckSize = 72;
+    return { left: 30, top: windowHeight - 10 - duckSize, bottom: null };
   });
+  const [volumeMultiplier, setVolumeMultiplier] = useState(1);
   const soundStopRef = useRef(null);
+  const soundParamsRef = useRef(null);
   const contentWrapperRef = useRef(null);
+  const timeoutRef = useRef(null);
 
   // const [color, setColor] = useState(COLORS[0]);
   // // const maxX = useRef(window.innerWidth);
@@ -88,6 +104,9 @@ export default function Home() {
       if (soundStopRef.current) {
         soundStopRef.current();
       }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, []);
 
@@ -100,9 +119,9 @@ export default function Home() {
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
 
-    // Get current position coordinates
-    const currentX = currentPos.left !== null ? currentPos.left : windowWidth - duckSize - margin;
-    const currentY = currentPos.top !== null ? currentPos.top : windowHeight - (currentPos.bottom || margin) - duckSize;
+    // Get current position coordinates (always use top-based)
+    const currentX = currentPos.left;
+    const currentY = currentPos.top;
 
     // Get content wrapper bounds
     let contentBounds = null;
@@ -157,25 +176,78 @@ export default function Home() {
   };
 
   const handleClick = () => {
-    // Prevent new inputs while already playing
-    if (isPlaying) return;
+    // Check if we should replay the same sound (either playing or within buffer period)
+    const shouldReplaySameSound = isPlaying || soundParamsRef.current !== null;
+    let newVolumeMultiplier = volumeMultiplier;
+    let soundParams = null;
 
-    // Move duck to random position
-    setDuckPosition(calculateSafePosition(duckPosition));
+    if (shouldReplaySameSound) {
+      // Check if this is the 6th click (already at max volume)
+      if (volumeMultiplier >= MAX_VOLUME_MULTIPLIER) {
+        // Play pop sound and hide the duck
+        playPopSound();
+        setDuckVisible(false);
+        // Clear saved position so duck resets to original position on next page load
+        sessionStorage.removeItem('duckPosition');
+        // Reset all state
+        setIsPlaying(false);
+        setVolumeMultiplier(1);
+        soundParamsRef.current = null;
+        if (soundStopRef.current) {
+          soundStopRef.current();
+          soundStopRef.current = null;
+        }
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+        return;
+      }
 
-    // Start playing sound
-    setIsPlaying(true);
-    const stopSound = playRandom8BitSound();
-    soundStopRef.current = stopSound;
-
-    // Stop after 1 second
-    setTimeout(() => {
-      setIsPlaying(false);
+      // Cancel current sound if playing
       if (soundStopRef.current) {
         soundStopRef.current();
         soundStopRef.current = null;
       }
-    }, 1000);
+      // Clear existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      // Increase volume multiplier
+      newVolumeMultiplier = Math.min(volumeMultiplier + VOLUME_INCREMENT, MAX_VOLUME_MULTIPLIER);
+      setVolumeMultiplier(newVolumeMultiplier);
+      // Reuse the same sound parameters
+      soundParams = soundParamsRef.current;
+    } else {
+      // Reset volume multiplier and sound params on first click
+      newVolumeMultiplier = 1;
+      setVolumeMultiplier(1);
+      soundParamsRef.current = null;
+    }
+
+    // Move duck to random position
+    setDuckPosition(calculateSafePosition(duckPosition));
+
+    // Start playing sound with current volume multiplier, params, and arpeggio step
+    // arpeggioStep is 0-indexed: volume 1.0→step 0, 1.5→step 1, 2.0→step 2, 2.5→step 3, 3.0→step 4
+    const arpeggioStep = Math.round((newVolumeMultiplier - 1) / VOLUME_INCREMENT);
+    setIsPlaying(true);
+    const sound = playRandom8BitSound(newVolumeMultiplier, soundParams, arpeggioStep);
+    soundStopRef.current = sound.stop;
+    soundParamsRef.current = sound.params;
+
+    // Keep wiggling, sound playing, and params alive for full duration
+    timeoutRef.current = setTimeout(() => {
+      setIsPlaying(false);
+      setVolumeMultiplier(1);
+      soundParamsRef.current = null;
+      if (soundStopRef.current) {
+        soundStopRef.current();
+        soundStopRef.current = null;
+      }
+      timeoutRef.current = null;
+    }, SOUND_DURATION_MS);
   };
 
   const extractDescription = (descriptor) =>
@@ -268,24 +340,26 @@ export default function Home() {
       </div>
 
       {/* Duck SVG */}
-      <div
-        className={`duck-container ${isPlaying ? 'wiggle' : ''}`}
-        style={{
-          left: duckPosition.left !== null ? `${duckPosition.left}px` : 'auto',
-          top: duckPosition.top !== null ? `${duckPosition.top}px` : 'auto',
-          bottom: duckPosition.bottom !== null ? `${duckPosition.bottom}px` : 'auto',
-        }}
-        onMouseEnter={() => setDuckOrange(true)}
-        onMouseLeave={() => setDuckOrange(false)}
-        onClick={handleClick}
-      >
-        <img
-          src={duckIcon}
-          alt="duck"
-          draggable={false}
-          className={`duck-icon ${duckOrange || isPlaying ? 'orange' : ''}`}
-        />
-      </div>
+      {duckVisible && (
+        <div
+          className={`duck-container ${isPlaying ? 'wiggle' : ''}`}
+          style={{
+            left: duckPosition.left !== null ? `${duckPosition.left}px` : 'auto',
+            top: duckPosition.top !== null ? `${duckPosition.top}px` : 'auto',
+            bottom: duckPosition.bottom !== null ? `${duckPosition.bottom}px` : 'auto',
+          }}
+          onMouseEnter={() => setDuckOrange(true)}
+          onMouseLeave={() => setDuckOrange(false)}
+          onClick={handleClick}
+        >
+          <img
+            src={duckIcon}
+            alt="duck"
+            draggable={false}
+            className={`duck-icon ${duckOrange || isPlaying ? 'orange' : ''}`}
+          />
+        </div>
+      )}
     </div>
   );
 }

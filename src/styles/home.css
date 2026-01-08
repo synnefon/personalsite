@@ -39,7 +39,7 @@ div#app-base {
   position: fixed;
   width: 72px;
   height: 72px;
-  cursor: pointer;
+  cursor: var(--pointer);
   z-index: 1000;
   user-select: none;
   -webkit-user-drag: none;
