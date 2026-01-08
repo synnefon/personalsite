@@ -21,6 +21,7 @@ export default function Projects() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [pressActive, setPressActive] = useState(false);
   const fanPositionRef = useRef({ x: null, y: null });
+  const fanElementRef = useRef(null);
   const longPressTimeoutRef = useRef(null);
   const longPressMetRef = useRef(false);
 
@@ -31,16 +32,28 @@ export default function Projects() {
     if (!fanSpinning) return;
 
     const generateFanGust = () => {
-      // Fan position - use actual position if dragged, otherwise center
-      const fanX =
-        fanPositionRef.current.x !== null
+      // Get actual fan position from DOM
+      let fanX, fanY;
+      if (fanElementRef.current) {
+        const rect = fanElementRef.current.getBoundingClientRect();
+        fanX = rect.left + rect.width / 2;
+        fanY = rect.top + rect.height / 2;
+      } else {
+        // Fallback if ref not set yet
+        fanX = fanPositionRef.current.x !== null
           ? fanPositionRef.current.x
           : window.innerWidth / 2;
+        fanY = fanPositionRef.current.y !== null
+          ? fanPositionRef.current.y
+          : window.innerHeight - 20 - FAN_SIZE / 2;
+      }
+
       setGustState({
         strength: 1.5, // Moderate upward force (at fan center)
         angle: 0, // Not used with physics-based wind
         timestamp: Date.now(),
-        sourceX: fanX, // Position of the gust source
+        sourceX: fanX, // X position of the gust source
+        sourceY: fanY, // Y position of the gust source
         radius: FAN_SIZE, // Column extends full fan width on each side
         referenceDistance: window.innerHeight, // Distance at which effect is 20%
       });
@@ -155,15 +168,10 @@ export default function Projects() {
       const screenMidpoint = window.innerWidth / 2;
       const direction = clickPosition.x < screenMidpoint ? "right" : "left";
 
-      // Random scenario selection for variety
-      const scenarios = ["equilibrium", "zero-angle", "fast"];
-      const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
-
       // Add new plane to the list
       const newPlane = {
         id: Date.now(),
         startPosition: clickPosition,
-        scenario,
         direction,
       };
 
@@ -298,7 +306,6 @@ export default function Projects() {
         <PaperPlaneAnimation
           key={plane.id}
           startPosition={plane.startPosition}
-          scenario={plane.scenario}
           direction={plane.direction}
           gustState={gustState}
           onComplete={() => handleAnimationComplete(plane.id)}
@@ -308,6 +315,7 @@ export default function Projects() {
       {/* Fan appears at bottom after 2+ planes fired */}
       {fanVisible && (
         <div
+          ref={fanElementRef}
           className={`fan-container ${fanSpinning ? "spinning" : ""} ${
             isDragging ? "dragging" : ""
           }`}
