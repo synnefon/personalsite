@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { TypeAnimation } from "react-type-animation";
 import { PersonalAudio } from "../util/Audio";
 import Self from "./Self";
+import headphonesIcon from "../assets/about/headphones.svg";
 
 import "../styles/about.css";
 
@@ -149,6 +150,12 @@ export default function About() {
 
     return (
       <span className="me-fact-wrapper" id={`me-fact-wrapper${idx}`} key={desc}>
+        <img
+          src={headphonesIcon}
+          alt="headphones"
+          className="headphones-icon"
+          draggable={false}
+        />
         <div className="" onClick={toggleSfx}>
           <TypeIt idx={idx} desc={desc} audioSrc={audioSrc} />
         </div>

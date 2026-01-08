@@ -76,7 +76,7 @@ body:has(#app-base.about-colors) {
 .me-fact-wrapper {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: -0.2em;
   padding: 0;
   z-index: 1;
@@ -84,6 +84,7 @@ body:has(#app-base.about-colors) {
   color: var(--text-color);
   font-weight: normal;
   transform-style: preserve-3d;
+  position: relative;
 }
 
 .me-fact-wrapper:first-child {
@@ -125,6 +126,25 @@ body:has(#app-base.about-colors) {
   height: calc(3.2vmin);
   margin-right: 0.6em;
   align-self: flex-start;
+}
+
+.headphones-icon {
+  position: absolute;
+  left: calc(-3.5vmin - 0.8em);
+  top: 0.15em;
+  height: calc(3.5vmin);
+  min-height: 24px;
+  opacity: 0;
+  filter: brightness(0) saturate(100%) invert(94%) sepia(13%) saturate(124%) hue-rotate(318deg) brightness(106%) contrast(100%);
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.me-fact:hover ~ .headphones-icon,
+.me-fact-wrapper:has(.me-fact:hover) .headphones-icon {
+  opacity: 1;
+  filter: brightness(0) saturate(100%) invert(59%) sepia(89%) saturate(1588%) hue-rotate(360deg) brightness(102%) contrast(101%);
+  animation: wiggle 0.3s ease;
 }
 
 

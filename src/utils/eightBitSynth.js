@@ -4,7 +4,7 @@ export function playPopSound(audioUrl) {
 
   const audio = new Audio(audioUrl);
   audio.volume = 0.6;
-  audio.play().catch(err => console.warn('Audio play failed:', err));
+  audio.play().catch((err) => console.warn("Audio play failed:", err));
 }
 
 // 2 octaves chromatic scale from C4 for 8-bit synth
@@ -33,18 +33,49 @@ export const chromaticScale = [
   { name: "A5", freq: 880 },
 ];
 
+// Musical patterns
+const PATTERNS = {
+  // Arpeggios (chord tones)
+  majorArpeggio: [0, 4, 7, 12, 16], // Major chord arpeggio (root, maj3rd, 5th, octave, maj3rd)
+  minorArpeggio: [0, 3, 7, 12, 15], // Minor chord arpeggio (root, min3rd, 5th, octave, min3rd)
+  diminishedArpeggio: [0, 3, 6, 9, 12], // Diminished arpeggio (stacked minor 3rds)
+  augmentedArpeggio: [0, 4, 8, 12, 16], // Augmented arpeggio (stacked major 3rds)
+  dominantSeventhArpeggio: [0, 4, 7, 10, 12], // Dominant 7th arpeggio
+
+  // Scales
+  majorScale: [0, 2, 4, 5, 7], // Major scale (5 notes)
+  minorScale: [0, 2, 3, 5, 7], // Natural minor scale (5 notes)
+  pentatonic: [0, 2, 4, 7, 9], // Pentatonic scale
+  bluesScale: [0, 3, 5, 6, 7], // Blues scale (5 notes)
+  chromatic: [0, 1, 2, 3, 4], // Chromatic run (half-steps)
+  wholeTone: [0, 2, 4, 6, 8], // Whole tone scale
+};
+
 /**
  * Returns randomized parameters for a retro 8-bit synth sound.
  */
 function getRandom8BitParams() {
-  const waveTypes = ["triangle", "triangle", "sine", "square"];
+  const waveTypes = ["triangle", "sine", "square", "sawtooth"];
+  const patternKeys = Object.keys(PATTERNS);
+  const selectedPattern = patternKeys[(Math.random() * patternKeys.length) | 0];
+
+  // Find max offset in the selected pattern
+  const pattern = PATTERNS[selectedPattern];
+  const maxOffset = Math.max(...pattern);
+
+  // Ensure baseFreqIndex + maxOffset stays within chromaticScale bounds (0-21)
+  const maxBaseIndex = chromaticScale.length - 1 - maxOffset;
+  const baseFreqIndex = (Math.random() * (maxBaseIndex + 1)) | 0;
+
   return {
     waveType: waveTypes[(Math.random() * waveTypes.length) | 0],
-    baseFreqIndex: (Math.random() * 12) | 0,
+    baseFreqIndex,
+    keyNote: chromaticScale[baseFreqIndex].name,
     attackTime: 0.05 + Math.random() * 0.05,
     sustainLevel: 0.15 + Math.random() * 0.15,
     hasHarmony: Math.random() > 0.3,
     interval: [1.5, 2][(Math.random() * 2) | 0],
+    pattern: selectedPattern,
   };
 }
 
@@ -52,8 +83,8 @@ function getRandom8BitParams() {
  * Compute the frequency and base note for the current arpeggio step.
  */
 function getArpeggiatedNote(params, arpeggioStep, scale = chromaticScale) {
-  const pentatonic = [0, 2, 4, 7, 9];
-  const freqIdx = params.baseFreqIndex + pentatonic[arpeggioStep % pentatonic.length];
+  const pattern = PATTERNS[params.pattern] || PATTERNS.pentatonic;
+  const freqIdx = params.baseFreqIndex + pattern[arpeggioStep % pattern.length];
   const note = scale[freqIdx];
   return note ? note.freq : scale[0].freq;
 }
@@ -61,7 +92,14 @@ function getArpeggiatedNote(params, arpeggioStep, scale = chromaticScale) {
 /**
  * Configure envelope on a GainNode for the synth attack/sustain phase.
  */
-function applyGainEnvelope(gain, now, attackTime, sustainLevel, volumeMultiplier, multiplier = 0.15) {
+function applyGainEnvelope(
+  gain,
+  now,
+  attackTime,
+  sustainLevel,
+  volumeMultiplier,
+  multiplier = 0.15
+) {
   gain.gain.setValueAtTime(0, now);
   gain.gain.linearRampToValueAtTime(
     multiplier * volumeMultiplier,
@@ -83,20 +121,30 @@ function createOscillators(ctx, params, baseFreq, volumeMultiplier, now) {
   osc.frequency.value = baseFreq;
   const gain = ctx.createGain();
   applyGainEnvelope(
-    gain, now, params.attackTime, params.sustainLevel, volumeMultiplier
+    gain,
+    now,
+    params.attackTime,
+    params.sustainLevel,
+    volumeMultiplier
   );
   osc.connect(gain).connect(ctx.destination);
   osc.start();
 
   // Optional harmony
-  let harmonyOsc = null, harmonyGain = null;
+  let harmonyOsc = null,
+    harmonyGain = null;
   if (params.hasHarmony) {
     harmonyOsc = ctx.createOscillator();
     harmonyOsc.type = "triangle";
     harmonyOsc.frequency.value = baseFreq * params.interval;
     harmonyGain = ctx.createGain();
     applyGainEnvelope(
-      harmonyGain, now, params.attackTime, params.sustainLevel, volumeMultiplier, 0.08
+      harmonyGain,
+      now,
+      params.attackTime,
+      params.sustainLevel,
+      volumeMultiplier,
+      0.08
     );
     harmonyOsc.connect(harmonyGain).connect(ctx.destination);
     harmonyOsc.start();
@@ -129,7 +177,8 @@ export function playRandom8BitSound(
   );
 
   function stop() {
-    const rel = 0.2, t = ctx.currentTime;
+    const rel = 0.2,
+      t = ctx.currentTime;
     // Envelope release
     gain.gain.cancelScheduledValues(t);
     gain.gain.setValueAtTime(gain.gain.value, t);

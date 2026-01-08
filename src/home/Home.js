@@ -238,6 +238,11 @@ export default function Home() {
     soundStopRef.current = sound.stop;
     soundParamsRef.current = sound.params;
 
+    // Log the pattern and key on first click of sequence
+    if (!shouldReplaySameSound) {
+      console.log(`Playing ${sound.params.pattern} in ${sound.params.keyNote}`);
+    }
+
     // Keep wiggling, sound playing, and params alive for full duration
     timeoutRef.current = setTimeout(() => {
       setIsPlaying(false);
