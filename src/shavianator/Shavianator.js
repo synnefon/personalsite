@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import "../styles/shavianator.css";
 import { getArpabetFromShavian, tokenizeText, TokenType, setToShavian } from "./shavianating";
+import Wip from "../projects/Wip";
 
 export default function Shavianator() {
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
   const [hovered, setHovered] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 600);
   const [tooltip, setTooltip] = useState({
     show: false,
     word: "",
@@ -14,6 +16,15 @@ export default function Shavianator() {
     x: 0,
     y: 0,
   });
+
+  // Detect mobile on mount and resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 600);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Load to-shavian module on mount
   useEffect(() => {
@@ -179,6 +190,11 @@ export default function Shavianator() {
       </div>
     );
   };
+
+  // Show "desktop only" message on mobile
+  if (isMobile) {
+    return <Wip />;
+  }
 
   if (isLoading) {
     return (

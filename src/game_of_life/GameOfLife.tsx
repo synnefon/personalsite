@@ -14,6 +14,7 @@ import type { Viewport } from "./types.ts";
 import { useGameLogic } from "./useGameLogic.ts";
 import { useInteractions } from "./useInteractions.ts";
 import { makeKey } from "./utils.ts";
+import Wip from "../projects/Wip";
 
 import "../styles/gameoflife.css";
 
@@ -146,6 +147,19 @@ export default function GameOfLifeInfinite(): ReactElement {
   // Info popup state
   const [showInfo, setShowInfo] = useState<boolean>(false);
   const wasRunningBeforeInfoRef = useRef<boolean>(false);
+
+  // Mobile detection
+  const [windowWidthState, setWindowWidthState] = useState<number>(window.innerWidth);
+  const isMobile = windowWidthState <= 768;
+
+  // Update mobile detection on resize
+  useEffect(() => {
+    const handleResizeForMobile = (): void => {
+      setWindowWidthState(window.innerWidth);
+    };
+    window.addEventListener("resize", handleResizeForMobile);
+    return () => window.removeEventListener("resize", handleResizeForMobile);
+  }, []);
 
   // Handle fullscreen changes
   useEffect(() => {
@@ -446,6 +460,11 @@ export default function GameOfLifeInfinite(): ReactElement {
   /*  Helpers                                                              */
   /* --------------------------------------------------------------------- */
   const displayVal = (v: number): string | number => (v === 0 ? "" : v);
+
+  // Show "desktop only" message on mobile
+  if (isMobile) {
+    return <Wip />;
+  }
 
   return (
     <div id="game-of-life" className="gol-container">

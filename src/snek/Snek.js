@@ -1,4 +1,3 @@
-import { Direction } from "rc-joystick";
 import {
   useCallback,
   useEffect,
@@ -10,7 +9,7 @@ import {
 import ColorBlindToggle from "../components/ColorBlindToggle";
 import { useColorBlindMode } from "../context/ColorBlindModeContext";
 import { PersonalAudio } from "../util/Audio";
-import { JoystickControls } from "./JoystickControls";
+import Wip from "../projects/Wip";
 
 import gameOverNoise from "../assets/snek/game_over.mp3";
 import clickNoise from "../assets/snek/groovy_click.mp3";
@@ -55,16 +54,12 @@ const move = (r, c, d) => {
 const keyToArrow = {
   w: "ArrowUp",
   W: "ArrowUp",
-  [Direction.Top]: "ArrowUp",
   s: "ArrowDown",
   S: "ArrowDown",
-  [Direction.Bottom]: "ArrowDown",
   a: "ArrowLeft",
   A: "ArrowLeft",
-  [Direction.Left]: "ArrowLeft",
   d: "ArrowRight",
   D: "ArrowRight",
-  [Direction.Right]: "ArrowRight",
 };
 
 const arrowToDir = {
@@ -87,7 +82,6 @@ export default function Snek() {
   const [points, setPoints] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [isPlaying, setPlaying] = useState(0);
-  const [dirKey, setDirKey] = useState("ArrowRight");
   const [windowWidth, setWindowWidth] = useState(0);
   const [hueRotateDeg, setHueRotateDeg] = useState(0);
 
@@ -113,8 +107,6 @@ export default function Snek() {
   // Input queue
   const inputQueue = useRef([]);
   const MAX_QUEUE = 3;
-
-  const joystick = useRef();
 
   const clickSFX = useMemo(() => new PersonalAudio(clickNoise), []);
   const gameOverSFX = useMemo(() => new PersonalAudio(gameOverNoise), []);
@@ -453,7 +445,6 @@ export default function Snek() {
   const startGame = () => {
     stopLoop();
     initGame();
-    joystick.current = JoystickControls;
     setPlaying(1);
     playingRef.current = true;
     gameOverRef.current = false;
@@ -580,14 +571,6 @@ export default function Snek() {
     // eslint-disable-next-line
   }, [getNextDirection]);
 
-  // mobile joystick input
-  useEffect(() => {
-    if (!isMobile) return;
-    const d = getNextDirection(dirKey);
-    enqueueDir(d);
-    // eslint-disable-next-line
-  }, [dirKey, getNextDirection, isMobile]);
-
   useEffect(() => {
     const app = document.getElementById("app-base");
     if (app) {
@@ -626,6 +609,11 @@ export default function Snek() {
   useEffect(() => {
     initGame();
   }, [initGame]);
+
+  // Show "desktop only" message on mobile
+  if (isMobile) {
+    return <Wip />;
+  }
 
   return (
     <>
@@ -708,10 +696,6 @@ export default function Snek() {
           >
             {points}
           </p>
-
-          {isMobile && isPlaying && joystick.current && (
-            <joystick.current setDirection={setDirKey} />
-          )}
         </div>
       </div>
     </>

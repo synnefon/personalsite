@@ -8,10 +8,10 @@
 
 div#bounce-room {
   position: absolute;
-  left: 10vw;
-  top: 10vh;
-  width: 80vw;
-  height: 80vh;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
 }
 
 
@@ -22,10 +22,20 @@ div#bounce-room {
 div#bouncing-text {
   position: absolute;
   width: fit-content;
-  height: min(4vw, 4vh);
+  height: min(7.5vw, 7.5vh);
   align-items: start;
-  font-size: min(4vw, 4vh) !important;
+  font-size: min(7.5vw, 7.5vh) !important;
   user-select: none;
+  color: black !important;
+  text-shadow:
+    -1px -1px 0 white,
+    1px -1px 0 white,
+    -1px 1px 0 white,
+    1px 1px 0 white,
+    -1px 0 0 white,
+    1px 0 0 white,
+    0 -1px 0 white,
+    0 1px 0 white;
 }
 
 
@@ -35,7 +45,17 @@ div#bouncing-text {
 
 @media screen and (max-width: 500px) {
   div#bouncing-text {
-    width: calc(min(2vw, 4vh) * 11);
-    height: 2em;
+    width: fit-content;
+    height: fit-content;
+    font-size: min(7.5vw, 7.5vh) !important;
+    text-shadow:
+      -1px -1px 0 white,
+      1px -1px 0 white,
+      -1px 1px 0 white,
+      1px 1px 0 white,
+      -1px 0 0 white,
+      1px 0 0 white,
+      0 -1px 0 white,
+      0 1px 0 white;
   }
 }

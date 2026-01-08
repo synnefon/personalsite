@@ -19,20 +19,31 @@ export default function Home() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [duckVisible, setDuckVisible] = useState(true);
   const [duckPosition, setDuckPosition] = useState(() => {
-    const saved = sessionStorage.getItem('duckPosition');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    // Convert initial bottom position to top on first load
+    const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
     const duckSize = 72;
+
+    const saved = sessionStorage.getItem('duckPosition');
+    if (saved) {
+      const { leftPercent, topPercent } = JSON.parse(saved);
+      return {
+        left: leftPercent * windowWidth,
+        top: topPercent * windowHeight,
+        bottom: null
+      };
+    }
+
+    // Default position: bottom-left
     return { left: 30, top: windowHeight - 10 - duckSize, bottom: null };
   });
   const [volumeMultiplier, setVolumeMultiplier] = useState(1);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const soundStopRef = useRef(null);
   const soundParamsRef = useRef(null);
   const contentWrapperRef = useRef(null);
   const timeoutRef = useRef(null);
+
+  const isMobile = windowWidth <= 768;
 
   // const [color, setColor] = useState(COLORS[0]);
   // // const maxX = useRef(window.innerWidth);
@@ -94,10 +105,42 @@ export default function Home() {
     document.getElementById("app-base").setAttribute("class", "");
   }, []);
 
-  // Save duck position to sessionStorage whenever it changes
+  // Save duck position to sessionStorage as percentages whenever it changes
   useEffect(() => {
-    sessionStorage.setItem('duckPosition', JSON.stringify(duckPosition));
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    const positionPercent = {
+      leftPercent: duckPosition.left / windowWidth,
+      topPercent: duckPosition.top / windowHeight
+    };
+
+    sessionStorage.setItem('duckPosition', JSON.stringify(positionPercent));
   }, [duckPosition]);
+
+  // Update duck position on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const windowWidthNow = window.innerWidth;
+      const windowHeightNow = window.innerHeight;
+
+      setWindowWidth(windowWidthNow);
+
+      const saved = sessionStorage.getItem('duckPosition');
+      if (!saved) return;
+
+      const { leftPercent, topPercent } = JSON.parse(saved);
+
+      setDuckPosition({
+        left: leftPercent * windowWidthNow,
+        top: topPercent * windowHeightNow,
+        bottom: null
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -346,7 +389,7 @@ export default function Home() {
       </div>
 
       {/* Duck SVG */}
-      {duckVisible && (
+      {duckVisible && !isMobile && (
         <div
           className={`duck-container ${isPlaying ? 'wiggle' : ''}`}
           style={{
