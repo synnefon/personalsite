@@ -8,6 +8,7 @@ import Home from "./home/Home";
 const Game4096 = lazy(() => import("./4096/Game4096.tsx"));
 const About = lazy(() => import("./about/About"));
 const GameOfLife = lazy(() => import("./game_of_life/GameOfLife.tsx"));
+const LavaLamp = lazy(() => import("./lava_lamp/LavaLamp.tsx"));
 const MatchGame = lazy(() => import("./match_game/MatchGame"));
 const Projects = lazy(() => import("./projects/Projects"));
 const Wip = lazy(() => import("./projects/Wip"));
@@ -53,6 +54,7 @@ function App() {
             <Route path="/shufflenator" element={<Shufflenator />} />
             <Route path="/shavianator" element={<Shavianator />} />
             <Route path="/game-of-life" element={<GameOfLife />} />
+            <Route path="/lava-lamp" element={<LavaLamp />} />
             <Route path="/4096" element={<Game4096 />} />
             <Route path="toolbox" element={<Toolbox />} />
           </Routes>

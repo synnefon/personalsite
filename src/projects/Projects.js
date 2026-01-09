@@ -222,6 +222,16 @@ export default function Projects() {
               cellular automata simulator
             </p>
           </Link>
+          <Link
+            className="link proj-colors"
+            to="/lava-lamp"
+            rel="noreferrer"
+          >
+            <p className="link-text proj-colors">lava lamp</p>
+            <p className="tooltip-text proj-colors">
+              pixelated cellular automata lava lamp
+            </p>
+          </Link>
           <Link className="link proj-colors" to="/shavianator" rel="noreferrer">
             <p className="link-text proj-colors">shavian transliterator</p>
             <p className="tooltip-text proj-colors">english → shavian</p>
