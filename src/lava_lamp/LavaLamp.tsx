@@ -17,11 +17,11 @@ interface Blob {
 }
 
 const BLOB_COUNT = 8;
-const GRAVITY = 0.002;
-const BUOYANCY = 0.008;
+const GRAVITY = 0.01;
+const BUOYANCY = 0.04;
 const FRICTION = 0.98;
-const HEAT_RATE = 0.0005;
-const COOL_RATE = 0.00015;
+const HEAT_RATE = 0.005;
+const COOL_RATE = 0.0015;
 
 // Pixelation block size for blobs
 const PIXEL_SIZE = 6;
@@ -32,24 +32,27 @@ export default function LavaLamp(): ReactElement {
   const blobsRef = useRef<Blob[]>([]);
   const [running, setRunning] = useState<boolean>(true);
 
-  // Initialize blobs - start with a line of goo at the bottom
+  // Initialize blobs - place at random spots
   const initializeBlobs = useCallback((): Blob[] => {
     const blobs: Blob[] = [];
     const width = window.innerWidth;
     const height = window.innerHeight;
 
-    // Create blobs lined up along the bottom
+    // Define a reasonable random range for the blob radius
+    const MIN_RADIUS = 30;
+    const MAX_RADIUS = 70;
+
     for (let i = 0; i < BLOB_COUNT; i++) {
-      // Evenly space blobs along the width
-      const x = ((i + 0.5) / BLOB_COUNT) * width;
+      const radius = Math.random() * (MAX_RADIUS - MIN_RADIUS) + MIN_RADIUS;
+      const x = Math.random() * (width - 2 * radius) + radius; // keep inside viewport horizontally
+      const y = Math.random() * (height - 2 * radius) + radius; // keep inside viewport vertically
       blobs.push({
         x: x,
-        // Place blobs just above the bottom
-        y: height - 50,
+        y: y,
         vx: 0,
         vy: 0,
         heat: 1, // fully heated - will rise
-        radius: 50, // standard size; can randomize if desired
+        radius: radius, // randomized size
       });
     }
 
