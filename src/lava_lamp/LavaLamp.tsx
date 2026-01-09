@@ -36,6 +36,8 @@ export default function LavaLamp(): ReactElement {
   const animationFrameRef = useRef<number | null>(null);
   const particlesRef = useRef<Particle[]>([]);
   const [running, setRunning] = useState(true);
+  const mouseDownRef = useRef(false);
+  const mousePositionRef = useRef({ x: 0, y: 0 });
 
   // --- Particle Initialization ---
   const initializeParticles = useCallback((): Particle[] => {
@@ -119,6 +121,19 @@ export default function LavaLamp(): ReactElement {
       // Update position
       p.x += p.vx;
       p.y += p.vy;
+
+      // Mouse heating - apply heat when clicking
+      if (mouseDownRef.current) {
+        const distanceFromMouse = Math.hypot(
+          p.x - mousePositionRef.current.x,
+          p.y - mousePositionRef.current.y
+        );
+        const mouseHeatRadius = 100;
+        if (distanceFromMouse < mouseHeatRadius) {
+          const heatIntensity = 1 - distanceFromMouse / mouseHeatRadius;
+          p.heat += HEAT_RATE * 2 * heatIntensity; // 2x heat rate for mouse
+        }
+      }
 
       // Heat logic
       const distanceFromBottom = height - p.y;
@@ -280,6 +295,43 @@ export default function LavaLamp(): ReactElement {
       window.removeEventListener("resize", handleResize);
   }, [initializeParticles]);
 
+  // --- Mouse Handlers ---
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    mouseDownRef.current = true;
+    mousePositionRef.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    mousePositionRef.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    mouseDownRef.current = false;
+  }, []);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length > 0) {
+      mouseDownRef.current = true;
+      mousePositionRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY
+      };
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length > 0) {
+      mousePositionRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY
+      };
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    mouseDownRef.current = false;
+  }, []);
+
   // --- Button Handlers ---
   const toggleRunning = useCallback(() => setRunning((p) => !p), []);
   const reset = useCallback(() => {
@@ -295,6 +347,13 @@ export default function LavaLamp(): ReactElement {
         className="lava-lamp-canvas"
         width={window.innerWidth}
         height={window.innerHeight}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       />
       <div className="lava-lamp-controls">
         <button
