@@ -8,6 +8,10 @@ import React, {
 } from "react";
 import "../styles/lavalamp.css";
 
+import musicAudioNoise from "../assets/lavaLamp/guitar.mp3";
+import clickAudioNoise from "../assets/lavaLamp/click.mp3";
+import { PersonalAudio } from "../util/Audio";
+
 // --- Types ---
 interface Particle {
   x: number;
@@ -63,8 +67,30 @@ function computeParticleCount(width: number, height: number): number {
   const density = BASELINE.PARTICLES / baselineArea;
   const scaled = Math.round(currentArea * density);
 
-  // Keep sane bounds: physics/render cost grows quickly.
   return Math.max(200, Math.min(2000, scaled));
+}
+
+// --- Persisted audio position ---
+const MUSIC_TIME_KEY = "lavaLamp.musicTimeSeconds";
+
+function readSavedMusicTimeSeconds(): number {
+  try {
+    const raw = localStorage.getItem(MUSIC_TIME_KEY);
+    if (!raw) return 0;
+    const v = Number(raw);
+    return Number.isFinite(v) && v >= 0 ? v : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeSavedMusicTimeSeconds(seconds: number) {
+  try {
+    if (!Number.isFinite(seconds) || seconds < 0) return;
+    localStorage.setItem(MUSIC_TIME_KEY, String(seconds));
+  } catch {
+    // ignore
+  }
 }
 
 // --- Utils ---
@@ -160,7 +186,6 @@ function stepSimulationOnePairPass(
 ) {
   const n = particles.length;
 
-  // Cache constants locally (hot loop)
   const gravity = SIM.GRAVITY;
   const buoyancyK = SIM.BUOYANCY;
   const friction = SIM.FRICTION;
@@ -183,23 +208,18 @@ function stepSimulationOnePairPass(
   const pointerX = pointerPos.x;
   const pointerY = pointerPos.y;
 
-  // 1) External forces + integrate + pointer heat + initial bounce.
   for (let i = 0; i < n; i++) {
     const p = particles[i];
 
-    // gravity + buoyancy
     const buoyancy = p.heat * p.heat * buoyancyK;
     p.vy += gravity - buoyancy;
 
-    // friction
     p.vx *= friction;
     p.vy *= friction;
 
-    // integrate (semi-implicit: v updated before x)
     p.x += p.vx;
     p.y += p.vy;
 
-    // pointer heat (no allocations)
     if (pointerDown) {
       const dx = p.x - pointerX;
       const dy = p.y - pointerY;
@@ -211,12 +231,9 @@ function stepSimulationOnePairPass(
     }
 
     neighborCounts[i] = 0;
-
-    // keep roughly in-bounds before pair forces
     bounceInBounds(p, width, height);
   }
 
-  // 2) ONE pair loop: neighborCounts + cohesion + conduction (post-move positions)
   for (let i = 0; i < n; i++) {
     const p1 = particles[i];
     for (let j = i + 1; j < n; j++) {
@@ -230,7 +247,6 @@ function stepSimulationOnePairPass(
         neighborCounts[i]++;
         neighborCounts[j]++;
 
-        // cohesion
         const force = cohStrength * (1 - d * cohRInv);
         const invD = 1 / d;
         const fx = dx * invD * force;
@@ -241,7 +257,6 @@ function stepSimulationOnePairPass(
         p2.vx -= fx;
         p2.vy -= fy;
 
-        // conduction
         const heatDiff = p1.heat - p2.heat;
         const conduction = heatDiff * conductionK;
         p1.heat -= conduction;
@@ -250,11 +265,10 @@ function stepSimulationOnePairPass(
     }
   }
 
-  // 3) Heat source + cooling (now using post-move neighborCounts)
   for (let i = 0; i < n; i++) {
     const p = particles[i];
-
     const distanceFromBottom = height - p.y;
+
     if (distanceFromBottom < heatSrcDist) {
       const intensity = 1 - distanceFromBottom * heatSrcDistInv;
       p.heat += heatRate * intensity;
@@ -269,7 +283,6 @@ function stepSimulationOnePairPass(
     p.heat = clamp01(p.heat);
   }
 
-  // 4) Re-clamp after cohesion so pair forces can't push out-of-bounds
   clampAllToBounds(particles, width, height);
 }
 
@@ -287,14 +300,9 @@ function ensureImageData(
   return imageRef.current!;
 }
 
-// red → yellow
 function heatToRGB(heat: number): { r: number; g: number; b: number } {
   const t = clamp01(heat);
-  return {
-    r: 255,
-    g: Math.round(50 + 205 * t),
-    b: 0,
-  };
+  return { r: 255, g: Math.round(50 + 205 * t), b: 0 };
 }
 
 function setPixelBlock(
@@ -391,14 +399,15 @@ export default function LavaLamp(): ReactElement {
 
   const particlesRef = useRef<Particle[]>([]);
   const imageRef = useRef<ImageData | null>(null);
-
-  // reuse neighborCounts buffer (no per-frame alloc)
   const neighborCountsRef = useRef<Uint16Array>(new Uint16Array(0));
-
-  // particle count computed ONCE per load; never recomputed on resize
   const particleCountRef = useRef<number | null>(null);
 
-  const [running, setRunning] = useState(true);
+  const gameMusic = useMemo(() => new PersonalAudio(musicAudioNoise, true), []);
+  const clickSound = useMemo(() => new PersonalAudio(clickAudioNoise, false), []);
+
+  // No lava until first Start.
+  const [hasStarted, setHasStarted] = useState(false);
+  const [running, setRunning] = useState(false);
 
   const pointerDownRef = useRef(false);
   const pointerPosRef = useRef<Vec2>({ x: 0, y: 0 });
@@ -416,19 +425,53 @@ export default function LavaLamp(): ReactElement {
     neighborCountsRef.current = new Uint16Array(count);
   }, []);
 
+  const saveMusicPosition = useCallback(() => {
+    // Persist even if paused/unmounted so we can resume after navigation.
+    writeSavedMusicTimeSeconds(gameMusic.currentTime ?? 0);
+  }, [gameMusic]);
+
+  // Periodically persist while the lamp is running (so back-navigation resumes close to where you left)
+  useEffect(() => {
+    if (!hasStarted) return;
+
+    const tick = () => saveMusicPosition();
+    const id = window.setInterval(tick, 1000);
+
+    const onPageHide = () => saveMusicPosition();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") saveMusicPosition();
+    };
+
+    window.addEventListener("pagehide", onPageHide);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("pagehide", onPageHide);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [hasStarted, saveMusicPosition]);
+
+  // Cleanup only (do NOT autoplay); persist time first
+  useEffect(() => {
+    return () => {
+      saveMusicPosition();
+
+      gameMusic.pause();
+      gameMusic.volume = 0;
+      gameMusic.reset();
+
+      clickSound.pause();
+      clickSound.volume = 0;
+      clickSound.reset();
+    };
+  }, [gameMusic, clickSound, saveMusicPosition]);
+
   const update = useCallback(() => {
-    const particles = particlesRef.current;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-
-    if (neighborCountsRef.current.length !== particles.length) {
-      neighborCountsRef.current = new Uint16Array(particles.length);
-    }
-
     stepSimulationOnePairPass(
-      particles,
-      width,
-      height,
+      particlesRef.current,
+      window.innerWidth,
+      window.innerHeight,
       pointerDownRef.current,
       pointerPosRef.current,
       neighborCountsRef.current
@@ -448,12 +491,23 @@ export default function LavaLamp(): ReactElement {
     rafRef.current = requestAnimationFrame(animate);
   }, [running, update, draw]);
 
-  // --- Mount/init (once) ---
+  // Resize canvas only (no particle re-init, no drawing lava before start)
   useEffect(() => {
-    initializeParticlesOnce();
-  }, [initializeParticlesOnce]);
+    const handleResize = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      setCanvasToWindow(canvas);
+      imageRef.current = null;
 
-  // --- Start/stop loop ---
+      if (hasStarted) draw();
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [draw, hasStarted]);
+
+  // Start/stop RAF loop
   useEffect(() => {
     if (!running) {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -468,69 +522,76 @@ export default function LavaLamp(): ReactElement {
     };
   }, [running, animate]);
 
-  // --- Resize (canvas only; do NOT re-init particles) ---
-  useEffect(() => {
-    const handleResize = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      setCanvasToWindow(canvas);
-      imageRef.current = null; // force ImageData resize ONLY
-    };
+  const playClick = useCallback(() => {
+    try {
+      clickSound.volume = 1.0;
+      clickSound.currentTime = 0;
+      clickSound.reset();
+      clickSound.play();
+    } catch {
+      // ignore
+    }
+  }, [clickSound]);
 
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const resumeMusicFromSavedTime = useCallback(() => {
+    const t = readSavedMusicTimeSeconds();
+    try {
+      // If duration is known and we stored something past the end, wrap.
+      const duration = (gameMusic as any).duration as number | undefined;
+      if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
+        gameMusic.currentTime = t % duration;
+      } else {
+        gameMusic.currentTime = t;
+      }
+    } catch {
+      // ignore
+    }
+  }, [gameMusic]);
 
-  // --- Pointer handlers ---
-  const setPointerPos = useCallback((x: number, y: number) => {
-    pointerPosRef.current = { x, y };
-  }, []);
+  const startLamp = useCallback(() => {
+    playClick();
 
-  const onMouseDown = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      pointerDownRef.current = true;
-      setPointerPos(e.clientX, e.clientY);
-    },
-    [setPointerPos]
-  );
+    if (!hasStarted) {
+      setHasStarted(true);
+      initializeParticlesOnce();
+      requestAnimationFrame(() => draw());
+    }
 
-  const onMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      setPointerPos(e.clientX, e.clientY);
-    },
-    [setPointerPos]
-  );
+    setRunning(true);
 
-  const onMouseUpOrLeave = useCallback(() => {
-    pointerDownRef.current = false;
-  }, []);
+    // gesture-driven: resume from last saved time, then play (looping via PersonalAudio ctor flag)
+    resumeMusicFromSavedTime();
+    gameMusic.volume = 1.0;
+    gameMusic.play();
+  }, [
+    draw,
+    gameMusic,
+    hasStarted,
+    initializeParticlesOnce,
+    playClick,
+    resumeMusicFromSavedTime,
+  ]);
 
-  const onTouchStart = useCallback(
-    (e: React.TouchEvent<HTMLCanvasElement>) => {
-      const t = e.touches[0];
-      if (!t) return;
-      pointerDownRef.current = true;
-      setPointerPos(t.clientX, t.clientY);
-    },
-    [setPointerPos]
-  );
+  // Old play/pause button behavior (after started)
+  const toggleRunning = useCallback(() => {
+    playClick();
 
-  const onTouchMove = useCallback(
-    (e: React.TouchEvent<HTMLCanvasElement>) => {
-      const t = e.touches[0];
-      if (!t) return;
-      setPointerPos(t.clientX, t.clientY);
-    },
-    [setPointerPos]
-  );
+    setRunning((prev) => {
+      const next = !prev;
 
-  const onTouchEnd = useCallback(() => {
-    pointerDownRef.current = false;
-  }, []);
+      if (next) {
+        resumeMusicFromSavedTime();
+        gameMusic.volume = 1.0;
+        gameMusic.play();
+      } else {
+        saveMusicPosition();
+        gameMusic.pause();
+      }
 
-  // --- Controls ---
-  const toggleRunning = useCallback(() => setRunning((p) => !p), []);
+      return next;
+    });
+  }, [gameMusic, playClick, resumeMusicFromSavedTime, saveMusicPosition]);
+
   const initialCanvasSize = useMemo(
     () => ({ w: window.innerWidth, h: window.innerHeight }),
     []
@@ -543,19 +604,26 @@ export default function LavaLamp(): ReactElement {
         className="lava-lamp-canvas"
         width={initialCanvasSize.w}
         height={initialCanvasSize.h}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUpOrLeave}
-        onMouseLeave={onMouseUpOrLeave}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
       />
-      <div className="lava-lamp-controls">
-        <button className="lava-lamp-button" onClick={toggleRunning}>
-          {running ? "⏸" : "▶"}
-        </button>
-      </div>
+
+      {!hasStarted ? (
+        <div className="lava-lamp-start-overlay">
+          <button
+            type="button"
+            className="lava-lamp-start"
+            onClick={startLamp}
+            aria-label="Start lava lamp"
+          >
+            START
+          </button>
+        </div>
+      ) : (
+        <div className="lava-lamp-controls">
+          <button className="lava-lamp-button" onClick={toggleRunning}>
+            {running ? "⏸" : "▶"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
