@@ -321,3 +321,38 @@ select.lava-lamp-slider option {
   cursor: pointer;
   z-index: 1001;             /* if something else overlaps locally */
 }
+
+/* --- Now Playing Display --- */
+.lava-lamp-now-playing {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 3;
+
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--lava-accent) 35%, transparent);
+  background: rgba(0, 0, 0, 0.55);
+  color: color-mix(in srgb, var(--lava-accent) 92%, transparent);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  max-width: 320px;
+  user-select: none;
+}
+
+.lava-lamp-now-playing-song {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.lava-lamp-now-playing-artist {
+  font-size: 12px;
+  opacity: 0.85;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+}

@@ -651,6 +651,10 @@ export default function LavaLamp(): ReactElement {
   }, [volume, gameMusic]);
 
   const [audioSource, setAudioSource] = useState<AudioSource>(AUDIO_SOURCES.REDWOOD);
+  const [nowPlaying, setNowPlaying] = useState<{
+    song: string;
+    artist: string;
+  } | null>(null);
 
   useEffect(() => {
     const config = AUDIO_SOURCE_CONFIG[audioSource];
@@ -665,6 +669,35 @@ export default function LavaLamp(): ReactElement {
       });
     }
   }, [audioSource, gameMusic]);
+
+  // Fetch KEXP now playing info
+  useEffect(() => {
+    if (!hasStarted || audioSource !== AUDIO_SOURCES.KEXP) {
+      setNowPlaying(null);
+      return;
+    }
+
+    const fetchNowPlaying = async () => {
+      try {
+        const response = await fetch("https://api.kexp.org/v2/plays/?limit=1");
+        const data = await response.json();
+
+        if (data.results?.[0] && data.results[0].play_type === "trackplay") {
+          setNowPlaying({
+            song: data.results[0].song || "Unknown Track",
+            artist: data.results[0].artist || "Unknown Artist",
+          });
+        }
+      } catch {
+        // ignore errors
+      }
+    };
+
+    fetchNowPlaying();
+    const interval = setInterval(fetchNowPlaying, 30000); // Poll every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [hasStarted, audioSource]);
 
   const lavaLowColorRef = useRef(DEFAULT_LOW);
   const lavaHighColorRef = useRef(DEFAULT_HIGH);
@@ -911,6 +944,13 @@ export default function LavaLamp(): ReactElement {
         width={initialCanvasSize.w}
         height={initialCanvasSize.h}
       />
+
+      {nowPlaying && (
+        <div className="lava-lamp-now-playing">
+          <div className="lava-lamp-now-playing-song">{nowPlaying.song}</div>
+          <div className="lava-lamp-now-playing-artist">{nowPlaying.artist}</div>
+        </div>
+      )}
 
       {!hasStarted ? (
         <div className="lava-lamp-start-overlay">
