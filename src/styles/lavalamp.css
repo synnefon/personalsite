@@ -459,15 +459,15 @@ select.lava-lamp-slider option {
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  height: 20px;
+  height: 28px;
 }
 
 .lava-lamp-soundwave-bar {
   width: 3px;
   background: var(--lava-accent);
   border-radius: 2px;
-  height: calc(3px + (var(--bar-height, 0) * 17px));
-  transition: height 0.15s ease-out;
+  height: calc(3px + (var(--bar-height, 0) * 25px));
+  transition: height 0.25s ease-in-out;
 }
 
 /* Bars react to amplitude via --amplitude CSS variable */

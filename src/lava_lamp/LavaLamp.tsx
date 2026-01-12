@@ -985,11 +985,11 @@ export default function LavaLamp(): ReactElement {
     // Drop extra backlog to avoid death spiral
     if (clock.acc >= FIXED_MS) clock.acc = 0;
 
-    // Update audio waveform bars (update state every 3 frames to avoid excessive re-renders)
+    // Update audio waveform bars (update state every 5 frames for smoother, calmer animation)
     if (amplitudeAnalyzerRef.current) {
       currentWaveformRef.current = amplitudeAnalyzerRef.current.getWaveformBars(10);
       waveformUpdateCounterRef.current++;
-      if (waveformUpdateCounterRef.current >= 3) {
+      if (waveformUpdateCounterRef.current >= 5) {
         setDisplayWaveform(currentWaveformRef.current);
         waveformUpdateCounterRef.current = 0;
       }

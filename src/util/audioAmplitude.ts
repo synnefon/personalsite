@@ -20,7 +20,7 @@ export class AudioAmplitudeAnalyzer {
       this.audioContext = new AudioContext();
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 256; // Small size for performance
-      this.analyser.smoothingTimeConstant = 0.9; // Higher = smoother (0-1 range)
+      this.analyser.smoothingTimeConstant = 0.95; // Higher = smoother (0-1 range)
 
       const source = this.audioContext.createMediaElementSource(audioElement);
       source.connect(this.analyser).connect(this.audioContext.destination);
@@ -83,8 +83,8 @@ export class AudioAmplitudeAnalyzer {
         const index = i * step;
         // Convert byte value (0-255, centered at 128) to 0-1 range
         const normalized = Math.abs((this.dataArray[index] - 128) / 128);
-        // Gentle boost for visibility (reduced from 2 to 1.5 for less dramatic movement)
-        bars.push(Math.min(1, normalized * 1.5));
+        // Very gentle boost for smooth, calm visualization
+        bars.push(Math.min(1, normalized * 1.2));
       }
 
       return bars;
