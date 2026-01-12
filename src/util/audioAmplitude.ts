@@ -20,7 +20,7 @@ export class AudioAmplitudeAnalyzer {
       this.audioContext = new AudioContext();
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 256; // Small size for performance
-      this.analyser.smoothingTimeConstant = 0.8; // Smooth out jitter
+      this.analyser.smoothingTimeConstant = 0.9; // Higher = smoother (0-1 range)
 
       const source = this.audioContext.createMediaElementSource(audioElement);
       source.connect(this.analyser).connect(this.audioContext.destination);
@@ -60,6 +60,37 @@ export class AudioAmplitudeAnalyzer {
     } catch (err) {
       console.warn('[AudioAmplitude] Error reading amplitude:', err);
       return 0;
+    }
+  }
+
+  /**
+   * Get waveform values for multiple bars (e.g., 4 bars for visualization).
+   * Samples different points in the waveform and returns normalized values [0-1].
+   */
+  getWaveformBars(barCount: number): number[] {
+    if (!this.analyser || !this.dataArray) {
+      return new Array(barCount).fill(0);
+    }
+
+    try {
+      // Get time domain data (waveform)
+      this.analyser.getByteTimeDomainData(this.dataArray);
+
+      const bars: number[] = [];
+      const step = Math.floor(this.dataArray.length / barCount);
+
+      for (let i = 0; i < barCount; i++) {
+        const index = i * step;
+        // Convert byte value (0-255, centered at 128) to 0-1 range
+        const normalized = Math.abs((this.dataArray[index] - 128) / 128);
+        // Gentle boost for visibility (reduced from 2 to 1.5 for less dramatic movement)
+        bars.push(Math.min(1, normalized * 1.5));
+      }
+
+      return bars;
+    } catch (err) {
+      console.warn('[AudioAmplitude] Error reading waveform:', err);
+      return new Array(barCount).fill(0);
     }
   }
 

@@ -653,9 +653,9 @@ export default function LavaLamp(): ReactElement {
 
   // Audio amplitude analysis
   const amplitudeAnalyzerRef = useRef<AudioAmplitudeAnalyzer | null>(null);
-  const currentAmplitudeRef = useRef(0);
-  const [displayAmplitude, setDisplayAmplitude] = useState(0);
-  const amplitudeUpdateCounterRef = useRef(0);
+  const currentWaveformRef = useRef<number[]>(new Array(10).fill(0));
+  const [displayWaveform, setDisplayWaveform] = useState<number[]>(new Array(10).fill(0));
+  const waveformUpdateCounterRef = useRef(0);
 
   // Speed slider state
   const defaultSpeedIdx = useMemo(() => speedToNearestIndex(SPEED.DEFAULT), []);
@@ -985,13 +985,13 @@ export default function LavaLamp(): ReactElement {
     // Drop extra backlog to avoid death spiral
     if (clock.acc >= FIXED_MS) clock.acc = 0;
 
-    // Update audio amplitude (update state every 3 frames to avoid excessive re-renders)
+    // Update audio waveform bars (update state every 3 frames to avoid excessive re-renders)
     if (amplitudeAnalyzerRef.current) {
-      currentAmplitudeRef.current = amplitudeAnalyzerRef.current.getAmplitude();
-      amplitudeUpdateCounterRef.current++;
-      if (amplitudeUpdateCounterRef.current >= 3) {
-        setDisplayAmplitude(currentAmplitudeRef.current);
-        amplitudeUpdateCounterRef.current = 0;
+      currentWaveformRef.current = amplitudeAnalyzerRef.current.getWaveformBars(10);
+      waveformUpdateCounterRef.current++;
+      if (waveformUpdateCounterRef.current >= 3) {
+        setDisplayWaveform(currentWaveformRef.current);
+        waveformUpdateCounterRef.current = 0;
       }
     }
 
@@ -1161,14 +1161,14 @@ export default function LavaLamp(): ReactElement {
             <div className="lava-lamp-now-playing-header">
               <div className="lava-lamp-now-playing-label">kexp</div>
               {!nowPlaying.isAirbreak && (
-                <div
-                  className="lava-lamp-soundwave"
-                  style={{ '--amplitude': displayAmplitude } as React.CSSProperties}
-                >
-                  <div className="lava-lamp-soundwave-bar"></div>
-                  <div className="lava-lamp-soundwave-bar"></div>
-                  <div className="lava-lamp-soundwave-bar"></div>
-                  <div className="lava-lamp-soundwave-bar"></div>
+                <div className="lava-lamp-soundwave">
+                  {displayWaveform.map((height, i) => (
+                    <div
+                      key={i}
+                      className="lava-lamp-soundwave-bar"
+                      style={{ '--bar-height': height } as React.CSSProperties}
+                    />
+                  ))}
                 </div>
               )}
             </div>

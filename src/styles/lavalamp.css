@@ -443,7 +443,7 @@ select.lava-lamp-slider option {
 
 .lava-lamp-now-playing-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 10px;
   margin-bottom: 8px;
 }
@@ -457,17 +457,17 @@ select.lava-lamp-slider option {
 
 .lava-lamp-soundwave {
   display: flex;
-  align-items: center;
-  gap: 3px;
-  height: 14px;
+  align-items: flex-end;
+  gap: 2px;
+  height: 20px;
 }
 
 .lava-lamp-soundwave-bar {
   width: 3px;
   background: var(--lava-accent);
   border-radius: 2px;
-  height: calc(4px + (var(--amplitude, 0) * 10px));
-  transition: height 0.1s ease-out;
+  height: calc(3px + (var(--bar-height, 0) * 17px));
+  transition: height 0.15s ease-out;
 }
 
 /* Bars react to amplitude via --amplitude CSS variable */
