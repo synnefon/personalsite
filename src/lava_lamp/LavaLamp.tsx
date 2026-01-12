@@ -60,6 +60,14 @@ const BASELINE = {
   PARTICLES: 1200,
 } as const;
 
+// --- Speed control (indexed slider) ---
+const SPEED = {
+  MIN: 0.0, // per request
+  MAX: 5,
+  DEFAULT: 1.0,
+  STEPS: 10, // odd => default lands centered
+} as const;
+
 function computeParticleCount(width: number, height: number): number {
   const baselineArea = BASELINE.WIDTH * BASELINE.HEIGHT;
   const currentArea = width * height;
@@ -91,6 +99,48 @@ function writeSavedMusicTimeSeconds(seconds: number) {
   } catch {
     // ignore
   }
+}
+
+function lerp(a: number, b: number, t: number) {
+  return a + (b - a) * t;
+}
+
+function clampInt(v: number, lo: number, hi: number) {
+  return v < lo ? lo : v > hi ? hi : v;
+}
+
+// Note: MIN=0 is special; we treat index 0 as "paused-ish" (dt=0) and
+// map indices 1..STEPS-1 into (0..MAX] smoothly in log space.
+function indexToSpeed(idx: number): number {
+  if (idx <= 0) return 0;
+
+  const steps = SPEED.STEPS;
+  if (steps <= 1) return SPEED.DEFAULT;
+
+  const t = (idx - 1) / (steps - 2); // idx=1 => t=0, idx=steps-1 => t=1
+  const minPositive = 0.25; // feel-good floor for nonzero speeds
+  const minLog = Math.log(minPositive);
+  const maxLog = Math.log(SPEED.MAX);
+  return Math.exp(lerp(minLog, maxLog, t));
+}
+
+function speedToNearestIndex(speed: number): number {
+  if (speed <= 0) return 0;
+
+  const steps = SPEED.STEPS;
+  let best = 1;
+  let bestErr = Infinity;
+  const target = Math.log(speed);
+
+  for (let i = 1; i < steps; i++) {
+    const s = indexToSpeed(i);
+    const err = Math.abs(Math.log(s) - target);
+    if (err < bestErr) {
+      bestErr = err;
+      best = i;
+    }
+  }
+  return best;
 }
 
 // --- Utils ---
@@ -175,115 +225,148 @@ function createParticles(width: number, height: number, count: number): Particle
   return particles;
 }
 
-// --- Physics (Option 2: single pair-pass on post-move positions) ---
-function stepSimulationOnePairPass(
+// --- Physics (single pair-pass on post-move positions, time-scaled) ---
+export function stepSimulationOnePairPass(
   particles: Particle[],
   width: number,
   height: number,
   pointerDown: boolean,
   pointerPos: Vec2,
-  neighborCounts: Uint16Array
+  neighborCounts: Uint16Array,
+  timeScale: number
 ) {
-  const n = particles.length;
+  // dt=0 => frozen (but still renders)
+  const dt = Math.max(0, Math.min(4.0, timeScale));
 
-  const gravity = SIM.GRAVITY;
-  const buoyancyK = SIM.BUOYANCY;
-  const friction = SIM.FRICTION;
-
-  const mouseR = SIM.MOUSE_HEAT_RADIUS;
-  const mouseRInv = 1 / mouseR;
-
-  const heatRate = SIM.HEAT_RATE;
-  const coolRate = SIM.COOL_RATE;
-
-  const heatSrcDist = SIM.HEAT_SOURCE_DISTANCE;
-  const heatSrcDistInv = 1 / heatSrcDist;
-
-  const cohR = SIM.COHESION_RADIUS;
-  const cohRInv = 1 / cohR;
-  const cohStrength = SIM.COHESION_STRENGTH;
-
-  const conductionK = SIM.HEAT_CONDUCTION;
-
-  const pointerX = pointerPos.x;
-  const pointerY = pointerPos.y;
-
-  for (let i = 0; i < n; i++) {
+  // Pass 1: integrate + pointer heat + reset neighbors
+  for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
 
-    const buoyancy = p.heat * p.heat * buoyancyK;
-    p.vy += gravity - buoyancy;
+    applyBuoyancyAndGravity(p, dt);
+    applyFriction(p, dt);
+    integrate(p, dt);
 
-    p.vx *= friction;
-    p.vy *= friction;
-
-    p.x += p.vx;
-    p.y += p.vy;
-
-    if (pointerDown) {
-      const dx = p.x - pointerX;
-      const dy = p.y - pointerY;
-      const d = hypot2(dx, dy);
-      if (d < mouseR) {
-        const intensity = 1 - d * mouseRInv;
-        p.heat += heatRate * 2 * intensity;
-      }
-    }
+    if (pointerDown) applyPointerHeat(p, pointerPos, dt);
 
     neighborCounts[i] = 0;
     bounceInBounds(p, width, height);
   }
 
-  for (let i = 0; i < n; i++) {
-    const p1 = particles[i];
-    for (let j = i + 1; j < n; j++) {
-      const p2 = particles[j];
+  // Pass 2: pairwise forces + conduction (scaled)
+  if (dt > 0) {
+    for (let i = 0; i < particles.length; i++) {
+      const p1 = particles[i];
+      for (let j = i + 1; j < particles.length; j++) {
+        const p2 = particles[j];
 
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      const d = hypot2(dx, dy);
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const d = hypot2(dx, dy);
 
-      if (d > 0 && d < cohR) {
-        neighborCounts[i]++;
-        neighborCounts[j]++;
+        if (d > 0 && d < SIM.COHESION_RADIUS) {
+          neighborCounts[i]++;
+          neighborCounts[j]++;
 
-        const force = cohStrength * (1 - d * cohRInv);
-        const invD = 1 / d;
-        const fx = dx * invD * force;
-        const fy = dy * invD * force;
-
-        p1.vx += fx;
-        p1.vy += fy;
-        p2.vx -= fx;
-        p2.vy -= fy;
-
-        const heatDiff = p1.heat - p2.heat;
-        const conduction = heatDiff * conductionK;
-        p1.heat -= conduction;
-        p2.heat += conduction;
+          applyCohesionImpulse(p1, p2, dx, dy, d, dt);
+          applyHeatConduction(p1, p2, dt);
+        }
       }
     }
-  }
 
-  for (let i = 0; i < n; i++) {
-    const p = particles[i];
-    const distanceFromBottom = height - p.y;
-
-    if (distanceFromBottom < heatSrcDist) {
-      const intensity = 1 - distanceFromBottom * heatSrcDistInv;
-      p.heat += heatRate * intensity;
-    } else {
-      const maxNeighbors = 8;
-      const neighbors =
-        neighborCounts[i] < maxNeighbors ? neighborCounts[i] : maxNeighbors;
-      const airExposure = 1 - neighbors / maxNeighbors;
-      p.heat -= coolRate * (0.2 + airExposure * 0.8);
+    // Pass 3: heat source / cooling (scaled)
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      applyBottomHeatOrAirCooling(p, height, neighborCounts[i], dt);
+      p.heat = clamp01(p.heat);
     }
-
-    p.heat = clamp01(p.heat);
+  } else {
+    // dt == 0: still clamp heat into [0,1] to avoid drift from other callers
+    for (let i = 0; i < particles.length; i++) {
+      particles[i].heat = clamp01(particles[i].heat);
+    }
   }
 
   clampAllToBounds(particles, width, height);
+}
+
+function applyBuoyancyAndGravity(p: Particle, dt: number) {
+  if (dt === 0) return;
+  const buoyancy = p.heat * p.heat * SIM.BUOYANCY;
+  p.vy += (SIM.GRAVITY - buoyancy) * dt;
+}
+
+function applyFriction(p: Particle, dt: number) {
+  if (dt === 0) return;
+  const f = Math.pow(SIM.FRICTION, dt);
+  p.vx *= f;
+  p.vy *= f;
+}
+
+function integrate(p: Particle, dt: number) {
+  if (dt === 0) return;
+  p.x += p.vx * dt;
+  p.y += p.vy * dt;
+}
+
+function applyPointerHeat(p: Particle, pointerPos: Vec2, dt: number) {
+  const dx = p.x - pointerPos.x;
+  const dy = p.y - pointerPos.y;
+  const d = hypot2(dx, dy);
+
+  if (d < SIM.MOUSE_HEAT_RADIUS) {
+    const intensity = 1 - d * (1 / SIM.MOUSE_HEAT_RADIUS);
+    p.heat += SIM.HEAT_RATE * 2 * intensity * (dt === 0 ? 1 : dt);
+  }
+}
+
+function applyCohesionImpulse(
+  p1: Particle,
+  p2: Particle,
+  dx: number,
+  dy: number,
+  d: number,
+  dt: number
+) {
+  const force =
+    SIM.COHESION_STRENGTH * (1 - d * (1 / SIM.COHESION_RADIUS));
+
+  const invD = 1 / d;
+  const fx = dx * invD * force * dt;
+  const fy = dy * invD * force * dt;
+
+  p1.vx += fx;
+  p1.vy += fy;
+  p2.vx -= fx;
+  p2.vy -= fy;
+}
+
+function applyHeatConduction(p1: Particle, p2: Particle, dt: number) {
+  const heatDiff = p1.heat - p2.heat;
+  const conduction = heatDiff * SIM.HEAT_CONDUCTION * dt;
+  p1.heat -= conduction;
+  p2.heat += conduction;
+}
+
+function applyBottomHeatOrAirCooling(
+  p: Particle,
+  height: number,
+  neighborCount: number,
+  dt: number
+) {
+  const distanceFromBottom = height - p.y;
+
+  if (distanceFromBottom < SIM.HEAT_SOURCE_DISTANCE) {
+    const intensity =
+      1 - distanceFromBottom * (1 / SIM.HEAT_SOURCE_DISTANCE);
+    p.heat += SIM.HEAT_RATE * intensity * dt;
+    return;
+  }
+
+  const maxNeighbors = 8;
+  const neighbors = neighborCount < maxNeighbors ? neighborCount : maxNeighbors;
+  const airExposure = 1 - neighbors / maxNeighbors;
+
+  p.heat -= SIM.COOL_RATE * (0.2 + airExposure * 0.8) * dt;
 }
 
 // --- Render helpers ---
@@ -405,12 +488,35 @@ export default function LavaLamp(): ReactElement {
   const gameMusic = useMemo(() => new PersonalAudio(musicAudioNoise, true), []);
   const clickSound = useMemo(() => new PersonalAudio(clickAudioNoise, false), []);
 
-  // No lava until first Start.
   const [hasStarted, setHasStarted] = useState(false);
-  const [running, setRunning] = useState(false);
 
   const pointerDownRef = useRef(false);
   const pointerPosRef = useRef<Vec2>({ x: 0, y: 0 });
+
+  // Speed slider state
+  const defaultSpeedIdx = useMemo(
+    () => speedToNearestIndex(SPEED.DEFAULT),
+    []
+  );
+  const [speedIdx, setSpeedIdx] = useState<number>(defaultSpeedIdx);
+  const speedRef = useRef<number>(SPEED.DEFAULT);
+
+  useEffect(() => {
+    speedRef.current = indexToSpeed(speedIdx);
+  }, [speedIdx]);
+
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // add near your other callbacks (uses your existing click sound)
+  const toggleMenu = useCallback(() => {
+    setMenuOpen((v) => !v);
+  }, []);
+
+  const [volume, setVolume] = useState(1.0);
+
+  useEffect(() => {
+    gameMusic.volume = volume;
+  }, [volume, gameMusic]);
 
   const initializeParticlesOnce = useCallback(() => {
     const w = window.innerWidth;
@@ -426,11 +532,9 @@ export default function LavaLamp(): ReactElement {
   }, []);
 
   const saveMusicPosition = useCallback(() => {
-    // Persist even if paused/unmounted so we can resume after navigation.
     writeSavedMusicTimeSeconds(gameMusic.currentTime ?? 0);
   }, [gameMusic]);
 
-  // Periodically persist while the lamp is running (so back-navigation resumes close to where you left)
   useEffect(() => {
     if (!hasStarted) return;
 
@@ -452,7 +556,6 @@ export default function LavaLamp(): ReactElement {
     };
   }, [hasStarted, saveMusicPosition]);
 
-  // Cleanup only (do NOT autoplay); persist time first
   useEffect(() => {
     return () => {
       saveMusicPosition();
@@ -474,7 +577,8 @@ export default function LavaLamp(): ReactElement {
       window.innerHeight,
       pointerDownRef.current,
       pointerPosRef.current,
-      neighborCountsRef.current
+      neighborCountsRef.current,
+      speedRef.current
     );
   }, []);
 
@@ -485,13 +589,12 @@ export default function LavaLamp(): ReactElement {
   }, []);
 
   const animate = useCallback(() => {
-    if (!running) return;
+    // runs forever after Start (speed 0 freezes motion)
     update();
     draw();
     rafRef.current = requestAnimationFrame(animate);
-  }, [running, update, draw]);
+  }, [update, draw]);
 
-  // Resize canvas only (no particle re-init, no drawing lava before start)
   useEffect(() => {
     const handleResize = () => {
       const canvas = canvasRef.current;
@@ -507,20 +610,39 @@ export default function LavaLamp(): ReactElement {
     return () => window.removeEventListener("resize", handleResize);
   }, [draw, hasStarted]);
 
-  // Start/stop RAF loop
+  // Pointer handling
   useEffect(() => {
-    if (!running) {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-      return;
-    }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    rafRef.current = requestAnimationFrame(animate);
-    return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
+    const toLocal = (e: PointerEvent): Vec2 => {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     };
-  }, [running, animate]);
+
+    const onDown = (e: PointerEvent) => {
+      pointerDownRef.current = true;
+      pointerPosRef.current = toLocal(e);
+    };
+    const onMove = (e: PointerEvent) => {
+      pointerPosRef.current = toLocal(e);
+    };
+    const onUp = () => {
+      pointerDownRef.current = false;
+    };
+
+    canvas.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+
+    return () => {
+      canvas.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, []);
 
   const playClick = useCallback(() => {
     try {
@@ -536,7 +658,6 @@ export default function LavaLamp(): ReactElement {
   const resumeMusicFromSavedTime = useCallback(() => {
     const t = readSavedMusicTimeSeconds();
     try {
-      // If duration is known and we stored something past the end, wrap.
       const duration = (gameMusic as any).duration as number | undefined;
       if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
         gameMusic.currentTime = t % duration;
@@ -555,15 +676,17 @@ export default function LavaLamp(): ReactElement {
       setHasStarted(true);
       initializeParticlesOnce();
       requestAnimationFrame(() => draw());
+
+      // start RAF
+      rafRef.current = requestAnimationFrame(animate);
     }
 
-    setRunning(true);
-
-    // gesture-driven: resume from last saved time, then play (looping via PersonalAudio ctor flag)
+    // gesture-driven: resume from last saved time, then play
     resumeMusicFromSavedTime();
     gameMusic.volume = 1.0;
     gameMusic.play();
   }, [
+    animate,
     draw,
     gameMusic,
     hasStarted,
@@ -572,30 +695,13 @@ export default function LavaLamp(): ReactElement {
     resumeMusicFromSavedTime,
   ]);
 
-  // Old play/pause button behavior (after started)
-  const toggleRunning = useCallback(() => {
-    playClick();
-
-    setRunning((prev) => {
-      const next = !prev;
-
-      if (next) {
-        resumeMusicFromSavedTime();
-        gameMusic.volume = 1.0;
-        gameMusic.play();
-      } else {
-        saveMusicPosition();
-        gameMusic.pause();
-      }
-
-      return next;
-    });
-  }, [gameMusic, playClick, resumeMusicFromSavedTime, saveMusicPosition]);
-
   const initialCanvasSize = useMemo(
     () => ({ w: window.innerWidth, h: window.innerHeight }),
     []
   );
+
+  // Labels aligned by pixel position, not grid cells (fixes mismatch)
+  const sliderWrapRef = useRef<HTMLDivElement | null>(null);
 
   return (
     <div className="lava-lamp-container">
@@ -619,9 +725,65 @@ export default function LavaLamp(): ReactElement {
         </div>
       ) : (
         <div className="lava-lamp-controls">
-          <button className="lava-lamp-button" onClick={toggleRunning}>
-            {running ? "⏸" : "▶"}
+          <button
+            type="button"
+            className="lava-lamp-menu-toggle"
+            onClick={toggleMenu}
+            aria-label={menuOpen ? "Hide menu" : "Show menu"}
+            aria-pressed={menuOpen}
+          >
+            {menuOpen ? "✕" : "☰"}
           </button>
+
+          {menuOpen && (
+            <div className="lava-lamp-menu">
+              {/* Speed */}
+              <div className="lava-lamp-control-block">
+                <div className="lava-lamp-control-header">
+                  <div className="lava-lamp-control-title">
+                    speed: {speedIdx}
+                  </div>
+                </div>
+
+                <div ref={sliderWrapRef} className="lava-lamp-slider-wrap">
+                  <input
+                    className="lava-lamp-slider"
+                    type="range"
+                    min={0}
+                    max={SPEED.STEPS}
+                    step={1}
+                    value={speedIdx}
+                    onChange={(e) =>
+                      setSpeedIdx(clampInt(Number(e.target.value), 0, SPEED.STEPS))
+                    }
+                    aria-label="Simulation speed"
+                  />
+                </div>
+              </div>
+
+              {/* Volume */}
+              <div className="lava-lamp-control-block">
+                <div className="lava-lamp-control-header">
+                  <div className="lava-lamp-control-title">
+                    volume: {Math.round(volume * 10)}
+                  </div>
+                </div>
+
+                <div className="lava-lamp-slider-wrap">
+                  <input
+                    className="lava-lamp-slider"
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    value={volume}
+                    onChange={(e) => setVolume(Number(e.target.value))}
+                    aria-label="Music volume"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

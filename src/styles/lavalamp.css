@@ -1,5 +1,6 @@
-/* add these to lavalamp.css (keep your existing CSS as-is) */
+/* lavalamp.css (full set for the UI bits below; keep any other existing CSS you have) */
 
+/* --- Start overlay --- */
 .lava-lamp-start-overlay {
   position: fixed;
   inset: 0;
@@ -33,4 +34,154 @@
 
 .lava-lamp-start:active {
   transform: scale(0.98);
+}
+
+/* --- Controls anchor (bottom-left) --- */
+.lava-lamp-controls {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 210;
+  pointer-events: none; /* canvas still gets pointer events */
+}
+
+/* --- Menu toggle button --- */
+.lava-lamp-menu-toggle {
+  pointer-events: auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 221, 0, 0.35);
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 221, 0, 0.95);
+  font-size: 20px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  user-select: none;
+}
+
+.lava-lamp-menu-toggle:hover {
+  border-color: rgba(255, 221, 0, 0.55);
+}
+
+.lava-lamp-menu-toggle:active {
+  transform: scale(0.98);
+}
+
+/* --- Menu panel --- */
+.lava-lamp-menu {
+  pointer-events: auto;
+  margin-top: 10px;
+  width: 280px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 221, 0, 0.35);
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 221, 0, 0.92);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  user-select: none;
+}
+
+.lava-lamp-menu * {
+  box-sizing: border-box;
+}
+
+/* --- Control blocks --- */
+.lava-lamp-control-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lava-lamp-control-block + .lava-lamp-control-block {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 221, 0, 0.2);
+}
+
+.lava-lamp-control-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  opacity: 0.92;
+}
+
+.lava-lamp-control-title {
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Shared slider styling (speed + volume) --- */
+.lava-lamp-slider-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.lava-lamp-slider {
+  width: 100%;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px; /* room for thumb */
+  background: transparent;
+  cursor: pointer;
+}
+
+/* track */
+.lava-lamp-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 221, 0, 0.25);
+  border: 1px solid rgba(255, 221, 0, 0.35);
+}
+
+.lava-lamp-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 221, 0, 0.25);
+  border: 1px solid rgba(255, 221, 0, 0.35);
+}
+
+/* thumb */
+.lava-lamp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #ffdd00;
+  border: 2px solid rgba(0, 0, 0, 0.75);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  margin-top: -6px; /* centers on 6px track */
+}
+
+.lava-lamp-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #ffdd00;
+  border: 2px solid rgba(0, 0, 0, 0.75);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+/* focus ring */
+.lava-lamp-slider:focus {
+  outline: none;
+}
+
+.lava-lamp-slider:focus-visible::-webkit-slider-runnable-track {
+  box-shadow: 0 0 0 3px rgba(255, 221, 0, 0.18);
+}
+
+.lava-lamp-slider:focus-visible::-moz-range-track {
+  box-shadow: 0 0 0 3px rgba(255, 221, 0, 0.18);
 }
