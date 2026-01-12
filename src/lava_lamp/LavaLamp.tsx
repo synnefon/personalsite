@@ -676,6 +676,9 @@ export default function LavaLamp(): ReactElement {
   const nowPlayingSongRef = useRef<HTMLDivElement>(null);
   const nowPlayingArtistRef = useRef<HTMLDivElement>(null);
   const nowPlayingAlbumRef = useRef<HTMLDivElement>(null);
+  const [songOverflowing, setSongOverflowing] = useState(false);
+  const [artistOverflowing, setArtistOverflowing] = useState(false);
+  const [albumOverflowing, setAlbumOverflowing] = useState(false);
 
   const isFirstRender = useRef(true);
 
@@ -755,22 +758,38 @@ export default function LavaLamp(): ReactElement {
   // Check for text overflow and apply scrolling class
   useEffect(() => {
     const checkOverflow = () => {
-      const elements = [
-        nowPlayingSongRef.current,
-        nowPlayingArtistRef.current,
-        nowPlayingAlbumRef.current,
-      ];
-
-      elements.forEach((element) => {
-        if (element) {
-          const isOverflowing = element.scrollWidth > element.clientWidth;
-          if (isOverflowing) {
-            element.classList.add("overflowing");
-          } else {
-            element.classList.remove("overflowing");
-          }
+      if (nowPlayingSongRef.current) {
+        const wrapper = nowPlayingSongRef.current.querySelector('.scroll-wrapper');
+        const isOverflowing = wrapper && wrapper.scrollWidth > nowPlayingSongRef.current.clientWidth;
+        setSongOverflowing(!!isOverflowing);
+        if (isOverflowing) {
+          nowPlayingSongRef.current.classList.add("overflowing");
+        } else {
+          nowPlayingSongRef.current.classList.remove("overflowing");
         }
-      });
+      }
+
+      if (nowPlayingArtistRef.current) {
+        const wrapper = nowPlayingArtistRef.current.querySelector('.scroll-wrapper');
+        const isOverflowing = wrapper && wrapper.scrollWidth > nowPlayingArtistRef.current.clientWidth;
+        setArtistOverflowing(!!isOverflowing);
+        if (isOverflowing) {
+          nowPlayingArtistRef.current.classList.add("overflowing");
+        } else {
+          nowPlayingArtistRef.current.classList.remove("overflowing");
+        }
+      }
+
+      if (nowPlayingAlbumRef.current) {
+        const wrapper = nowPlayingAlbumRef.current.querySelector('.scroll-wrapper');
+        const isOverflowing = wrapper && wrapper.scrollWidth > nowPlayingAlbumRef.current.clientWidth;
+        setAlbumOverflowing(!!isOverflowing);
+        if (isOverflowing) {
+          nowPlayingAlbumRef.current.classList.add("overflowing");
+        } else {
+          nowPlayingAlbumRef.current.classList.remove("overflowing");
+        }
+      }
     };
 
     checkOverflow();
@@ -1073,11 +1092,38 @@ export default function LavaLamp(): ReactElement {
                 </div>
               )}
             </div>
-            <div ref={nowPlayingSongRef} className="lava-lamp-now-playing-song">{nowPlaying.song}</div>
+            <div ref={nowPlayingSongRef} className="lava-lamp-now-playing-song">
+              <span className="scroll-wrapper">
+                {nowPlaying.song}
+              </span>
+              {songOverflowing && (
+                <span className="scroll-wrapper second">
+                  {nowPlaying.song}
+                </span>
+              )}
+            </div>
             {!nowPlaying.isAirbreak && (
               <>
-                <div ref={nowPlayingArtistRef} className="lava-lamp-now-playing-artist">{nowPlaying.artist}</div>
-                <div ref={nowPlayingAlbumRef} className="lava-lamp-now-playing-album">{nowPlaying.album}</div>
+                <div ref={nowPlayingArtistRef} className="lava-lamp-now-playing-artist">
+                  <span className="scroll-wrapper">
+                    {nowPlaying.artist}
+                  </span>
+                  {artistOverflowing && (
+                    <span className="scroll-wrapper second">
+                      {nowPlaying.artist}
+                    </span>
+                  )}
+                </div>
+                <div ref={nowPlayingAlbumRef} className="lava-lamp-now-playing-album">
+                  <span className="scroll-wrapper">
+                    {nowPlaying.album}
+                  </span>
+                  {albumOverflowing && (
+                    <span className="scroll-wrapper second">
+                      {nowPlaying.album}
+                    </span>
+                  )}
+                </div>
               </>
             )}
           </div>

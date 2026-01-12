@@ -502,10 +502,18 @@ select.lava-lamp-slider option {
   line-height: 1.3;
   overflow: hidden;
   white-space: nowrap;
+  display: flex;
 }
 
-.lava-lamp-now-playing-song.overflowing {
-  animation: scroll-text 8s linear infinite;
+.lava-lamp-now-playing-song.overflowing .scroll-wrapper {
+  display: inline-block;
+  animation: marquee-scroll 12s linear infinite;
+  visibility: visible;
+}
+
+.lava-lamp-now-playing-song.overflowing .scroll-wrapper.second {
+  animation-delay: 6s;
+  visibility: hidden;
 }
 
 .lava-lamp-now-playing-artist {
@@ -515,10 +523,18 @@ select.lava-lamp-slider option {
   line-height: 1.3;
   overflow: hidden;
   white-space: nowrap;
+  display: flex;
 }
 
-.lava-lamp-now-playing-artist.overflowing {
-  animation: scroll-text 8s linear infinite;
+.lava-lamp-now-playing-artist.overflowing .scroll-wrapper {
+  display: inline-block;
+  animation: marquee-scroll 12s linear infinite;
+  visibility: visible;
+}
+
+.lava-lamp-now-playing-artist.overflowing .scroll-wrapper.second {
+  animation-delay: 6s;
+  visibility: hidden;
 }
 
 .lava-lamp-now-playing-album {
@@ -529,20 +545,26 @@ select.lava-lamp-slider option {
   font-style: italic;
   overflow: hidden;
   white-space: nowrap;
+  display: flex;
 }
 
-.lava-lamp-now-playing-album.overflowing {
-  animation: scroll-text 8s linear infinite;
+.lava-lamp-now-playing-album.overflowing .scroll-wrapper {
+  display: inline-block;
+  animation: marquee-scroll 12s linear infinite;
+  visibility: visible;
 }
 
-@keyframes scroll-text {
+.lava-lamp-now-playing-album.overflowing .scroll-wrapper.second {
+  animation-delay: 6s;
+  visibility: hidden;
+}
+
+@keyframes marquee-scroll {
   0% {
-    text-indent: 0;
-  }
-  50% {
-    text-indent: -100%;
+    transform: translateX(100%);
+    visibility: visible;
   }
   100% {
-    text-indent: 0;
+    transform: translateX(-100%);
   }
 }
