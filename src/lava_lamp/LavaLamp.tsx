@@ -650,7 +650,7 @@ export default function LavaLamp(): ReactElement {
     gameMusic.volume = volume;
   }, [volume, gameMusic]);
 
-  const [audioSource, setAudioSource] = useState<AudioSource>(AUDIO_SOURCES.REDWOOD);
+  const [audioSource, setAudioSource] = useState<AudioSource>(AUDIO_SOURCES.KEXP);
   const [nowPlaying, setNowPlaying] = useState<{
     song: string;
     artist: string;
@@ -694,7 +694,7 @@ export default function LavaLamp(): ReactElement {
     };
 
     fetchNowPlaying();
-    const interval = setInterval(fetchNowPlaying, 30000); // Poll every 30 seconds
+    const interval = setInterval(fetchNowPlaying, 15000); // Poll every 15 seconds
 
     return () => clearInterval(interval);
   }, [hasStarted, audioSource]);
@@ -947,6 +947,15 @@ export default function LavaLamp(): ReactElement {
 
       {nowPlaying && (
         <div className="lava-lamp-now-playing">
+          <div className="lava-lamp-now-playing-header">
+            <div className="lava-lamp-now-playing-label">KEXP</div>
+            <div className="lava-lamp-soundwave">
+              <div className="lava-lamp-soundwave-bar"></div>
+              <div className="lava-lamp-soundwave-bar"></div>
+              <div className="lava-lamp-soundwave-bar"></div>
+              <div className="lava-lamp-soundwave-bar"></div>
+            </div>
+          </div>
           <div className="lava-lamp-now-playing-song">{nowPlaying.song}</div>
           <div className="lava-lamp-now-playing-artist">{nowPlaying.artist}</div>
         </div>
