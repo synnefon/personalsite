@@ -224,12 +224,12 @@ export default function Projects() {
           </Link>
           <Link
             className="link proj-colors"
-            to="/lava-lamp"
+            to="/lava-lamp-radio"
             rel="noreferrer"
           >
-            <p className="link-text proj-colors">lava lamp</p>
+            <p className="link-text proj-colors">lava lamp radio</p>
             <p className="tooltip-text proj-colors">
-              pixelated cellular automata lava lamp
+              pixelated cellular automata lava lamp radio
             </p>
           </Link>
           <Link className="link proj-colors" to="/shavianator" rel="noreferrer">

@@ -10,6 +10,7 @@ import "../styles/lavalamp.css";
 
 import musicAudioNoise from "../assets/lavaLamp/guitar.mp3";
 import clickAudioNoise from "../assets/lavaLamp/click.mp3";
+import powerIcon from "../assets/lavaLamp/power.svg";
 import { PersonalAudio } from "../util/Audio";
 
 // --- Audio sources ---
@@ -26,7 +27,7 @@ const AUDIO_SOURCE_CONFIG: Record<AudioSource, { label: string; url: string }> =
     url: musicAudioNoise,
   },
   [AUDIO_SOURCES.KEXP]: {
-    label: "KEXP",
+    label: "kexp",
     url: "https://kexp.streamguys1.com/kexp160.aac",
   },
 };
@@ -625,7 +626,14 @@ export default function LavaLamp(): ReactElement {
   // 5) Cache dimensions ONCE (read only on page load)
   const sizeRef = useRef<{ w: number; h: number }>({ w: 1, h: 1 });
 
-  const gameMusic = useMemo(() => new PersonalAudio(musicAudioNoise, true), []);
+  const [audioSource, setAudioSource] = useState<AudioSource>(AUDIO_SOURCES.KEXP);
+
+  const gameMusic = useMemo(() => {
+    // Initialize directly with KEXP stream
+    const audio = new PersonalAudio(AUDIO_SOURCE_CONFIG[AUDIO_SOURCES.KEXP].url, true);
+    audio.preload = "auto";
+    return audio;
+  }, []);
   const clickSound = useMemo(() => new PersonalAudio(clickAudioNoise, false), []);
 
   const [hasStarted, setHasStarted] = useState(false);
@@ -649,16 +657,30 @@ export default function LavaLamp(): ReactElement {
   useEffect(() => {
     gameMusic.volume = volume;
   }, [volume, gameMusic]);
-
-  const [audioSource, setAudioSource] = useState<AudioSource>(AUDIO_SOURCES.KEXP);
   const [nowPlaying, setNowPlaying] = useState<{
     song: string;
     artist: string;
+    album: string;
+    isAirbreak: boolean;
   } | null>(null);
+  const [nowPlayingExpanded, setNowPlayingExpanded] = useState(true);
+
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
+    // Skip on first render - audio is already initialized with KEXP
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
     const config = AUDIO_SOURCE_CONFIG[audioSource];
     const wasPlaying = gameMusic.isPlaying();
+
+    // Pause current audio before switching
+    if (wasPlaying) {
+      gameMusic.pause();
+    }
 
     gameMusic.src = config.url;
     gameMusic.load();
@@ -670,7 +692,7 @@ export default function LavaLamp(): ReactElement {
         });
         gameMusic.removeEventListener('canplaythrough', onCanPlay);
       };
-      gameMusic.addEventListener('canplaythrough', onCanPlay);
+      gameMusic.addEventListener('canplaythrough', onCanPlay, { once: true });
     }
   }, [audioSource, gameMusic]);
 
@@ -686,22 +708,34 @@ export default function LavaLamp(): ReactElement {
         const response = await fetch("https://api.kexp.org/v2/plays/?limit=5");
         const data = await response.json();
 
-        // Find the most recent trackplay (skip airbreaks)
+        // Find the most recent trackplay (skip airbreaks which don't have song/artist/album)
         const track = data.results?.find((play: any) => play.play_type === "trackplay");
 
         if (track) {
+          const newTrack = {
+            song: (track.song || "unknown track").toLowerCase(),
+            artist: (track.artist || "unknown artist").toLowerCase(),
+            album: (track.album || "unknown album").toLowerCase(),
+            isAirbreak: false,
+          };
+          console.log('[KEXP] Updating now playing:', newTrack);
+          setNowPlaying(newTrack);
+        } else {
+          console.log('[KEXP] No trackplay found, showing airbreak message');
           setNowPlaying({
-            song: track.song || "Unknown Track",
-            artist: track.artist || "Unknown Artist",
+            song: "station break",
+            artist: "",
+            album: "",
+            isAirbreak: true,
           });
         }
-      } catch {
-        // ignore errors
+      } catch (err) {
+        console.log('[KEXP] Fetch error:', err);
       }
     };
 
     fetchNowPlaying();
-    const interval = setInterval(fetchNowPlaying, 15000); // Poll every 15 seconds
+    const interval = setInterval(fetchNowPlaying, 10000); // Poll every 10 seconds
 
     return () => clearInterval(interval);
   }, [hasStarted, audioSource]);
@@ -923,13 +957,17 @@ export default function LavaLamp(): ReactElement {
       rafRef.current = requestAnimationFrame(animate);
     }
 
-    resumeMusicFromSavedTime();
+    // Only resume from saved time for non-streaming sources (like Redwood)
+    if (audioSource !== AUDIO_SOURCES.KEXP) {
+      resumeMusicFromSavedTime();
+    }
     gameMusic.volume = 1.0;
 
-    try {
-      await gameMusic.play();
-    } catch (err) {
-      // If play fails, wait for canplaythrough then try again
+    // Ensure audio is loaded before trying to play
+    if (gameMusic.readyState < 3) {
+      // If not enough data loaded, trigger load and wait
+      gameMusic.load();
+
       const onCanPlay = async () => {
         try {
           await gameMusic.play();
@@ -938,10 +976,18 @@ export default function LavaLamp(): ReactElement {
         }
         gameMusic.removeEventListener('canplaythrough', onCanPlay);
       };
-      gameMusic.addEventListener('canplaythrough', onCanPlay);
+      gameMusic.addEventListener('canplaythrough', onCanPlay, { once: true });
+    } else {
+      // Audio already loaded, play immediately
+      try {
+        await gameMusic.play();
+      } catch {
+        // ignore autoplay errors
+      }
     }
   }, [
     animate,
+    audioSource,
     draw,
     gameMusic,
     hasStarted,
@@ -967,18 +1013,35 @@ export default function LavaLamp(): ReactElement {
       />
 
       {nowPlaying && (
-        <div className="lava-lamp-now-playing">
-          <div className="lava-lamp-now-playing-header">
-            <div className="lava-lamp-now-playing-label">KEXP</div>
-            <div className="lava-lamp-soundwave">
-              <div className="lava-lamp-soundwave-bar"></div>
-              <div className="lava-lamp-soundwave-bar"></div>
-              <div className="lava-lamp-soundwave-bar"></div>
-              <div className="lava-lamp-soundwave-bar"></div>
+        <div className={`lava-lamp-now-playing ${nowPlayingExpanded ? 'expanded' : 'collapsed'}`}>
+          <button
+            type="button"
+            className="lava-lamp-now-playing-toggle"
+            onClick={() => setNowPlayingExpanded(!nowPlayingExpanded)}
+            aria-label={nowPlayingExpanded ? "Collapse now playing" : "Expand now playing"}
+          >
+            {nowPlayingExpanded ? '›' : '‹'}
+          </button>
+          <div className="lava-lamp-now-playing-content">
+            <div className="lava-lamp-now-playing-header">
+              <div className="lava-lamp-now-playing-label">kexp</div>
+              {!nowPlaying.isAirbreak && (
+                <div className="lava-lamp-soundwave">
+                  <div className="lava-lamp-soundwave-bar"></div>
+                  <div className="lava-lamp-soundwave-bar"></div>
+                  <div className="lava-lamp-soundwave-bar"></div>
+                  <div className="lava-lamp-soundwave-bar"></div>
+                </div>
+              )}
             </div>
+            <div className="lava-lamp-now-playing-song">{nowPlaying.song}</div>
+            {!nowPlaying.isAirbreak && (
+              <>
+                <div className="lava-lamp-now-playing-artist">{nowPlaying.artist}</div>
+                <div className="lava-lamp-now-playing-album">{nowPlaying.album}</div>
+              </>
+            )}
           </div>
-          <div className="lava-lamp-now-playing-song">{nowPlaying.song}</div>
-          <div className="lava-lamp-now-playing-artist">{nowPlaying.artist}</div>
         </div>
       )}
 
@@ -988,9 +1051,9 @@ export default function LavaLamp(): ReactElement {
             type="button"
             className="lava-lamp-start"
             onClick={startLamp}
-            aria-label="Start lava lamp"
+            aria-label="Start lava lamp radio"
           >
-            START
+            <img src={powerIcon} alt="Power" className="lava-lamp-start-icon" />
           </button>
         </div>
       ) : (

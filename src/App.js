@@ -54,7 +54,7 @@ function App() {
             <Route path="/shufflenator" element={<Shufflenator />} />
             <Route path="/shavianator" element={<Shavianator />} />
             <Route path="/game-of-life" element={<GameOfLife />} />
-            <Route path="/lava-lamp" element={<LavaLamp />} />
+            <Route path="/lava-lamp-radio" element={<LavaLamp />} />
             <Route path="/4096" element={<Game4096 />} />
             <Route path="toolbox" element={<Toolbox />} />
           </Routes>
