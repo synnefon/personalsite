@@ -3,6 +3,7 @@
 .lava-lamp-container {
   /* default theme color (kept) */
   --lava-accent: #ffdd00;
+  position: relative;
 }
 
 /* --- Start overlay --- */
@@ -11,8 +12,6 @@
   inset: 0;
   display: grid;
   place-items: center;
-  z-index: 200;
-  /* above canvas */
 }
 
 .lava-lamp-start {
@@ -42,14 +41,29 @@
   transform: scale(0.98);
 }
 
-/* --- Controls anchor (bottom-left) --- */
+.lava-lamp-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.lava-lamp-start-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+}
+
 .lava-lamp-controls {
   position: fixed;
   left: 16px;
   bottom: 16px;
-  z-index: 210;
-  pointer-events: none;
-  /* canvas still gets pointer events */
+  z-index: 3;
+
+  /* prevent collapse/clipping */
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: visible;
 }
 
 /* --- Menu toggle button --- */
@@ -251,4 +265,25 @@
 
 .lava-lamp-color-reset:active {
   transform: scale(0.98);
+}
+
+.lava-lamp-controls .lava-lamp-menu-toggle {
+  all: unset;                /* ignore global button styles */
+  box-sizing: border-box;
+  pointer-events: auto;
+
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+
+  border-radius: 12px;
+  border: 2px solid #ffdd00;
+  background: rgba(0, 0, 0, 0.75);
+  color: #ffdd00;
+  font-size: 20px;
+  line-height: 1;
+
+  cursor: pointer;
+  z-index: 1001;             /* if something else overlaps locally */
 }
