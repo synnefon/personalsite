@@ -683,13 +683,16 @@ export default function LavaLamp(): ReactElement {
 
     const fetchNowPlaying = async () => {
       try {
-        const response = await fetch("https://api.kexp.org/v2/plays/?limit=1");
+        const response = await fetch("https://api.kexp.org/v2/plays/?limit=5");
         const data = await response.json();
 
-        if (data.results?.[0] && data.results[0].play_type === "trackplay") {
+        // Find the most recent trackplay (skip airbreaks)
+        const track = data.results?.find((play: any) => play.play_type === "trackplay");
+
+        if (track) {
           setNowPlaying({
-            song: data.results[0].song || "Unknown Track",
-            artist: data.results[0].artist || "Unknown Artist",
+            song: track.song || "Unknown Track",
+            artist: track.artist || "Unknown Artist",
           });
         }
       } catch {
@@ -903,7 +906,7 @@ export default function LavaLamp(): ReactElement {
     }
   }, [gameMusic]);
 
-  const startLamp = useCallback(() => {
+  const startLamp = useCallback(async () => {
     playClick();
 
     if (!hasStarted) {
@@ -922,7 +925,21 @@ export default function LavaLamp(): ReactElement {
 
     resumeMusicFromSavedTime();
     gameMusic.volume = 1.0;
-    gameMusic.play();
+
+    try {
+      await gameMusic.play();
+    } catch (err) {
+      // If play fails, wait for canplaythrough then try again
+      const onCanPlay = async () => {
+        try {
+          await gameMusic.play();
+        } catch {
+          // ignore if still fails
+        }
+        gameMusic.removeEventListener('canplaythrough', onCanPlay);
+      };
+      gameMusic.addEventListener('canplaythrough', onCanPlay);
+    }
   }, [
     animate,
     draw,
