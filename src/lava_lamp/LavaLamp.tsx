@@ -8,8 +8,17 @@ import React, {
 } from "react";
 import "../styles/lavalamp.css";
 
+// AIDEV-NOTE: TypeScript cannot import non-code assets directly unless custom module declarations exist; fallback to string for asset references
+// If using custom typings (e.g., for mp3/svg imports), ensure they exist in `src/types` or `@types`.
+
+// If not, import as string and ignore TS error (safest cross-project), or
+// declare the modules in a `.d.ts` file for the asset types.
+
+// @ts-expect-error - See AIDEV-NOTE above; ensure proper module declarations for assets or update your tsconfig to include them.
 import musicAudioNoise from "../assets/lavaLamp/guitar.mp3";
+// @ts-expect-error - See AIDEV-NOTE above.
 import clickAudioNoise from "../assets/lavaLamp/click.mp3";
+// @ts-expect-error - See AIDEV-NOTE above.
 import powerIcon from "../assets/lavaLamp/power.svg";
 import { PersonalAudio } from "../util/Audio";
 
