@@ -723,26 +723,32 @@ export default function LavaLamp(): ReactElement {
         const response = await fetch("https://api.kexp.org/v2/plays/?limit=5");
         const data = await response.json();
 
-        // Find the most recent trackplay (skip airbreaks which don't have song/artist/album)
-        const track = data.results?.find((play: any) => play.play_type === "trackplay");
+        // Get the most recent play regardless of type
+        const mostRecentPlay = data.results?.[0];
 
-        if (track) {
-          const newTrack = {
-            song: (track.song || "unknown track").toLowerCase(),
-            artist: (track.artist || "unknown artist").toLowerCase(),
-            album: (track.album || "unknown album").toLowerCase(),
-            isAirbreak: false,
-          };
-          console.log('[KEXP] Updating now playing:', newTrack);
-          setNowPlaying(newTrack);
-        } else {
-          console.log('[KEXP] No trackplay found, showing airbreak message');
+        if (!mostRecentPlay) {
+          console.log('[KEXP] No plays found');
+          return;
+        }
+
+        // Check if it's an airbreak
+        if (mostRecentPlay.play_type === "airbreak") {
+          console.log('[KEXP] Current play is airbreak');
           setNowPlaying({
-            song: "station break",
+            song: "airbreak",
             artist: "",
             album: "",
             isAirbreak: true,
           });
+        } else if (mostRecentPlay.play_type === "trackplay") {
+          const newTrack = {
+            song: (mostRecentPlay.song || "unknown track").toLowerCase(),
+            artist: (mostRecentPlay.artist || "unknown artist").toLowerCase(),
+            album: (mostRecentPlay.album || "unknown album").toLowerCase(),
+            isAirbreak: false,
+          };
+          console.log('[KEXP] Updating now playing:', newTrack);
+          setNowPlaying(newTrack);
         }
       } catch (err) {
         console.log('[KEXP] Fetch error:', err);
