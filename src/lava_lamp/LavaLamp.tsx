@@ -1163,7 +1163,7 @@ export default function LavaLamp(): ReactElement {
           </button>
         </div>
       ) : (
-        <div className="lava-lamp-controls">
+        <div className="lava-lamp-controls" ref={menuRef}>
           <button
             type="button"
             className="lava-lamp-menu-toggle"
