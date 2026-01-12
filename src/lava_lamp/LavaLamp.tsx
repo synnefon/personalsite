@@ -664,9 +664,13 @@ export default function LavaLamp(): ReactElement {
     gameMusic.load();
 
     if (wasPlaying) {
-      gameMusic.play().catch(() => {
-        // ignore autoplay errors
-      });
+      const onCanPlay = () => {
+        gameMusic.play().catch(() => {
+          // ignore autoplay errors
+        });
+        gameMusic.removeEventListener('canplaythrough', onCanPlay);
+      };
+      gameMusic.addEventListener('canplaythrough', onCanPlay);
     }
   }, [audioSource, gameMusic]);
 
