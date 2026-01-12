@@ -12,6 +12,25 @@ import musicAudioNoise from "../assets/lavaLamp/guitar.mp3";
 import clickAudioNoise from "../assets/lavaLamp/click.mp3";
 import { PersonalAudio } from "../util/Audio";
 
+// --- Audio sources ---
+const AUDIO_SOURCES = {
+  REDWOOD: "redwood",
+  KEXP: "kexp",
+} as const;
+
+type AudioSource = typeof AUDIO_SOURCES[keyof typeof AUDIO_SOURCES];
+
+const AUDIO_SOURCE_CONFIG: Record<AudioSource, { label: string; url: string }> = {
+  [AUDIO_SOURCES.REDWOOD]: {
+    label: "redwood meditation",
+    url: musicAudioNoise,
+  },
+  [AUDIO_SOURCES.KEXP]: {
+    label: "KEXP",
+    url: "https://kexp.streamguys1.com/kexp160.aac",
+  },
+};
+
 // --- Colors: keep state (for controlled inputs) + refs (fast access elsewhere) ---
 const DEFAULT_HIGH = "#ffdd00";
 const DEFAULT_LOW = "#ff5500";
@@ -631,6 +650,22 @@ export default function LavaLamp(): ReactElement {
     gameMusic.volume = volume;
   }, [volume, gameMusic]);
 
+  const [audioSource, setAudioSource] = useState<AudioSource>(AUDIO_SOURCES.REDWOOD);
+
+  useEffect(() => {
+    const config = AUDIO_SOURCE_CONFIG[audioSource];
+    const wasPlaying = gameMusic.isPlaying();
+
+    gameMusic.src = config.url;
+    gameMusic.load();
+
+    if (wasPlaying) {
+      gameMusic.play().catch(() => {
+        // ignore autoplay errors
+      });
+    }
+  }, [audioSource, gameMusic]);
+
   const lavaLowColorRef = useRef(DEFAULT_LOW);
   const lavaHighColorRef = useRef(DEFAULT_HIGH);
 
@@ -943,6 +978,28 @@ export default function LavaLamp(): ReactElement {
                     onChange={(e) => setVolume(Number(e.target.value))}
                     aria-label="Music volume"
                   />
+                </div>
+              </div>
+
+              {/* Audio Source */}
+              <div className="lava-lamp-control-block">
+                <div className="lava-lamp-control-header">
+                  <div className="lava-lamp-control-title">audio source</div>
+                </div>
+
+                <div className="lava-lamp-slider-wrap">
+                  <select
+                    className="lava-lamp-slider"
+                    value={audioSource}
+                    onChange={(e) => setAudioSource(e.target.value as AudioSource)}
+                    aria-label="Audio source"
+                  >
+                    {Object.entries(AUDIO_SOURCE_CONFIG).map(([key, config]) => (
+                      <option key={key} value={key}>
+                        {config.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
