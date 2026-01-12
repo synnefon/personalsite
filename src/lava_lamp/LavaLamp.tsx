@@ -12,6 +12,10 @@ import musicAudioNoise from "../assets/lavaLamp/guitar.mp3";
 import clickAudioNoise from "../assets/lavaLamp/click.mp3";
 import { PersonalAudio } from "../util/Audio";
 
+// --- Colors: keep state (for controlled inputs) + refs (fast access elsewhere) ---
+const DEFAULT_HIGH = "#ffdd00";
+const DEFAULT_LOW = "#ff5500";
+
 // --- Types ---
 interface Particle {
   x: number;
@@ -22,6 +26,14 @@ interface Particle {
 }
 
 type Vec2 = { x: number; y: number };
+
+type SpatialGrid = {
+  cellSize: number;
+  cols: number;
+  rows: number;
+  heads: Int32Array; // length cols*rows, head index or -1
+  next: Int32Array; // length particleCount, next index or -1
+};
 
 // --- Constants ---
 const SIM = {
@@ -62,144 +74,42 @@ const BASELINE = {
 
 // --- Speed control (indexed slider) ---
 const SPEED = {
-  MIN: 0.0, // per request
+  MIN: 0.0,
   MAX: 5,
-  DEFAULT: 1.0,
-  STEPS: 10, // odd => default lands centered
+  DEFAULT: 0.25,
+  STEPS: 10, // number of discrete positions
 } as const;
 
-// --- replace heatToRGB with this (outside component) ---
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const h = hex.trim().replace("#", "");
-  if (h.length === 3) {
-    const r = parseInt(h[0] + h[0], 16);
-    const g = parseInt(h[1] + h[1], 16);
-    const b = parseInt(h[2] + h[2], 16);
-    return { r, g, b };
-  }
-  if (h.length === 6) {
-    const r = parseInt(h.slice(0, 2), 16);
-    const g = parseInt(h.slice(2, 4), 16);
-    const b = parseInt(h.slice(4, 6), 16);
-    return { r, g, b };
-  }
-  return { r: 255, g: 221, b: 0 };
-}
-
-
-function lerpInt(a: number, b: number, t: number): number {
-  const v = a + (b - a) * t;
-  return v < 0 ? 0 : v > 255 ? 255 : Math.round(v);
-}
-
-function heatToRGBFromPalette(
-  heat: number,
-  lowHex: string,
-  highHex: string
-): { r: number; g: number; b: number } {
-  const t = clamp01(heat);
-  const lo = hexToRgb(lowHex);
-  const hi = hexToRgb(highHex);
-  return {
-    r: lerpInt(lo.r, hi.r, t),
-    g: lerpInt(lo.g, hi.g, t),
-    b: lerpInt(lo.b, hi.b, t),
-  };
-}
-
-function computeParticleCount(width: number, height: number): number {
-  const baselineArea = BASELINE.WIDTH * BASELINE.HEIGHT;
-  const currentArea = width * height;
-
-  const density = BASELINE.PARTICLES / baselineArea;
-  const scaled = Math.round(currentArea * density);
-
-  return Math.max(200, Math.min(2000, scaled));
-}
+// --- Fixed update rate (independent of render cost / screen size) ---
+const FIXED_FPS = 60;
+const FIXED_MS = 1000 / FIXED_FPS;
+const MAX_CATCHUP_STEPS = 4;
 
 // --- Persisted audio position ---
 const MUSIC_TIME_KEY = "lavaLamp.musicTimeSeconds";
-
-function readSavedMusicTimeSeconds(): number {
-  try {
-    const raw = localStorage.getItem(MUSIC_TIME_KEY);
-    if (!raw) return 0;
-    const v = Number(raw);
-    return Number.isFinite(v) && v >= 0 ? v : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function writeSavedMusicTimeSeconds(seconds: number) {
-  try {
-    if (!Number.isFinite(seconds) || seconds < 0) return;
-    localStorage.setItem(MUSIC_TIME_KEY, String(seconds));
-  } catch {
-    // ignore
-  }
-}
-
-function lerp(a: number, b: number, t: number) {
-  return a + (b - a) * t;
-}
-
-function clampInt(v: number, lo: number, hi: number) {
-  return v < lo ? lo : v > hi ? hi : v;
-}
-
-// Note: MIN=0 is special; we treat index 0 as "paused-ish" (dt=0) and
-// map indices 1..STEPS-1 into (0..MAX] smoothly in log space.
-function indexToSpeed(idx: number): number {
-  if (idx <= 0) return 0;
-
-  const steps = SPEED.STEPS;
-  if (steps <= 1) return SPEED.DEFAULT;
-
-  const t = (idx - 1) / (steps - 2); // idx=1 => t=0, idx=steps-1 => t=1
-  const minPositive = 0.25; // feel-good floor for nonzero speeds
-  const minLog = Math.log(minPositive);
-  const maxLog = Math.log(SPEED.MAX);
-  return Math.exp(lerp(minLog, maxLog, t));
-}
-
-function speedToNearestIndex(speed: number): number {
-  if (speed <= 0) return 0;
-
-  const steps = SPEED.STEPS;
-  let best = 1;
-  let bestErr = Infinity;
-  const target = Math.log(speed);
-
-  for (let i = 1; i < steps; i++) {
-    const s = indexToSpeed(i);
-    const err = Math.abs(Math.log(s) - target);
-    if (err < bestErr) {
-      bestErr = err;
-      best = i;
-    }
-  }
-  return best;
-}
 
 // --- Utils ---
 function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v;
 }
 
-function hypot2(dx: number, dy: number): number {
-  return Math.hypot(dx, dy);
+function clampInt(v: number, lo: number, hi: number) {
+  return v < lo ? lo : v > hi ? hi : v;
+}
+
+function lerp(a: number, b: number, t: number) {
+  return a + (b - a) * t;
+}
+
+function lerpInt(a: number, b: number, t: number): number {
+  const v = a + (b - a) * t;
+  return v < 0 ? 0 : v > 255 ? 255 : Math.round(v);
 }
 
 function randInCircle(radius: number): Vec2 {
   const angle = Math.random() * Math.PI * 2;
   const r = Math.random() * radius;
   return { x: Math.cos(angle) * r, y: Math.sin(angle) * r };
-}
-
-function setCanvasToWindow(canvas: HTMLCanvasElement) {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
 }
 
 function bounceInBounds(p: Particle, width: number, height: number) {
@@ -224,6 +134,150 @@ function clampAllToBounds(particles: Particle[], width: number, height: number) 
   for (let i = 0; i < particles.length; i++) {
     bounceInBounds(particles[i], width, height);
   }
+}
+
+function computeParticleCount(width: number, height: number): number {
+  const baselineArea = BASELINE.WIDTH * BASELINE.HEIGHT;
+  const currentArea = width * height;
+
+  const density = BASELINE.PARTICLES / baselineArea;
+  const scaled = Math.round(currentArea * density);
+
+  return Math.max(200, Math.min(2000, scaled));
+}
+
+function readSavedMusicTimeSeconds(): number {
+  try {
+    const raw = localStorage.getItem(MUSIC_TIME_KEY);
+    if (!raw) return 0;
+    const v = Number(raw);
+    return Number.isFinite(v) && v >= 0 ? v : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeSavedMusicTimeSeconds(seconds: number) {
+  try {
+    if (!Number.isFinite(seconds) || seconds < 0) return;
+    localStorage.setItem(MUSIC_TIME_KEY, String(seconds));
+  } catch {
+    // ignore
+  }
+}
+
+// Note: MIN=0 is special; idx 0 => frozen-ish. idx 1..(STEPS-1) => (0..MAX] in log space.
+function indexToSpeed(idx: number): number {
+  if (idx <= 0) return 0;
+
+  const steps = SPEED.STEPS;
+  if (idx >= steps) return SPEED.MAX;
+
+  // normalized position excluding 0
+  const t = idx / steps; // idx=steps/2 => midpoint
+
+  // calibrated so midpoint ≈ 0.5
+  const targetMidSpeed = 0.5;
+  const minPositive = (targetMidSpeed * targetMidSpeed) / SPEED.MAX;
+
+  const minLog = Math.log(minPositive);
+  const maxLog = Math.log(SPEED.MAX);
+
+  return Math.exp(lerp(minLog, maxLog, t));
+}
+
+function speedToNearestIndex(speed: number): number {
+  if (speed <= 0) return 0;
+
+  const steps = SPEED.STEPS;
+  const last = steps - 1;
+
+  let best = 1;
+  let bestErr = Infinity;
+  const target = Math.log(speed);
+
+  for (let i = 1; i <= last; i++) {
+    const s = indexToSpeed(i);
+    const err = Math.abs(Math.log(s) - target);
+    if (err < bestErr) {
+      bestErr = err;
+      best = i;
+    }
+  }
+  return best;
+}
+
+// --- Color / LUT ---
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = hex.trim().replace("#", "");
+  if (h.length === 3) {
+    const r = parseInt(h[0] + h[0], 16);
+    const g = parseInt(h[1] + h[1], 16);
+    const b = parseInt(h[2] + h[2], 16);
+    return { r, g, b };
+  }
+  if (h.length === 6) {
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return { r, g, b };
+  }
+  return { r: 255, g: 221, b: 0 };
+}
+
+function packRgba(r: number, g: number, b: number, a: number): number {
+  // Uint32Array view over ImageData.data.buffer (common little-endian fast path).
+  return (a << 24) | (b << 16) | (g << 8) | r;
+}
+
+function buildHeatLut256(lowHex: string, highHex: string): Uint32Array {
+  const lo = hexToRgb(lowHex);
+  const hi = hexToRgb(highHex);
+
+  const lut = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255;
+    const r = lerpInt(lo.r, hi.r, t);
+    const g = lerpInt(lo.g, hi.g, t);
+    const b = lerpInt(lo.b, hi.b, t);
+    lut[i] = packRgba(r, g, b, 255);
+  }
+  return lut;
+}
+
+// --- Spatial grid helpers ---
+function ensureGrid(
+  gridRef: React.MutableRefObject<SpatialGrid | null>,
+  width: number,
+  height: number,
+  count: number,
+  cellSize: number
+) {
+  const cols = Math.max(1, Math.ceil(width / cellSize));
+  const rows = Math.max(1, Math.ceil(height / cellSize));
+  const cells = cols * rows;
+
+  const g = gridRef.current;
+  if (
+    !g ||
+    g.cols !== cols ||
+    g.rows !== rows ||
+    g.cellSize !== cellSize ||
+    g.next.length !== count ||
+    g.heads.length !== cells
+  ) {
+    gridRef.current = {
+      cellSize,
+      cols,
+      rows,
+      heads: new Int32Array(cells),
+      next: new Int32Array(count),
+    };
+  }
+}
+
+function gridIndex(g: SpatialGrid, cx: number, cy: number): number {
+  return cy * g.cols + cx;
 }
 
 // --- Init ---
@@ -264,7 +318,7 @@ function createParticles(width: number, height: number, count: number): Particle
   return particles;
 }
 
-// --- Physics (single pair-pass on post-move positions, time-scaled) ---
+// --- Physics (grid-accelerated cohesion/conduction) ---
 export function stepSimulationOnePairPass(
   particles: Particle[],
   width: number,
@@ -272,12 +326,12 @@ export function stepSimulationOnePairPass(
   pointerDown: boolean,
   pointerPos: Vec2,
   neighborCounts: Uint16Array,
-  timeScale: number
+  timeScale: number,
+  grid: SpatialGrid
 ) {
-  // dt=0 => frozen (but still renders)
   const dt = Math.max(0, Math.min(4.0, timeScale));
 
-  // Pass 1: integrate + pointer heat + reset neighbors
+  // Pass 1: integrate + pointer heat + reset neighbors + bounds
   for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
 
@@ -291,58 +345,104 @@ export function stepSimulationOnePairPass(
     bounceInBounds(p, width, height);
   }
 
-  // Pass 2: pairwise forces + conduction (scaled)
-  if (dt > 0) {
-    for (let i = 0; i < particles.length; i++) {
-      const p1 = particles[i];
-      for (let j = i + 1; j < particles.length; j++) {
-        const p2 = particles[j];
-
-        const dx = p2.x - p1.x;
-        const dy = p2.y - p1.y;
-        const d = hypot2(dx, dy);
-
-        if (d > 0 && d < SIM.COHESION_RADIUS) {
-          neighborCounts[i]++;
-          neighborCounts[j]++;
-
-          applyCohesionImpulse(p1, p2, dx, dy, d, dt);
-          applyHeatConduction(p1, p2, dt);
-        }
-      }
-    }
-
-    // Pass 3: heat source / cooling (scaled)
-    for (let i = 0; i < particles.length; i++) {
-      const p = particles[i];
-      applyBottomHeatOrAirCooling(p, height, neighborCounts[i], dt);
-      p.heat = clamp01(p.heat);
-    }
-  } else {
-    // dt == 0: still clamp heat into [0,1] to avoid drift from other callers
+  // dt=0 => frozen (no cohesion/conduction/cooling), but still clamp
+  if (dt === 0) {
     for (let i = 0; i < particles.length; i++) {
       particles[i].heat = clamp01(particles[i].heat);
     }
+    clampAllToBounds(particles, width, height);
+    return;
+  }
+
+  // Build spatial hash
+  grid.heads.fill(-1);
+  const invCell = 1 / grid.cellSize;
+
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+
+    let cx = (p.x * invCell) | 0;
+    let cy = (p.y * invCell) | 0;
+
+    if (cx < 0) cx = 0;
+    else if (cx >= grid.cols) cx = grid.cols - 1;
+
+    if (cy < 0) cy = 0;
+    else if (cy >= grid.rows) cy = grid.rows - 1;
+
+    const cell = gridIndex(grid, cx, cy);
+    grid.next[i] = grid.heads[cell];
+    grid.heads[cell] = i;
+  }
+
+  // Pass 2: local neighbor forces + conduction
+  const r = SIM.COHESION_RADIUS;
+  const r2 = r * r;
+
+  for (let i = 0; i < particles.length; i++) {
+    const p1 = particles[i];
+
+    let cx = (p1.x * invCell) | 0;
+    let cy = (p1.y * invCell) | 0;
+
+    if (cx < 0) cx = 0;
+    else if (cx >= grid.cols) cx = grid.cols - 1;
+
+    if (cy < 0) cy = 0;
+    else if (cy >= grid.rows) cy = grid.rows - 1;
+
+    const x0 = cx > 0 ? cx - 1 : cx;
+    const x1 = cx + 1 < grid.cols ? cx + 1 : cx;
+    const y0 = cy > 0 ? cy - 1 : cy;
+    const y1 = cy + 1 < grid.rows ? cy + 1 : cy;
+
+    for (let ny = y0; ny <= y1; ny++) {
+      for (let nx = x0; nx <= x1; nx++) {
+        let j = grid.heads[gridIndex(grid, nx, ny)];
+        while (j !== -1) {
+          if (j > i) {
+            const p2 = particles[j];
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const d2 = dx * dx + dy * dy;
+
+            if (d2 > 0 && d2 < r2) {
+              neighborCounts[i]++;
+              neighborCounts[j]++;
+
+              const d = Math.sqrt(d2);
+              applyCohesionImpulse(p1, p2, dx, dy, d, dt);
+              applyHeatConduction(p1, p2, dt);
+            }
+          }
+          j = grid.next[j];
+        }
+      }
+    }
+  }
+
+  // Pass 3: heat source / cooling
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    applyBottomHeatOrAirCooling(p, height, neighborCounts[i], dt);
+    p.heat = clamp01(p.heat);
   }
 
   clampAllToBounds(particles, width, height);
 }
 
 function applyBuoyancyAndGravity(p: Particle, dt: number) {
-  if (dt === 0) return;
   const buoyancy = p.heat * p.heat * SIM.BUOYANCY;
   p.vy += (SIM.GRAVITY - buoyancy) * dt;
 }
 
 function applyFriction(p: Particle, dt: number) {
-  if (dt === 0) return;
   const f = Math.pow(SIM.FRICTION, dt);
   p.vx *= f;
   p.vy *= f;
 }
 
 function integrate(p: Particle, dt: number) {
-  if (dt === 0) return;
   p.x += p.vx * dt;
   p.y += p.vy * dt;
 }
@@ -350,11 +450,14 @@ function integrate(p: Particle, dt: number) {
 function applyPointerHeat(p: Particle, pointerPos: Vec2, dt: number) {
   const dx = p.x - pointerPos.x;
   const dy = p.y - pointerPos.y;
-  const d = hypot2(dx, dy);
+  const d2 = dx * dx + dy * dy;
+  const r = SIM.MOUSE_HEAT_RADIUS;
+  const r2 = r * r;
 
-  if (d < SIM.MOUSE_HEAT_RADIUS) {
-    const intensity = 1 - d * (1 / SIM.MOUSE_HEAT_RADIUS);
-    p.heat += SIM.HEAT_RATE * 2 * intensity * (dt === 0 ? 1 : dt);
+  if (d2 < r2) {
+    const d = Math.sqrt(d2);
+    const intensity = 1 - d * (1 / r);
+    p.heat += SIM.HEAT_RATE * 2 * intensity * dt;
   }
 }
 
@@ -366,9 +469,7 @@ function applyCohesionImpulse(
   d: number,
   dt: number
 ) {
-  const force =
-    SIM.COHESION_STRENGTH * (1 - d * (1 / SIM.COHESION_RADIUS));
-
+  const force = SIM.COHESION_STRENGTH * (1 - d * (1 / SIM.COHESION_RADIUS));
   const invD = 1 / d;
   const fx = dx * invD * force * dt;
   const fy = dy * invD * force * dt;
@@ -395,8 +496,7 @@ function applyBottomHeatOrAirCooling(
   const distanceFromBottom = height - p.y;
 
   if (distanceFromBottom < SIM.HEAT_SOURCE_DISTANCE) {
-    const intensity =
-      1 - distanceFromBottom * (1 / SIM.HEAT_SOURCE_DISTANCE);
+    const intensity = 1 - distanceFromBottom * (1 / SIM.HEAT_SOURCE_DISTANCE);
     p.heat += SIM.HEAT_RATE * intensity * dt;
     return;
   }
@@ -422,57 +522,24 @@ function ensureImageData(
   return imageRef.current!;
 }
 
-function setPixelBlock(
-  data: Uint8ClampedArray,
-  canvasWidth: number,
-  canvasHeight: number,
-  x: number,
-  y: number,
-  size: number,
-  r: number,
-  g: number,
-  b: number
-) {
-  for (let py = 0; py < size; py++) {
-    const yy = y + py;
-    if (yy >= canvasHeight) continue;
-
-    const rowBase = yy * canvasWidth * 4;
-    for (let px = 0; px < size; px++) {
-      const xx = x + px;
-      if (xx >= canvasWidth) continue;
-
-      const idx = rowBase + xx * 4;
-      data[idx + 0] = r;
-      data[idx + 1] = g;
-      data[idx + 2] = b;
-      data[idx + 3] = 255;
-    }
-  }
-}
-
-function influenceAtPoint(p: Particle, x: number, y: number, r2: number): number {
-  const dx = x - p.x;
-  const dy = y - p.y;
-  const distSq = dx * dx + dy * dy;
-  return r2 / (distSq + 1);
-}
-
 function drawMetaballs(
   imageData: ImageData,
   particles: Particle[],
   canvasWidth: number,
   canvasHeight: number,
-  lowColorHex: string,
-  highColorHex: string
+  heatLut256: Uint32Array
 ) {
-
-  const data = imageData.data;
-  data.fill(0);
-
   const pixelSize = RENDER.PIXEL_SIZE;
   const threshold = RENDER.THRESHOLD;
   const r2 = RENDER.PARTICLE_RADIUS * RENDER.PARTICLE_RADIUS;
+
+  const data32 = new Uint32Array(imageData.data.buffer);
+
+  // 7) Don’t clear twice: clear ONCE here to opaque black
+  const black = packRgba(0, 0, 0, 255);
+  data32.fill(black);
+
+  const w = canvasWidth;
 
   for (let y = 0; y < canvasHeight; y += pixelSize) {
     for (let x = 0; x < canvasWidth; x += pixelSize) {
@@ -481,7 +548,11 @@ function drawMetaballs(
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
-        const influence = influenceAtPoint(p, x, y, r2);
+        const dx = x - p.x;
+        const dy = y - p.y;
+        const distSq = dx * dx + dy * dy;
+        const influence = r2 / (distSq + 1);
+
         influenceSum += influence;
         heatWeightedSum += influence * p.heat;
       }
@@ -489,40 +560,51 @@ function drawMetaballs(
       if (influenceSum <= threshold) continue;
 
       const heat = heatWeightedSum / influenceSum;
-      const { r, g, b } = heatToRGBFromPalette(heat, lowColorHex, highColorHex);
+      const lutIdx = heat <= 0 ? 0 : heat >= 1 ? 255 : (heat * 255) | 0;
+      const rgba = heatLut256[lutIdx];
 
-      setPixelBlock(data, canvasWidth, canvasHeight, x, y, pixelSize, r, g, b);
+      for (let py = 0; py < pixelSize; py++) {
+        const yy = y + py;
+        if (yy >= canvasHeight) break;
+
+        let idx = yy * w + x;
+        const rowEnd = Math.min(x + pixelSize, w);
+        for (let xx = x; xx < rowEnd; xx++) {
+          data32[idx++] = rgba;
+        }
+      }
     }
   }
 }
 
 function renderFrame(
+  ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
   particles: Particle[],
   imageRef: React.MutableRefObject<ImageData | null>,
-  lowColorHex: string,
-  highColorHex: string
+  heatLut256: Uint32Array
 ) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
   const imageData = ensureImageData(ctx, imageRef, canvas.width, canvas.height);
-  drawMetaballs(imageData, particles, canvas.width, canvas.height, lowColorHex, highColorHex);
+  drawMetaballs(imageData, particles, canvas.width, canvas.height, heatLut256);
   ctx.putImageData(imageData, 0, 0);
 }
 
 // --- Component ---
 export default function LavaLamp(): ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+
   const rafRef = useRef<number | null>(null);
 
   const particlesRef = useRef<Particle[]>([]);
   const imageRef = useRef<ImageData | null>(null);
   const neighborCountsRef = useRef<Uint16Array>(new Uint16Array(0));
   const particleCountRef = useRef<number | null>(null);
+
+  const gridRef = useRef<SpatialGrid | null>(null);
+
+  // 5) Cache dimensions ONCE (read only on page load)
+  const sizeRef = useRef<{ w: number; h: number }>({ w: 1, h: 1 });
 
   const gameMusic = useMemo(() => new PersonalAudio(musicAudioNoise, true), []);
   const clickSound = useMemo(() => new PersonalAudio(clickAudioNoise, false), []);
@@ -533,10 +615,7 @@ export default function LavaLamp(): ReactElement {
   const pointerPosRef = useRef<Vec2>({ x: 0, y: 0 });
 
   // Speed slider state
-  const defaultSpeedIdx = useMemo(
-    () => speedToNearestIndex(SPEED.DEFAULT),
-    []
-  );
+  const defaultSpeedIdx = useMemo(() => speedToNearestIndex(SPEED.DEFAULT), []);
   const [speedIdx, setSpeedIdx] = useState<number>(defaultSpeedIdx);
   const speedRef = useRef<number>(SPEED.DEFAULT);
 
@@ -545,25 +624,50 @@ export default function LavaLamp(): ReactElement {
   }, [speedIdx]);
 
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // add near your other callbacks (uses your existing click sound)
-  const toggleMenu = useCallback(() => {
-    setMenuOpen((v) => !v);
-  }, []);
+  const toggleMenu = useCallback(() => setMenuOpen((v) => !v), []);
 
   const [volume, setVolume] = useState(1.0);
-
   useEffect(() => {
     gameMusic.volume = volume;
   }, [volume, gameMusic]);
 
-  // --- add state (in component) ---
-  const lavaLowColor = useRef("#ffdd00");
-  const lavaHighColor = useRef("#ff5500");
+  const lavaLowColorRef = useRef(DEFAULT_LOW);
+  const lavaHighColorRef = useRef(DEFAULT_HIGH);
 
-  const initializeParticlesOnce = useCallback(() => {
+  const [lavaLowColor, setLavaLowColor] = useState(DEFAULT_LOW);
+  const [lavaHighColor, setLavaHighColor] = useState(DEFAULT_HIGH);
+
+  const heatLutRef = useRef<Uint32Array>(buildHeatLut256(DEFAULT_LOW, DEFAULT_HIGH));
+
+  // Rebuild LUT whenever colors change; redraw immediately if running.
+  useEffect(() => {
+    lavaLowColorRef.current = lavaLowColor;
+    lavaHighColorRef.current = lavaHighColor;
+    heatLutRef.current = buildHeatLut256(lavaLowColor, lavaHighColor);
+  }, [lavaLowColor, lavaHighColor, hasStarted]);
+
+  // 5) Cache canvas/context + dimensions (only read on initial mount)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
     const w = window.innerWidth;
     const h = window.innerHeight;
+    sizeRef.current = { w, h };
+
+    canvas.width = w;
+    canvas.height = h;
+
+    ctxRef.current = canvas.getContext("2d");
+
+    // ensure image data matches cached size
+    imageRef.current = null;
+
+    // no resize listener by request
+  }, []);
+
+  const initializeParticlesOnce = useCallback(() => {
+    const { w, h } = sizeRef.current;
 
     if (particleCountRef.current === null) {
       particleCountRef.current = computeParticleCount(w, h);
@@ -572,6 +676,8 @@ export default function LavaLamp(): ReactElement {
     const count = particleCountRef.current;
     particlesRef.current = createParticles(w, h, count);
     neighborCountsRef.current = new Uint16Array(count);
+
+    ensureGrid(gridRef, w, h, count, SIM.COHESION_RADIUS);
   }, []);
 
   const saveMusicPosition = useCallback(() => {
@@ -613,51 +719,58 @@ export default function LavaLamp(): ReactElement {
     };
   }, [gameMusic, clickSound, saveMusicPosition]);
 
-  const update = useCallback(() => {
+  const updateOnce = useCallback(() => {
+    const g = gridRef.current;
+    if (!g) return;
+
+    const { w, h } = sizeRef.current;
+
     stepSimulationOnePairPass(
       particlesRef.current,
-      window.innerWidth,
-      window.innerHeight,
+      w,
+      h,
       pointerDownRef.current,
       pointerPosRef.current,
       neighborCountsRef.current,
-      speedRef.current
+      speedRef.current,
+      g
     );
   }, []);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    renderFrame(
-      canvas,
-      particlesRef.current,
-      imageRef,
-      lavaLowColor.current,
-      lavaHighColor.current
-    );
+    const ctx = ctxRef.current;
+    if (!canvas || !ctx) return;
+
+    renderFrame(ctx, canvas, particlesRef.current, imageRef, heatLutRef.current);
   }, []);
 
-  const animate = useCallback(() => {
-    // runs forever after Start (speed 0 freezes motion)
-    update();
+  // 0) Fixed update cadence: updates happen at FIXED_FPS regardless of render speed.
+  const clockRef = useRef<{ last: number; acc: number }>({ last: 0, acc: 0 });
+
+  const animate = useCallback((now: number) => {
+    const clock = clockRef.current;
+
+    if (clock.last === 0) clock.last = now;
+    const delta = now - clock.last;
+    clock.last = now;
+
+    // Clamp massive deltas (tab-switch etc.)
+    clock.acc += Math.min(250, Math.max(0, delta));
+
+    let steps = 0;
+    while (clock.acc >= FIXED_MS && steps < MAX_CATCHUP_STEPS) {
+      updateOnce();
+      clock.acc -= FIXED_MS;
+      steps++;
+    }
+
+    // Drop extra backlog to avoid death spiral
+    if (clock.acc >= FIXED_MS) clock.acc = 0;
+
     draw();
     rafRef.current = requestAnimationFrame(animate);
-  }, [update, draw]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      setCanvasToWindow(canvas);
-      imageRef.current = null;
-
-      if (hasStarted) draw();
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [draw, hasStarted]);
+  }, [draw, updateOnce]);
 
   // Pointer handling
   useEffect(() => {
@@ -724,13 +837,17 @@ export default function LavaLamp(): ReactElement {
     if (!hasStarted) {
       setHasStarted(true);
       initializeParticlesOnce();
+
+      // reset fixed-timestep clock
+      clockRef.current = { last: 0, acc: 0 };
+
+      // draw a first frame immediately
       requestAnimationFrame(() => draw());
 
-      // start RAF
+      // start RAF loop
       rafRef.current = requestAnimationFrame(animate);
     }
 
-    // gesture-driven: resume from last saved time, then play
     resumeMusicFromSavedTime();
     gameMusic.volume = 1.0;
     gameMusic.play();
@@ -749,13 +866,10 @@ export default function LavaLamp(): ReactElement {
     []
   );
 
-  // Labels aligned by pixel position, not grid cells (fixes mismatch)
-  const sliderWrapRef = useRef<HTMLDivElement | null>(null);
+  const lastSpeedIdx = SPEED.STEPS - 1;
 
   return (
-    <div
-      className="lava-lamp-container"
-    >
+    <div className="lava-lamp-container">
       <canvas
         ref={canvasRef}
         className="lava-lamp-canvas"
@@ -794,16 +908,16 @@ export default function LavaLamp(): ReactElement {
                   <div className="lava-lamp-control-title">speed: {speedIdx}</div>
                 </div>
 
-                <div ref={sliderWrapRef} className="lava-lamp-slider-wrap">
+                <div className="lava-lamp-slider-wrap">
                   <input
                     className="lava-lamp-slider"
                     type="range"
                     min={0}
-                    max={SPEED.STEPS}
+                    max={lastSpeedIdx}
                     step={1}
                     value={speedIdx}
                     onChange={(e) =>
-                      setSpeedIdx(clampInt(Number(e.target.value), 0, SPEED.STEPS))
+                      setSpeedIdx(clampInt(Number(e.target.value), 0, lastSpeedIdx))
                     }
                     aria-label="Simulation speed"
                   />
@@ -832,32 +946,33 @@ export default function LavaLamp(): ReactElement {
                 </div>
               </div>
 
-              {/* Theme color */}
+              {/* Lava colors */}
               <div className="lava-lamp-control-block">
                 <div className="lava-lamp-control-header">
                   <div className="lava-lamp-control-title">lava colors</div>
                 </div>
 
                 <div className="lava-lamp-color-row">
+
                   <label className="lava-lamp-color-label">
-                    low
+                    hot
                     <input
                       className="lava-lamp-color-input"
                       type="color"
-                      value={lavaLowColor.current}
-                      onChange={(e) => lavaLowColor.current = e.target.value}
-                      aria-label="Lava low color"
+                      value={lavaHighColor}
+                      onChange={(e) => setLavaHighColor(e.target.value)}
+                      aria-label="Lava high color"
                     />
                   </label>
 
                   <label className="lava-lamp-color-label">
-                    high
+                    cool
                     <input
                       className="lava-lamp-color-input"
                       type="color"
-                      value={lavaHighColor.current}
-                      onChange={(e) => lavaHighColor.current = e.target.value}
-                      aria-label="Lava high color"
+                      value={lavaLowColor}
+                      onChange={(e) => setLavaLowColor(e.target.value)}
+                      aria-label="Lava low color"
                     />
                   </label>
 
@@ -865,8 +980,8 @@ export default function LavaLamp(): ReactElement {
                     type="button"
                     className="lava-lamp-color-reset"
                     onClick={() => {
-                      lavaLowColor.current = "#ffdd00";
-                      lavaHighColor.current = "#ff5500";
+                      setLavaLowColor(DEFAULT_LOW);
+                      setLavaHighColor(DEFAULT_HIGH);
                     }}
                   >
                     reset
