@@ -1178,6 +1178,19 @@ export default function LavaLamp(): ReactElement {
                   </button>
                 </div>
               </div>
+
+              {/* Power off */}
+              <div className="lava-lamp-control-block">
+                <button
+                  type="button"
+                  className="lava-lamp-power-off"
+                  onClick={() => window.location.reload()}
+                  aria-label="Power off"
+                >
+                  <img src={powerIcon} alt="Power off" className="lava-lamp-power-off-icon" />
+                  <span>power off</span>
+                </button>
+              </div>
             </div>
           )}
         </div>

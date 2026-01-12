@@ -22,7 +22,7 @@
   color: var(--lava-accent);
   font-size: 28px;
   letter-spacing: 0.12em;
-  cursor: pointer;
+  cursor: var(--pointer);
   border-radius: 10px;
   display: inline-flex;
   align-items: center;
@@ -87,7 +87,7 @@
   background: rgba(0, 0, 0, 0.55);
   color: color-mix(in srgb, var(--lava-accent) 95%, transparent);
   font-size: 20px;
-  cursor: pointer;
+  cursor: var(--pointer);
   display: grid;
   place-items: center;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
@@ -166,7 +166,7 @@
   height: 28px;
   /* room for thumb */
   background: transparent;
-  cursor: pointer;
+  cursor: var(--pointer);
 }
 
 .lava-lamp-slider::-webkit-slider-runnable-track {
@@ -276,7 +276,7 @@ select.lava-lamp-slider option {
   border-radius: 10px;
   border: 1px solid rgba(255, 221, 0, 0.35);
   background: rgba(0, 0, 0, 0.35);
-  cursor: pointer;
+  cursor: var(--pointer);
 }
 
 .lava-lamp-color-input::-webkit-color-swatch-wrapper {
@@ -301,7 +301,7 @@ select.lava-lamp-slider option {
   border: 1px solid rgba(255, 221, 0, 0.35);
   background: rgba(0, 0, 0, 0.35);
   color: rgba(255, 221, 0, 0.92);
-  cursor: pointer;
+  cursor: var(--pointer);
 }
 
 .lava-lamp-color-reset:hover {
@@ -310,6 +310,41 @@ select.lava-lamp-slider option {
 
 .lava-lamp-color-reset:active {
   transform: scale(0.98);
+}
+
+/* --- Power off button --- */
+.lava-lamp-power-off {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 221, 0, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 221, 0, 0.92);
+  cursor: var(--pointer);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+}
+
+.lava-lamp-power-off:hover {
+  border-color: rgba(255, 221, 0, 0.55);
+}
+
+.lava-lamp-power-off:active {
+  transform: scale(0.98);
+}
+
+.lava-lamp-power-off-icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) saturate(100%) invert(85%) sepia(65%) saturate(514%) hue-rotate(359deg) brightness(103%) contrast(104%);
 }
 
 .lava-lamp-controls .lava-lamp-menu-toggle {
@@ -323,14 +358,21 @@ select.lava-lamp-slider option {
   place-items: center;
 
   border-radius: 12px;
-  border: 2px solid #ffdd00;
-  background: rgba(0, 0, 0, 0.75);
-  color: #ffdd00;
+  border: 1px solid color-mix(in srgb, var(--lava-accent) 35%, transparent);
+  background: rgba(0, 0, 0, 0.55);
+  color: color-mix(in srgb, var(--lava-accent) 92%, transparent);
   font-size: 20px;
   line-height: 1;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 
-  cursor: pointer;
+  cursor: var(--pointer);
   z-index: 1001;             /* if something else overlaps locally */
+}
+
+.lava-lamp-controls .lava-lamp-menu-toggle:hover {
+  border-color: color-mix(in srgb, var(--lava-accent) 55%, transparent);
 }
 
 /* --- Now Playing Display --- */
@@ -367,7 +409,7 @@ select.lava-lamp-slider option {
 
   font-size: 24px;
   color: color-mix(in srgb, var(--lava-accent) 92%, transparent);
-  cursor: pointer;
+  cursor: var(--pointer);
 
   transition: background 0.2s ease;
 }
