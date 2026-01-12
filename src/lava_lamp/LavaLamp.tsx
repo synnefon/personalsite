@@ -673,6 +673,9 @@ export default function LavaLamp(): ReactElement {
     isAirbreak: boolean;
   } | null>(null);
   const [nowPlayingExpanded, setNowPlayingExpanded] = useState(true);
+  const nowPlayingSongRef = useRef<HTMLDivElement>(null);
+  const nowPlayingArtistRef = useRef<HTMLDivElement>(null);
+  const nowPlayingAlbumRef = useRef<HTMLDivElement>(null);
 
   const isFirstRender = useRef(true);
 
@@ -748,6 +751,33 @@ export default function LavaLamp(): ReactElement {
 
     return () => clearInterval(interval);
   }, [hasStarted, audioSource]);
+
+  // Check for text overflow and apply scrolling class
+  useEffect(() => {
+    const checkOverflow = () => {
+      const elements = [
+        nowPlayingSongRef.current,
+        nowPlayingArtistRef.current,
+        nowPlayingAlbumRef.current,
+      ];
+
+      elements.forEach((element) => {
+        if (element) {
+          const isOverflowing = element.scrollWidth > element.clientWidth;
+          if (isOverflowing) {
+            element.classList.add("overflowing");
+          } else {
+            element.classList.remove("overflowing");
+          }
+        }
+      });
+    };
+
+    checkOverflow();
+    window.addEventListener("resize", checkOverflow);
+
+    return () => window.removeEventListener("resize", checkOverflow);
+  }, [nowPlaying, nowPlayingExpanded]);
 
   const lavaLowColorRef = useRef(DEFAULT_LOW);
   const lavaHighColorRef = useRef(DEFAULT_HIGH);
@@ -1043,11 +1073,11 @@ export default function LavaLamp(): ReactElement {
                 </div>
               )}
             </div>
-            <div className="lava-lamp-now-playing-song">{nowPlaying.song}</div>
+            <div ref={nowPlayingSongRef} className="lava-lamp-now-playing-song">{nowPlaying.song}</div>
             {!nowPlaying.isAirbreak && (
               <>
-                <div className="lava-lamp-now-playing-artist">{nowPlaying.artist}</div>
-                <div className="lava-lamp-now-playing-album">{nowPlaying.album}</div>
+                <div ref={nowPlayingArtistRef} className="lava-lamp-now-playing-artist">{nowPlaying.artist}</div>
+                <div ref={nowPlayingAlbumRef} className="lava-lamp-now-playing-album">{nowPlaying.album}</div>
               </>
             )}
           </div>

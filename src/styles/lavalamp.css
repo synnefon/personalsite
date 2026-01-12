@@ -504,7 +504,7 @@ select.lava-lamp-slider option {
   white-space: nowrap;
 }
 
-.lava-lamp-now-playing-song:hover {
+.lava-lamp-now-playing-song.overflowing {
   animation: scroll-text 8s linear infinite;
 }
 
@@ -517,7 +517,7 @@ select.lava-lamp-slider option {
   white-space: nowrap;
 }
 
-.lava-lamp-now-playing-artist:hover {
+.lava-lamp-now-playing-artist.overflowing {
   animation: scroll-text 8s linear infinite;
 }
 
@@ -531,7 +531,7 @@ select.lava-lamp-slider option {
   white-space: nowrap;
 }
 
-.lava-lamp-now-playing-album:hover {
+.lava-lamp-now-playing-album.overflowing {
   animation: scroll-text 8s linear infinite;
 }
 
