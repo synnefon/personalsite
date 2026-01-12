@@ -68,6 +68,45 @@ const SPEED = {
   STEPS: 10, // odd => default lands centered
 } as const;
 
+// --- replace heatToRGB with this (outside component) ---
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = hex.trim().replace("#", "");
+  if (h.length === 3) {
+    const r = parseInt(h[0] + h[0], 16);
+    const g = parseInt(h[1] + h[1], 16);
+    const b = parseInt(h[2] + h[2], 16);
+    return { r, g, b };
+  }
+  if (h.length === 6) {
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return { r, g, b };
+  }
+  return { r: 255, g: 221, b: 0 };
+}
+
+
+function lerpInt(a: number, b: number, t: number): number {
+  const v = a + (b - a) * t;
+  return v < 0 ? 0 : v > 255 ? 255 : Math.round(v);
+}
+
+function heatToRGBFromPalette(
+  heat: number,
+  lowHex: string,
+  highHex: string
+): { r: number; g: number; b: number } {
+  const t = clamp01(heat);
+  const lo = hexToRgb(lowHex);
+  const hi = hexToRgb(highHex);
+  return {
+    r: lerpInt(lo.r, hi.r, t),
+    g: lerpInt(lo.g, hi.g, t),
+    b: lerpInt(lo.b, hi.b, t),
+  };
+}
+
 function computeParticleCount(width: number, height: number): number {
   const baselineArea = BASELINE.WIDTH * BASELINE.HEIGHT;
   const currentArea = width * height;
@@ -383,11 +422,6 @@ function ensureImageData(
   return imageRef.current!;
 }
 
-function heatToRGB(heat: number): { r: number; g: number; b: number } {
-  const t = clamp01(heat);
-  return { r: 255, g: Math.round(50 + 205 * t), b: 0 };
-}
-
 function setPixelBlock(
   data: Uint8ClampedArray,
   canvasWidth: number,
@@ -428,8 +462,11 @@ function drawMetaballs(
   imageData: ImageData,
   particles: Particle[],
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  lowColorHex: string,
+  highColorHex: string
 ) {
+
   const data = imageData.data;
   data.fill(0);
 
@@ -452,7 +489,7 @@ function drawMetaballs(
       if (influenceSum <= threshold) continue;
 
       const heat = heatWeightedSum / influenceSum;
-      const { r, g, b } = heatToRGB(heat);
+      const { r, g, b } = heatToRGBFromPalette(heat, lowColorHex, highColorHex);
 
       setPixelBlock(data, canvasWidth, canvasHeight, x, y, pixelSize, r, g, b);
     }
@@ -462,7 +499,9 @@ function drawMetaballs(
 function renderFrame(
   canvas: HTMLCanvasElement,
   particles: Particle[],
-  imageRef: React.MutableRefObject<ImageData | null>
+  imageRef: React.MutableRefObject<ImageData | null>,
+  lowColorHex: string,
+  highColorHex: string
 ) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
@@ -471,7 +510,7 @@ function renderFrame(
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const imageData = ensureImageData(ctx, imageRef, canvas.width, canvas.height);
-  drawMetaballs(imageData, particles, canvas.width, canvas.height);
+  drawMetaballs(imageData, particles, canvas.width, canvas.height, lowColorHex, highColorHex);
   ctx.putImageData(imageData, 0, 0);
 }
 
@@ -517,6 +556,10 @@ export default function LavaLamp(): ReactElement {
   useEffect(() => {
     gameMusic.volume = volume;
   }, [volume, gameMusic]);
+
+  // --- add state (in component) ---
+  const lavaLowColor = useRef("#ffdd00");
+  const lavaHighColor = useRef("#ff5500");
 
   const initializeParticlesOnce = useCallback(() => {
     const w = window.innerWidth;
@@ -585,7 +628,13 @@ export default function LavaLamp(): ReactElement {
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    renderFrame(canvas, particlesRef.current, imageRef);
+    renderFrame(
+      canvas,
+      particlesRef.current,
+      imageRef,
+      lavaLowColor.current,
+      lavaHighColor.current
+    );
   }, []);
 
   const animate = useCallback(() => {
@@ -704,7 +753,9 @@ export default function LavaLamp(): ReactElement {
   const sliderWrapRef = useRef<HTMLDivElement | null>(null);
 
   return (
-    <div className="lava-lamp-container">
+    <div
+      className="lava-lamp-container"
+    >
       <canvas
         ref={canvasRef}
         className="lava-lamp-canvas"
@@ -740,9 +791,7 @@ export default function LavaLamp(): ReactElement {
               {/* Speed */}
               <div className="lava-lamp-control-block">
                 <div className="lava-lamp-control-header">
-                  <div className="lava-lamp-control-title">
-                    speed: {speedIdx}
-                  </div>
+                  <div className="lava-lamp-control-title">speed: {speedIdx}</div>
                 </div>
 
                 <div ref={sliderWrapRef} className="lava-lamp-slider-wrap">
@@ -765,7 +814,7 @@ export default function LavaLamp(): ReactElement {
               <div className="lava-lamp-control-block">
                 <div className="lava-lamp-control-header">
                   <div className="lava-lamp-control-title">
-                    volume: {Math.round(volume * 10)}
+                    volume: {Math.round(volume * 100)}%
                   </div>
                 </div>
 
@@ -775,11 +824,53 @@ export default function LavaLamp(): ReactElement {
                     type="range"
                     min={0}
                     max={1}
-                    step={0.1}
+                    step={0.01}
                     value={volume}
                     onChange={(e) => setVolume(Number(e.target.value))}
                     aria-label="Music volume"
                   />
+                </div>
+              </div>
+
+              {/* Theme color */}
+              <div className="lava-lamp-control-block">
+                <div className="lava-lamp-control-header">
+                  <div className="lava-lamp-control-title">lava colors</div>
+                </div>
+
+                <div className="lava-lamp-color-row">
+                  <label className="lava-lamp-color-label">
+                    low
+                    <input
+                      className="lava-lamp-color-input"
+                      type="color"
+                      value={lavaLowColor.current}
+                      onChange={(e) => lavaLowColor.current = e.target.value}
+                      aria-label="Lava low color"
+                    />
+                  </label>
+
+                  <label className="lava-lamp-color-label">
+                    high
+                    <input
+                      className="lava-lamp-color-input"
+                      type="color"
+                      value={lavaHighColor.current}
+                      onChange={(e) => lavaHighColor.current = e.target.value}
+                      aria-label="Lava high color"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    className="lava-lamp-color-reset"
+                    onClick={() => {
+                      lavaLowColor.current = "#ffdd00";
+                      lavaHighColor.current = "#ff5500";
+                    }}
+                  >
+                    reset
+                  </button>
                 </div>
               </div>
             </div>

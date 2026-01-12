@@ -1,20 +1,26 @@
 /* lavalamp.css (full set for the UI bits below; keep any other existing CSS you have) */
 
+.lava-lamp-container {
+  /* default theme color (kept) */
+  --lava-accent: #ffdd00;
+}
+
 /* --- Start overlay --- */
 .lava-lamp-start-overlay {
   position: fixed;
   inset: 0;
   display: grid;
   place-items: center;
-  z-index: 200; /* above canvas */
+  z-index: 200;
+  /* above canvas */
 }
 
 .lava-lamp-start {
   min-width: 220px;
   height: 80px;
-  border: 3px solid #ffdd00;
+  border: 3px solid var(--lava-accent);
   background-color: rgba(0, 0, 0, 0.75);
-  color: #ffdd00;
+  color: var(--lava-accent);
   font-size: 28px;
   letter-spacing: 0.12em;
   cursor: pointer;
@@ -27,7 +33,7 @@
 }
 
 .lava-lamp-start:hover {
-  background-color: #ffdd00;
+  background-color: var(--lava-accent);
   color: #000000;
   transform: scale(1.03);
 }
@@ -42,7 +48,8 @@
   left: 16px;
   bottom: 16px;
   z-index: 210;
-  pointer-events: none; /* canvas still gets pointer events */
+  pointer-events: none;
+  /* canvas still gets pointer events */
 }
 
 /* --- Menu toggle button --- */
@@ -51,9 +58,9 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 221, 0, 0.35);
+  border: 1px solid color-mix(in srgb, var(--lava-accent) 35%, transparent);
   background: rgba(0, 0, 0, 0.55);
-  color: rgba(255, 221, 0, 0.95);
+  color: color-mix(in srgb, var(--lava-accent) 95%, transparent);
   font-size: 20px;
   cursor: pointer;
   display: grid;
@@ -65,7 +72,7 @@
 }
 
 .lava-lamp-menu-toggle:hover {
-  border-color: rgba(255, 221, 0, 0.55);
+  border-color: color-mix(in srgb, var(--lava-accent) 55%, transparent);
 }
 
 .lava-lamp-menu-toggle:active {
@@ -79,9 +86,9 @@
   width: 280px;
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 221, 0, 0.35);
+  border: 1px solid color-mix(in srgb, var(--lava-accent) 35%, transparent);
   background: rgba(0, 0, 0, 0.55);
-  color: rgba(255, 221, 0, 0.92);
+  color: color-mix(in srgb, var(--lava-accent) 92%, transparent);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -99,10 +106,10 @@
   gap: 8px;
 }
 
-.lava-lamp-control-block + .lava-lamp-control-block {
+.lava-lamp-control-block+.lava-lamp-control-block {
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 221, 0, 0.2);
+  border-top: 1px solid color-mix(in srgb, var(--lava-accent) 20%, transparent);
 }
 
 .lava-lamp-control-header {
@@ -131,57 +138,117 @@
   margin: 0;
   -webkit-appearance: none;
   appearance: none;
-  height: 28px; /* room for thumb */
+  height: 28px;
+  /* room for thumb */
   background: transparent;
   cursor: pointer;
 }
 
-/* track */
 .lava-lamp-slider::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 221, 0, 0.25);
-  border: 1px solid rgba(255, 221, 0, 0.35);
+  background: color-mix(in srgb, var(--lava-accent) 25%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lava-accent) 35%, transparent);
 }
 
 .lava-lamp-slider::-moz-range-track {
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 221, 0, 0.25);
-  border: 1px solid rgba(255, 221, 0, 0.35);
+  background: color-mix(in srgb, var(--lava-accent) 25%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lava-accent) 35%, transparent);
 }
 
-/* thumb */
 .lava-lamp-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 16px;
   height: 16px;
   border-radius: 999px;
-  background: #ffdd00;
+  background: var(--lava-accent);
   border: 2px solid rgba(0, 0, 0, 0.75);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-  margin-top: -6px; /* centers on 6px track */
+  margin-top: -6px;
 }
 
 .lava-lamp-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
   border-radius: 999px;
-  background: #ffdd00;
+  background: var(--lava-accent);
   border: 2px solid rgba(0, 0, 0, 0.75);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
-/* focus ring */
 .lava-lamp-slider:focus {
   outline: none;
 }
 
 .lava-lamp-slider:focus-visible::-webkit-slider-runnable-track {
-  box-shadow: 0 0 0 3px rgba(255, 221, 0, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lava-accent) 18%, transparent);
 }
 
 .lava-lamp-slider:focus-visible::-moz-range-track {
-  box-shadow: 0 0 0 3px rgba(255, 221, 0, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lava-accent) 18%, transparent);
+}
+
+/* --- add to your existing lavalamp.css (reuses current theme; does NOT change it) --- */
+
+.lava-lamp-color-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lava-lamp-color-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  opacity: 0.92;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+}
+
+.lava-lamp-color-input {
+  width: 44px;
+  height: 32px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 221, 0, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.lava-lamp-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 10px;
+}
+
+.lava-lamp-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 10px;
+}
+
+.lava-lamp-color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 10px;
+}
+
+.lava-lamp-color-reset {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 221, 0, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 221, 0, 0.92);
+  cursor: pointer;
+}
+
+.lava-lamp-color-reset:hover {
+  border-color: rgba(255, 221, 0, 0.55);
+}
+
+.lava-lamp-color-reset:active {
+  transform: scale(0.98);
 }
