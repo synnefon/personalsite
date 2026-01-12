@@ -2,6 +2,7 @@ export class PersonalAudio extends Audio {
   constructor(src, loop=false) {
     super(src);
     this.loop = loop;
+    this.crossOrigin = "anonymous";
   };
 
   isPlayingSrc = (audioSrc) => {

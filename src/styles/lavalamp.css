@@ -466,33 +466,11 @@ select.lava-lamp-slider option {
   width: 3px;
   background: var(--lava-accent);
   border-radius: 2px;
-  animation: soundwave 0.8s ease-in-out infinite;
+  height: calc(4px + (var(--amplitude, 0) * 10px));
+  transition: height 0.1s ease-out;
 }
 
-.lava-lamp-soundwave-bar:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.lava-lamp-soundwave-bar:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.lava-lamp-soundwave-bar:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-.lava-lamp-soundwave-bar:nth-child(4) {
-  animation-delay: 0.6s;
-}
-
-@keyframes soundwave {
-  0%, 100% {
-    height: 4px;
-  }
-  50% {
-    height: 14px;
-  }
-}
+/* Bars react to amplitude via --amplitude CSS variable */
 
 .lava-lamp-now-playing-song {
   font-size: 14px;
@@ -507,12 +485,13 @@ select.lava-lamp-slider option {
 
 .lava-lamp-now-playing-song.overflowing .scroll-wrapper {
   display: inline-block;
-  animation: marquee-scroll 12s linear infinite;
+  padding-right: 30px;
+  animation: marquee-scroll var(--scroll-duration, 12s) linear infinite;
   visibility: visible;
 }
 
 .lava-lamp-now-playing-song.overflowing .scroll-wrapper.second {
-  animation-delay: 6s;
+  animation-delay: calc(var(--scroll-duration, 12s) * 0.7);
   visibility: hidden;
 }
 
@@ -528,12 +507,13 @@ select.lava-lamp-slider option {
 
 .lava-lamp-now-playing-artist.overflowing .scroll-wrapper {
   display: inline-block;
-  animation: marquee-scroll 12s linear infinite;
+  padding-right: 30px;
+  animation: marquee-scroll var(--scroll-duration, 12s) linear infinite;
   visibility: visible;
 }
 
 .lava-lamp-now-playing-artist.overflowing .scroll-wrapper.second {
-  animation-delay: 6s;
+  animation-delay: calc(var(--scroll-duration, 12s) * 0.7);
   visibility: hidden;
 }
 
@@ -550,18 +530,19 @@ select.lava-lamp-slider option {
 
 .lava-lamp-now-playing-album.overflowing .scroll-wrapper {
   display: inline-block;
-  animation: marquee-scroll 12s linear infinite;
+  padding-right: 30px;
+  animation: marquee-scroll var(--scroll-duration, 12s) linear infinite;
   visibility: visible;
 }
 
 .lava-lamp-now-playing-album.overflowing .scroll-wrapper.second {
-  animation-delay: 6s;
+  animation-delay: calc(var(--scroll-duration, 12s) * 0.7);
   visibility: hidden;
 }
 
 @keyframes marquee-scroll {
-  0% {
-    transform: translateX(100%);
+  0%, 20% {
+    transform: translateX(0%);
     visibility: visible;
   }
   100% {

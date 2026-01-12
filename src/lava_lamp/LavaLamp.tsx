@@ -21,6 +21,7 @@ import clickAudioNoise from "../assets/lavaLamp/click.mp3";
 // @ts-expect-error - See AIDEV-NOTE above.
 import powerIcon from "../assets/lavaLamp/power.svg";
 import { PersonalAudio } from "../util/Audio";
+import { AudioAmplitudeAnalyzer } from "../util/audioAmplitude.ts";
 
 // --- Audio sources ---
 const AUDIO_SOURCES = {
@@ -650,6 +651,12 @@ export default function LavaLamp(): ReactElement {
   const pointerDownRef = useRef(false);
   const pointerPosRef = useRef<Vec2>({ x: 0, y: 0 });
 
+  // Audio amplitude analysis
+  const amplitudeAnalyzerRef = useRef<AudioAmplitudeAnalyzer | null>(null);
+  const currentAmplitudeRef = useRef(0);
+  const [displayAmplitude, setDisplayAmplitude] = useState(0);
+  const amplitudeUpdateCounterRef = useRef(0);
+
   // Speed slider state
   const defaultSpeedIdx = useMemo(() => speedToNearestIndex(SPEED.DEFAULT), []);
   const [speedIdx, setSpeedIdx] = useState<number>(defaultSpeedIdx);
@@ -778,12 +785,22 @@ export default function LavaLamp(): ReactElement {
 
   // Check for text overflow and apply scrolling class
   useEffect(() => {
+    const SCROLL_SPEED = 30; // pixels per second (slower = more readable)
+
+    const calculateScrollDuration = (containerWidth: number, textWidth: number): number => {
+      // Distance = just the text width (text scrolls from 0% to -100%)
+      return textWidth / SCROLL_SPEED;
+    };
+
     const checkOverflow = () => {
       if (nowPlayingSongRef.current) {
-        const wrapper = nowPlayingSongRef.current.querySelector('.scroll-wrapper');
-        const isOverflowing = wrapper && wrapper.scrollWidth > nowPlayingSongRef.current.clientWidth;
+        const wrapper = nowPlayingSongRef.current.querySelector('.scroll-wrapper') as HTMLElement;
+        const containerWidth = nowPlayingSongRef.current.clientWidth;
+        const isOverflowing = wrapper && wrapper.scrollWidth > containerWidth;
         setSongOverflowing(!!isOverflowing);
-        if (isOverflowing) {
+        if (isOverflowing && wrapper) {
+          const duration = calculateScrollDuration(containerWidth, wrapper.scrollWidth);
+          nowPlayingSongRef.current.style.setProperty('--scroll-duration', `${duration}s`);
           nowPlayingSongRef.current.classList.add("overflowing");
         } else {
           nowPlayingSongRef.current.classList.remove("overflowing");
@@ -791,10 +808,13 @@ export default function LavaLamp(): ReactElement {
       }
 
       if (nowPlayingArtistRef.current) {
-        const wrapper = nowPlayingArtistRef.current.querySelector('.scroll-wrapper');
-        const isOverflowing = wrapper && wrapper.scrollWidth > nowPlayingArtistRef.current.clientWidth;
+        const wrapper = nowPlayingArtistRef.current.querySelector('.scroll-wrapper') as HTMLElement;
+        const containerWidth = nowPlayingArtistRef.current.clientWidth;
+        const isOverflowing = wrapper && wrapper.scrollWidth > containerWidth;
         setArtistOverflowing(!!isOverflowing);
-        if (isOverflowing) {
+        if (isOverflowing && wrapper) {
+          const duration = calculateScrollDuration(containerWidth, wrapper.scrollWidth);
+          nowPlayingArtistRef.current.style.setProperty('--scroll-duration', `${duration}s`);
           nowPlayingArtistRef.current.classList.add("overflowing");
         } else {
           nowPlayingArtistRef.current.classList.remove("overflowing");
@@ -802,10 +822,13 @@ export default function LavaLamp(): ReactElement {
       }
 
       if (nowPlayingAlbumRef.current) {
-        const wrapper = nowPlayingAlbumRef.current.querySelector('.scroll-wrapper');
-        const isOverflowing = wrapper && wrapper.scrollWidth > nowPlayingAlbumRef.current.clientWidth;
+        const wrapper = nowPlayingAlbumRef.current.querySelector('.scroll-wrapper') as HTMLElement;
+        const containerWidth = nowPlayingAlbumRef.current.clientWidth;
+        const isOverflowing = wrapper && wrapper.scrollWidth > containerWidth;
         setAlbumOverflowing(!!isOverflowing);
-        if (isOverflowing) {
+        if (isOverflowing && wrapper) {
+          const duration = calculateScrollDuration(containerWidth, wrapper.scrollWidth);
+          nowPlayingAlbumRef.current.style.setProperty('--scroll-duration', `${duration}s`);
           nowPlayingAlbumRef.current.classList.add("overflowing");
         } else {
           nowPlayingAlbumRef.current.classList.remove("overflowing");
@@ -904,6 +927,12 @@ export default function LavaLamp(): ReactElement {
       clickSound.pause();
       clickSound.volume = 0;
       clickSound.reset();
+
+      // Cleanup amplitude analyzer
+      if (amplitudeAnalyzerRef.current) {
+        amplitudeAnalyzerRef.current.disconnect();
+        amplitudeAnalyzerRef.current = null;
+      }
     };
   }, [gameMusic, clickSound, saveMusicPosition]);
 
@@ -955,6 +984,16 @@ export default function LavaLamp(): ReactElement {
 
     // Drop extra backlog to avoid death spiral
     if (clock.acc >= FIXED_MS) clock.acc = 0;
+
+    // Update audio amplitude (update state every 3 frames to avoid excessive re-renders)
+    if (amplitudeAnalyzerRef.current) {
+      currentAmplitudeRef.current = amplitudeAnalyzerRef.current.getAmplitude();
+      amplitudeUpdateCounterRef.current++;
+      if (amplitudeUpdateCounterRef.current >= 3) {
+        setDisplayAmplitude(currentAmplitudeRef.current);
+        amplitudeUpdateCounterRef.current = 0;
+      }
+    }
 
     draw();
     rafRef.current = requestAnimationFrame(animate);
@@ -1034,6 +1073,23 @@ export default function LavaLamp(): ReactElement {
 
       // start RAF loop
       rafRef.current = requestAnimationFrame(animate);
+
+      // Initialize amplitude analyzer
+      if (!amplitudeAnalyzerRef.current) {
+        const analyzer = new AudioAmplitudeAnalyzer();
+        const connected = analyzer.connect(gameMusic);
+        if (connected) {
+          amplitudeAnalyzerRef.current = analyzer;
+          console.log('[LavaLamp] Audio amplitude analyzer connected');
+        } else {
+          console.warn('[LavaLamp] Failed to connect audio amplitude analyzer');
+        }
+      }
+    }
+
+    // Resume audio context if suspended
+    if (amplitudeAnalyzerRef.current) {
+      amplitudeAnalyzerRef.current.resume();
     }
 
     // Only resume from saved time for non-streaming sources (like Redwood)
@@ -1105,7 +1161,10 @@ export default function LavaLamp(): ReactElement {
             <div className="lava-lamp-now-playing-header">
               <div className="lava-lamp-now-playing-label">kexp</div>
               {!nowPlaying.isAirbreak && (
-                <div className="lava-lamp-soundwave">
+                <div
+                  className="lava-lamp-soundwave"
+                  style={{ '--amplitude': displayAmplitude } as React.CSSProperties}
+                >
                   <div className="lava-lamp-soundwave-bar"></div>
                   <div className="lava-lamp-soundwave-bar"></div>
                   <div className="lava-lamp-soundwave-bar"></div>
