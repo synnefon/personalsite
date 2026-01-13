@@ -42,7 +42,7 @@ div#fish-match {
 .loading-bar {
   width: 60%;
   align-self: center;
-  font-family: ShareTechMono;
+  font-family: Inconsolata;
   font-size: var(--medium-font);
   text-align: left;
 }

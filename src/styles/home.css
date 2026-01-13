@@ -64,3 +64,102 @@ div#app-base {
   0%, 100% { transform: rotate(-3deg); }
   50% { transform: rotate(3deg); }
 }
+
+/* ============================================
+   QUOTES SECTION
+   ============================================ */
+
+.quotes-section {
+  margin-top: 2em;
+  padding: 2em;
+  border: 2px solid var(--color-text-light);
+  border-radius: 8px;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.quotes-section:first-of-type {
+  margin-top: 3em;
+}
+
+.quotes-section.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.quote {
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.quote-text {
+  font-size: calc(10px + 1.2vmin);
+  line-height: 1.6;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+.quote-author {
+  font-size: calc(9px + 1vmin);
+  color: var(--color-text-light);
+  margin-top: 0.8em;
+  text-align: right;
+  font-style: normal;
+}
+
+.spinning-text-container {
+  display: inline;
+}
+
+.word-container {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.spin-letter {
+  display: inline-block;
+  opacity: 0;
+  animation: spinIn 5s ease forwards;
+}
+
+@keyframes spinIn {
+  0% {
+    opacity: 0;
+    transform: rotateY(-3600deg) scale(0);
+  }
+  15% {
+    opacity: 1;
+  }
+  30% {
+    transform: rotateY(-2700deg) scale(1.2);
+  }
+  50% {
+    transform: rotateY(-1800deg) scale(0.9);
+  }
+  70% {
+    transform: rotateY(-900deg) scale(1.1);
+  }
+  85% {
+    transform: rotateY(-360deg) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0deg) scale(1);
+  }
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .quotes-section {
+    padding: 1.5em;
+  }
+}
+
+@media screen and (max-width: 500px) {
+  .quotes-section {
+    padding: 1em;
+  }
+}

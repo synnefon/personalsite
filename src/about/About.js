@@ -3,6 +3,7 @@ import { TypeAnimation } from "react-type-animation";
 import { PersonalAudio } from "../util/Audio";
 import Self from "./Self";
 import headphonesIcon from "../assets/about/headphones.svg";
+import SocialIcons from "../components/SocialIcons";
 
 import "../styles/about.css";
 
@@ -165,6 +166,7 @@ export default function About() {
 
   return (
     <div id="app-base" className="about-colors">
+      <SocialIcons />
       <div className="about-text-wrapper">
         <div className="about-text">
           <h1 className="about-title">

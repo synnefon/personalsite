@@ -18,18 +18,21 @@ export default function Home() {
   const [duckOrange, setDuckOrange] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duckVisible, setDuckVisible] = useState(true);
+  const [quoteVisible, setQuoteVisible] = useState(false);
+  const [quote2Visible, setQuote2Visible] = useState(false);
+  const [subtitleVisible, setSubtitleVisible] = useState(false);
   const [duckPosition, setDuckPosition] = useState(() => {
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
     const duckSize = 72;
 
-    const saved = sessionStorage.getItem('duckPosition');
+    const saved = sessionStorage.getItem("duckPosition");
     if (saved) {
       const { leftPercent, topPercent } = JSON.parse(saved);
       return {
         left: leftPercent * windowWidth,
         top: topPercent * windowHeight,
-        bottom: null
+        bottom: null,
       };
     }
 
@@ -103,6 +106,22 @@ export default function Home() {
 
   useEffect(() => {
     document.getElementById("app-base").setAttribute("class", "");
+    // Trigger quote animations with staggered delays
+    const timer1 = setTimeout(() => {
+      setQuoteVisible(true);
+    }, 1000);
+    const timer2 = setTimeout(() => {
+      setQuote2Visible(true);
+    }, 1800);
+    // Start subtitle animation after quotes finish (8 seconds to allow for max spin time)
+    const timer3 = setTimeout(() => {
+      setSubtitleVisible(true);
+    }, 8000);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
   }, []);
 
   // Save duck position to sessionStorage as percentages whenever it changes
@@ -112,10 +131,10 @@ export default function Home() {
 
     const positionPercent = {
       leftPercent: duckPosition.left / windowWidth,
-      topPercent: duckPosition.top / windowHeight
+      topPercent: duckPosition.top / windowHeight,
     };
 
-    sessionStorage.setItem('duckPosition', JSON.stringify(positionPercent));
+    sessionStorage.setItem("duckPosition", JSON.stringify(positionPercent));
   }, [duckPosition]);
 
   // Update duck position on window resize
@@ -126,7 +145,7 @@ export default function Home() {
 
       setWindowWidth(windowWidthNow);
 
-      const saved = sessionStorage.getItem('duckPosition');
+      const saved = sessionStorage.getItem("duckPosition");
       if (!saved) return;
 
       const { leftPercent, topPercent } = JSON.parse(saved);
@@ -134,12 +153,12 @@ export default function Home() {
       setDuckPosition({
         left: leftPercent * windowWidthNow,
         top: topPercent * windowHeightNow,
-        bottom: null
+        bottom: null,
       });
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Cleanup on unmount
@@ -184,14 +203,19 @@ export default function Home() {
     const maxAttempts = 100;
 
     while (attempts < maxAttempts) {
-      const left = margin + Math.random() * (windowWidth - duckSize - 2 * margin);
-      const top = margin + Math.random() * (windowHeight - duckSize - 2 * margin);
+      const left =
+        margin + Math.random() * (windowWidth - duckSize - 2 * margin);
+      const top =
+        margin + Math.random() * (windowHeight - duckSize - 2 * margin);
 
       // Calculate distance from current position
-      const distance = Math.sqrt(Math.pow(left - currentX, 2) + Math.pow(top - currentY, 2));
+      const distance = Math.sqrt(
+        Math.pow(left - currentX, 2) + Math.pow(top - currentY, 2)
+      );
 
       // Check if position overlaps with navbar (top-left)
-      const overlapsNavbar = left < navbarSafeZone.width && top < navbarSafeZone.height;
+      const overlapsNavbar =
+        left < navbarSafeZone.width && top < navbarSafeZone.height;
 
       // Check if position overlaps with content wrapper
       let overlapsContent = false;
@@ -232,7 +256,7 @@ export default function Home() {
         playPopSound(quackSound);
         setDuckVisible(false);
         // Clear saved position so duck resets to original position on next page load
-        sessionStorage.removeItem('duckPosition');
+        sessionStorage.removeItem("duckPosition");
         // Reset all state
         setIsPlaying(false);
         setVolumeMultiplier(1);
@@ -259,7 +283,10 @@ export default function Home() {
         timeoutRef.current = null;
       }
       // Increase volume multiplier
-      newVolumeMultiplier = Math.min(volumeMultiplier + VOLUME_INCREMENT, MAX_VOLUME_MULTIPLIER);
+      newVolumeMultiplier = Math.min(
+        volumeMultiplier + VOLUME_INCREMENT,
+        MAX_VOLUME_MULTIPLIER
+      );
       setVolumeMultiplier(newVolumeMultiplier);
       // Reuse the same sound parameters
       soundParams = soundParamsRef.current;
@@ -275,9 +302,15 @@ export default function Home() {
 
     // Start playing sound with current volume multiplier, params, and arpeggio step
     // arpeggioStep is 0-indexed: volume 1.0→step 0, 1.5→step 1, 2.0→step 2, 2.5→step 3, 3.0→step 4
-    const arpeggioStep = Math.round((newVolumeMultiplier - 1) / VOLUME_INCREMENT);
+    const arpeggioStep = Math.round(
+      (newVolumeMultiplier - 1) / VOLUME_INCREMENT
+    );
     setIsPlaying(true);
-    const sound = playRandom8BitSound(newVolumeMultiplier, soundParams, arpeggioStep);
+    const sound = playRandom8BitSound(
+      newVolumeMultiplier,
+      soundParams,
+      arpeggioStep
+    );
     soundStopRef.current = sound.stop;
     soundParamsRef.current = sound.params;
 
@@ -304,6 +337,38 @@ export default function Home() {
       ? [descriptor[0], 500, descriptor[1], 3_500]
       : [descriptor, 3_000];
 
+  const renderAnimatedText = (text) => {
+    const words = text.split(" ");
+    let charIndex = 0;
+
+    return (
+      <span className="spinning-text-container">
+        {words.map((word, wordIndex) => (
+          <span key={wordIndex} className="word-container">
+            {word.split("").map((char, index) => {
+              const randomDelay = Math.random() * 2; // Random delay between 0-2 seconds
+              const randomDuration = 4 + Math.random() * 2; // Random duration between 4-6s
+              charIndex++;
+              return (
+                <span
+                  key={charIndex}
+                  className="spin-letter"
+                  style={{
+                    animationDelay: `${randomDelay}s`,
+                    animationDuration: `${randomDuration}s`,
+                  }}
+                >
+                  {char}
+                </span>
+              );
+            })}
+            {wordIndex < words.length - 1 && <span className="spin-letter">{"\u00A0"}</span>}
+          </span>
+        ))}
+      </span>
+    );
+  };
+
   return (
     <div
       id="app-base"
@@ -318,19 +383,21 @@ export default function Home() {
           <h2 className="title">connor hopkins</h2>
           <h5 className="description home-colors home-subtitle">
             {/* <span className="bracket home-colors">{'{'}&nbsp;</span> */}
-            <TypeAnimation
-              className="description-text home-colors"
-              sequence={descriptors.flatMap((d) => extractDescription(d))}
-              wrapper="span"
-              deletionSpeed={60}
-              repeat={Infinity}
-              cursor={false}
-            />
+            {subtitleVisible && (
+              <TypeAnimation
+                className="description-text home-colors"
+                sequence={descriptors.flatMap((d) => extractDescription(d))}
+                wrapper="span"
+                deletionSpeed={60}
+                repeat={Infinity}
+                cursor={false}
+              />
+            )}
             {/* <span className="bracket home-colors">{"}"}</span> */}
           </h5>
         </div>
         <div className="links home-colors">
-          <Link
+          {/* <Link
             className="link top left home-colors"
             to="/projects"
             rel="noreferrer"
@@ -339,8 +406,8 @@ export default function Home() {
             <p className="tooltip-text home-colors">
               an assortment of web-accessible work
             </p>
-          </Link>
-          <Link
+          </Link> */}
+          {/* <Link
             className="link about home-colors top right"
             to="/about"
             rel="noreferrer"
@@ -349,8 +416,8 @@ export default function Home() {
             <p className="tooltip-text home-colors">
               $ whois connorhopkins.xyz
             </p>
-          </Link>
-          <a
+          </Link> */}
+          {/* <a
             className="link bottom left home-colors"
             href="https://www.linkedin.com/in/connor-j-hopkins"
             rel="noreferrer"
@@ -377,7 +444,7 @@ export default function Home() {
             <p className="tooltip-text home-colors">
               where you can see some code i've written
             </p>
-          </a>
+          </a> */}
           {/* <a
             className="link bottom right home-colors"
             href="mailto:connorjhopkins@gmail.com?subject=let's%20collab!%20"
@@ -386,16 +453,56 @@ export default function Home() {
             <p className="tooltip-text home-colors">shoot me an email</p>
           </a> */}
         </div>
+
+        <div
+          className={`quotes-section home-colors ${
+            quoteVisible ? "visible" : ""
+          }`}
+        >
+          <blockquote className="quote home-colors">
+            <p className="quote-text home-colors">
+              {quoteVisible &&
+                renderAnimatedText(
+                  "“You should sit in meditation for ten minutes every day — except when you are too busy. Then you should sit for an hour.”"
+                )}
+            </p>
+            <footer className="quote-author home-colors">
+              {quoteVisible && renderAnimatedText("— shunryu suzuki")}
+            </footer>
+          </blockquote>
+        </div>
+
+        <div
+          className={`quotes-section home-colors ${
+            quote2Visible ? "visible" : ""
+          }`}
+        >
+          <blockquote className="quote home-colors">
+            <p className="quote-text home-colors">
+              {quote2Visible &&
+                renderAnimatedText(
+                  "“Meow” means “woof” in cat."
+                )}
+            </p>
+            <footer className="quote-author home-colors">
+              {quote2Visible && renderAnimatedText("— george carlin")}
+            </footer>
+          </blockquote>
+        </div>
       </div>
 
       {/* Duck SVG */}
       {duckVisible && !isMobile && (
         <div
-          className={`duck-container ${isPlaying ? 'wiggle' : ''}`}
+          className={`duck-container ${isPlaying ? "wiggle" : ""}`}
           style={{
-            left: duckPosition.left !== null ? `${duckPosition.left}px` : 'auto',
-            top: duckPosition.top !== null ? `${duckPosition.top}px` : 'auto',
-            bottom: duckPosition.bottom !== null ? `${duckPosition.bottom}px` : 'auto',
+            left:
+              duckPosition.left !== null ? `${duckPosition.left}px` : "auto",
+            top: duckPosition.top !== null ? `${duckPosition.top}px` : "auto",
+            bottom:
+              duckPosition.bottom !== null
+                ? `${duckPosition.bottom}px`
+                : "auto",
           }}
           onMouseEnter={() => setDuckOrange(true)}
           onMouseLeave={() => setDuckOrange(false)}
@@ -405,7 +512,7 @@ export default function Home() {
             src={duckIcon}
             alt="duck"
             draggable={false}
-            className={`duck-icon ${duckOrange || isPlaying ? 'orange' : ''}`}
+            className={`duck-icon ${duckOrange || isPlaying ? "orange" : ""}`}
           />
         </div>
       )}
