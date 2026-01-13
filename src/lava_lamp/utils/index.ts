@@ -4,6 +4,7 @@
 
 // Types
 export type { Particle, Vec2, SpatialGrid, AudioSource, NowPlayingInfo } from "./types.ts";
+export type { WebGLRendererContext } from "./webglRenderer.ts";
 
 // Constants
 export {
@@ -57,10 +58,17 @@ export {
 export { ensureGrid, gridIndex } from "./spatialGrid.ts";
 
 // Rendering
-export { ensureImageData, drawMetaballs, renderFrame } from "./rendering.ts";
+export { ensureImageData, drawMetaballs, drawMetaballsWithGrid, renderFrame } from "./rendering.ts";
 
 // Storage
 export { readSavedMusicTimeSeconds, writeSavedMusicTimeSeconds } from "./storage.ts";
 
 // Speed utilities
 export { clampInt, indexToSpeed, speedToNearestIndex } from "./speedUtils.ts";
+
+// WebGL renderer
+export {
+  initWebGLRenderer,
+  renderFrameWebGL,
+  cleanupWebGLRenderer,
+} from "./webglRenderer.ts";

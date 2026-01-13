@@ -16,7 +16,7 @@ import { PersonalAudio } from "../util/Audio";
 import { AudioAmplitudeAnalyzer } from "../util/audioAmplitude.ts";
 
 // Utility imports
-import type { Particle, Vec2, SpatialGrid, AudioSource, NowPlayingInfo } from "./utils/types.ts";
+import type { Particle, Vec2, SpatialGrid, AudioSource } from "./utils/types.ts";
 import { AUDIO_SOURCES, DEFAULT_HIGH, DEFAULT_LOW, SIM, SPEED, FIXED_MS, MAX_CATCHUP_STEPS } from "./utils/constants.ts";
 import { hslToHex, hexToHue, buildHeatLut256 } from "./utils/colorUtils.ts";
 import { clampAllToBounds, computeParticleCount, createParticles, stepSimulationOnePairPass } from "./utils/physics.ts";
