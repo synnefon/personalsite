@@ -491,7 +491,7 @@ select.lava-lamp-slider option {
 }
 
 .lava-lamp-now-playing-song.overflowing .scroll-wrapper.second {
-  animation-delay: calc(var(--scroll-duration, 12s) * 0.7);
+  animation-delay: calc(var(--scroll-duration, 12s) * var(--second-copy-delay, 0.85));
   visibility: hidden;
 }
 
@@ -513,7 +513,7 @@ select.lava-lamp-slider option {
 }
 
 .lava-lamp-now-playing-artist.overflowing .scroll-wrapper.second {
-  animation-delay: calc(var(--scroll-duration, 12s) * 0.7);
+  animation-delay: calc(var(--scroll-duration, 12s) * var(--second-copy-delay, 0.85));
   visibility: hidden;
 }
 
@@ -536,7 +536,7 @@ select.lava-lamp-slider option {
 }
 
 .lava-lamp-now-playing-album.overflowing .scroll-wrapper.second {
-  animation-delay: calc(var(--scroll-duration, 12s) * 0.7);
+  animation-delay: calc(var(--scroll-duration, 12s) * var(--second-copy-delay, 0.85));
   visibility: hidden;
 }
 

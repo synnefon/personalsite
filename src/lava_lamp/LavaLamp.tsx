@@ -832,6 +832,17 @@ export default function LavaLamp(): ReactElement {
       return textWidth / SCROLL_SPEED;
     };
 
+    const calculateSecondCopyDelay = (
+      containerWidth: number,
+      textWidth: number,
+      duration: number
+    ): number => {
+      // Wait for Copy 1 to completely scroll off screen before starting Copy 2
+      // At 100% of the animation, Copy 1 is at translateX(-100%) (fully off screen)
+      // Copy 2 starts its animation just as Copy 1 loops back to the beginning
+      return 1.0;
+    };
+
     const checkOverflow = () => {
       if (nowPlayingSongRef.current) {
         const wrapper = nowPlayingSongRef.current.querySelector('.scroll-wrapper') as HTMLElement;
@@ -840,7 +851,9 @@ export default function LavaLamp(): ReactElement {
         setSongOverflowing(!!isOverflowing);
         if (isOverflowing && wrapper) {
           const duration = calculateScrollDuration(containerWidth, wrapper.scrollWidth);
+          const delayFraction = calculateSecondCopyDelay(containerWidth, wrapper.scrollWidth, duration);
           nowPlayingSongRef.current.style.setProperty('--scroll-duration', `${duration}s`);
+          nowPlayingSongRef.current.style.setProperty('--second-copy-delay', `${delayFraction}`);
           nowPlayingSongRef.current.classList.add("overflowing");
         } else {
           nowPlayingSongRef.current.classList.remove("overflowing");
@@ -854,7 +867,9 @@ export default function LavaLamp(): ReactElement {
         setArtistOverflowing(!!isOverflowing);
         if (isOverflowing && wrapper) {
           const duration = calculateScrollDuration(containerWidth, wrapper.scrollWidth);
+          const delayFraction = calculateSecondCopyDelay(containerWidth, wrapper.scrollWidth, duration);
           nowPlayingArtistRef.current.style.setProperty('--scroll-duration', `${duration}s`);
+          nowPlayingArtistRef.current.style.setProperty('--second-copy-delay', `${delayFraction}`);
           nowPlayingArtistRef.current.classList.add("overflowing");
         } else {
           nowPlayingArtistRef.current.classList.remove("overflowing");
@@ -868,7 +883,9 @@ export default function LavaLamp(): ReactElement {
         setAlbumOverflowing(!!isOverflowing);
         if (isOverflowing && wrapper) {
           const duration = calculateScrollDuration(containerWidth, wrapper.scrollWidth);
+          const delayFraction = calculateSecondCopyDelay(containerWidth, wrapper.scrollWidth, duration);
           nowPlayingAlbumRef.current.style.setProperty('--scroll-duration', `${duration}s`);
+          nowPlayingAlbumRef.current.style.setProperty('--second-copy-delay', `${delayFraction}`);
           nowPlayingAlbumRef.current.classList.add("overflowing");
         } else {
           nowPlayingAlbumRef.current.classList.remove("overflowing");
