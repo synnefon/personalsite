@@ -45,7 +45,7 @@
   padding: 0.4em 0.8em;
   background-color: var(--color-purple-primary);
   color: var(--color-orange);
-  font-family: Inconsolata, sans-serif;
+  font-family: JuliaMono, sans-serif;
   font-size: 14px;
   white-space: nowrap;
   opacity: 0;

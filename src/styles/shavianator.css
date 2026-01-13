@@ -227,7 +227,7 @@ body:has(#app-base.shavianator-colors) {
 .shavian-tooltip-pronunciation {
   font-size: 0.9em;
   opacity: 0.9;
-  font-family: Inconsolata, sans-serif;
+  font-family: JuliaMono, sans-serif;
 }
 
 .shavianator-loading {

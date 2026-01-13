@@ -21,24 +21,7 @@ export default function Home() {
   const [quoteVisible, setQuoteVisible] = useState(false);
   const [quote2Visible, setQuote2Visible] = useState(false);
   const [subtitleVisible, setSubtitleVisible] = useState(false);
-  const [duckPosition, setDuckPosition] = useState(() => {
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    const duckSize = 72;
-
-    const saved = sessionStorage.getItem("duckPosition");
-    if (saved) {
-      const { leftPercent, topPercent } = JSON.parse(saved);
-      return {
-        left: leftPercent * windowWidth,
-        top: topPercent * windowHeight,
-        bottom: null,
-      };
-    }
-
-    // Default position: bottom-left
-    return { left: 30, top: windowHeight - 10 - duckSize, bottom: null };
-  });
+  const [duckPosition, setDuckPosition] = useState({ left: null, top: null, bottom: null });
   const [volumeMultiplier, setVolumeMultiplier] = useState(1);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const soundStopRef = useRef(null);
@@ -106,6 +89,13 @@ export default function Home() {
 
   useEffect(() => {
     document.getElementById("app-base").setAttribute("class", "");
+
+    // Set initial random duck position if not loaded from session storage
+    if (duckPosition.left === null && duckPosition.top === null) {
+      const initialPosition = calculateSafePosition(duckPosition);
+      setDuckPosition(initialPosition);
+    }
+
     // Trigger quote animations with staggered delays
     const timer1 = setTimeout(() => {
       setQuoteVisible(true);
@@ -113,10 +103,10 @@ export default function Home() {
     const timer2 = setTimeout(() => {
       setQuote2Visible(true);
     }, 1800);
-    // Start subtitle animation after quotes finish (8 seconds to allow for max spin time)
+    // Start subtitle animation 3 seconds after quotes finish (8 + 3 = 11 seconds)
     const timer3 = setTimeout(() => {
       setSubtitleVisible(true);
-    }, 8000);
+    }, 11000);
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
@@ -124,37 +114,10 @@ export default function Home() {
     };
   }, []);
 
-  // Save duck position to sessionStorage as percentages whenever it changes
-  useEffect(() => {
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-
-    const positionPercent = {
-      leftPercent: duckPosition.left / windowWidth,
-      topPercent: duckPosition.top / windowHeight,
-    };
-
-    sessionStorage.setItem("duckPosition", JSON.stringify(positionPercent));
-  }, [duckPosition]);
-
-  // Update duck position on window resize
+  // Update window width on resize
   useEffect(() => {
     const handleResize = () => {
-      const windowWidthNow = window.innerWidth;
-      const windowHeightNow = window.innerHeight;
-
-      setWindowWidth(windowWidthNow);
-
-      const saved = sessionStorage.getItem("duckPosition");
-      if (!saved) return;
-
-      const { leftPercent, topPercent } = JSON.parse(saved);
-
-      setDuckPosition({
-        left: leftPercent * windowWidthNow,
-        top: topPercent * windowHeightNow,
-        bottom: null,
-      });
+      setWindowWidth(window.innerWidth);
     };
 
     window.addEventListener("resize", handleResize);
@@ -255,8 +218,6 @@ export default function Home() {
         // Play quack sound and hide the duck
         playPopSound(quackSound);
         setDuckVisible(false);
-        // Clear saved position so duck resets to original position on next page load
-        sessionStorage.removeItem("duckPosition");
         // Reset all state
         setIsPlaying(false);
         setVolumeMultiplier(1);
@@ -362,7 +323,9 @@ export default function Home() {
                 </span>
               );
             })}
-            {wordIndex < words.length - 1 && <span className="spin-letter">{"\u00A0"}</span>}
+            {wordIndex < words.length - 1 && (
+              <span className="spin-letter">{"\u00A0"}</span>
+            )}
           </span>
         ))}
       </span>
@@ -383,10 +346,12 @@ export default function Home() {
           <h2 className="title">connor hopkins</h2>
           <h5 className="description home-colors home-subtitle">
             {/* <span className="bracket home-colors">{'{'}&nbsp;</span> */}
-            {subtitleVisible && (
+            {!subtitleVisible ? (
+              <span className="description-text home-colors">software engineer</span>
+            ) : (
               <TypeAnimation
                 className="description-text home-colors"
-                sequence={descriptors.flatMap((d) => extractDescription(d))}
+                sequence={descriptors.slice(1).flatMap((d) => extractDescription(d))}
                 wrapper="span"
                 deletionSpeed={60}
                 repeat={Infinity}
@@ -463,7 +428,8 @@ export default function Home() {
             <p className="quote-text home-colors">
               {quoteVisible &&
                 renderAnimatedText(
-                  "“You should sit in meditation for ten minutes every day — except when you are too busy. Then you should sit for an hour.”"
+                  "you should sit in meditation for ten minutes every day - " +
+                    "except when you are too busy. then you should sit for an hour."
                 )}
             </p>
             <footer className="quote-author home-colors">
@@ -480,9 +446,7 @@ export default function Home() {
           <blockquote className="quote home-colors">
             <p className="quote-text home-colors">
               {quote2Visible &&
-                renderAnimatedText(
-                  "“Meow” means “woof” in cat."
-                )}
+                renderAnimatedText('"meow" means "woof" in cat.')}
             </p>
             <footer className="quote-author home-colors">
               {quote2Visible && renderAnimatedText("— george carlin")}

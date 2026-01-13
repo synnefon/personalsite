@@ -220,7 +220,7 @@
   border: none;
   background-color: var(--alt-bg-color) !important;
   color: var(--alt-text-color) !important;
-  font-family: Inconsolata, sans-serif;
+  font-family: JuliaMono, sans-serif;
   font-size: var(--medium-font) !important;
   outline: unset;
   outline-color: transparent !important;

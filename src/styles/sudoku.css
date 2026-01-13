@@ -61,7 +61,7 @@ body:has(#app-base.sudoku-colors) {
   flex-direction: column;
   aspect-ratio: 1/1;
   border: 4px solid var(--alt-text-color);
-  font-family: Inconsolata;
+  font-family: JuliaMono;
 }
 
 .sudoku-row {
@@ -198,7 +198,7 @@ body:has(#app-base.sudoku-colors) {
   display: flex;
   flex-direction: row;
   border: 4px solid var(--alt-text-color);
-  font-family: Inconsolata;
+  font-family: JuliaMono;
 }
 
 .sudoku-selection {
@@ -463,7 +463,7 @@ p.control.timer.selected {
 
 .timer-display {
   font-size: var(--large-font);
-  font-family: Inconsolata;
+  font-family: JuliaMono;
   color: var(--text-color);
   cursor: var(--pointer);
 }
@@ -474,7 +474,7 @@ p.control.timer.selected {
 
 .mistakes-display {
   font-size: var(--large-font);
-  font-family: Inconsolata;
+  font-family: JuliaMono;
   color: var(--text-color);
 }
 
@@ -542,7 +542,7 @@ img.database.upload {
 .save-load-text {
   margin-bottom: 5px;
   font-size: var(--small-font) !important;
-  font-family: Inconsolata;
+  font-family: JuliaMono;
   color: var(--text-color);
 }
 

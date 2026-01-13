@@ -3,10 +3,10 @@
    ============================================ */
 
 @font-face {
-  font-family: "Inconsolata";
-  src: local("Inconsolata"),
-    url("../fonts/Inconsolata/Inconsolata-VariableFont_wdth,wght.ttf") format("truetype");
-  font-weight: 100 900;
+  font-family: "JuliaMono";
+  src: local("JuliaMono"),
+    url("../fonts/JuliaMono/JuliaMono-Regular.ttf") format("truetype");
+  font-weight: normal;
   font-style: normal;
 }
 
@@ -160,7 +160,7 @@
 header,
 body {
   margin: 0;
-  font-family: Inconsolata, sans-serif;
+  font-family: JuliaMono, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
