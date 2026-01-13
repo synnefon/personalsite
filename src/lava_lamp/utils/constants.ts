@@ -37,7 +37,7 @@ export const SIM = {
 // Rendering constants
 // PIXEL_SIZE is now computed adaptively based on screen size
 export const RENDER = {
-  PARTICLE_RADIUS: 10,
+  PARTICLE_RADIUS: 8,
   THRESHOLD: 0.8,
 } as const;
 
@@ -57,7 +57,8 @@ export function computePixelSize(width: number, height: number): number {
   // Sweet spot: 1.29M pixels with 10px = 9.79ms
   // Formula: pixelSize = sqrt(area / 12,889) to maintain similar render time
   // 1,288,920 / (10^2) = 12,889
-  const basePixelSize = Math.sqrt(area / 12_889);
+  const targetArea = 16000;
+  const basePixelSize = Math.sqrt(area / targetArea);
 
   // Clamp between 6 and 24
   return Math.max(6, Math.min(24, Math.round(basePixelSize)));

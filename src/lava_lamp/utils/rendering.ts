@@ -105,7 +105,7 @@ export function drawMetaballsWithGrid(
   heatLut256: Uint32Array,
   grid: SpatialGrid
 ): void {
-  const pixelSize = RENDER.PIXEL_SIZE;
+  const pixelSize = computePixelSize(canvasWidth, canvasHeight);
   const threshold = RENDER.THRESHOLD;
   const r2 = RENDER.PARTICLE_RADIUS * RENDER.PARTICLE_RADIUS;
   const maxInfluenceDist = RENDER.PARTICLE_RADIUS * 3;
