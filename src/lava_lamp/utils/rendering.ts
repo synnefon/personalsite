@@ -22,6 +22,78 @@ export function ensureImageData(
 }
 
 /**
+ * Calculate influence from nearby particles for a pixel
+ */
+function calculatePixelInfluence(
+  x: number,
+  y: number,
+  particles: Particle[],
+  grid: SpatialGrid,
+  r2: number,
+  maxDistSq: number,
+  invCell: number
+): { influenceSum: number; heatWeightedSum: number } {
+  let influenceSum = 0;
+  let heatWeightedSum = 0;
+
+  const cx = Math.floor(x * invCell);
+  const cy = Math.floor(y * invCell);
+
+  const x0 = Math.max(0, cx - 1);
+  const x1 = Math.min(grid.cols - 1, cx + 1);
+  const y0 = Math.max(0, cy - 1);
+  const y1 = Math.min(grid.rows - 1, cy + 1);
+
+  for (let gy = y0; gy <= y1; gy++) {
+    for (let gx = x0; gx <= x1; gx++) {
+      let particleIdx = grid.heads[gridIndex(grid, gx, gy)];
+
+      while (particleIdx !== -1) {
+        const p = particles[particleIdx];
+        const dx = x - p.x;
+        const dy = y - p.y;
+        const distSq = dx * dx + dy * dy;
+
+        if (distSq < maxDistSq) {
+          const influence = r2 / (distSq + 1);
+          influenceSum += influence;
+          heatWeightedSum += influence * p.heat;
+        }
+
+        particleIdx = grid.next[particleIdx];
+      }
+    }
+  }
+
+  return { influenceSum, heatWeightedSum };
+}
+
+/**
+ * Fill a pixel block with the given color
+ */
+function fillPixelBlock(
+  data32: Uint32Array,
+  x: number,
+  y: number,
+  pixelSize: number,
+  canvasWidth: number,
+  canvasHeight: number,
+  rgba: number
+): void {
+  const w = canvasWidth;
+  for (let py = 0; py < pixelSize; py++) {
+    const yy = y + py;
+    if (yy >= canvasHeight) break;
+
+    let idx = yy * w + x;
+    const rowEnd = Math.min(x + pixelSize, w);
+    for (let xx = x; xx < rowEnd; xx++) {
+      data32[idx++] = rgba;
+    }
+  }
+}
+
+/**
  * Optimized metaball rendering using spatial grid
  * Only checks particles near each pixel instead of all particles
  */
@@ -36,57 +108,26 @@ export function drawMetaballsWithGrid(
   const pixelSize = RENDER.PIXEL_SIZE;
   const threshold = RENDER.THRESHOLD;
   const r2 = RENDER.PARTICLE_RADIUS * RENDER.PARTICLE_RADIUS;
-
-  // Max distance a particle can influence (3x radius for practical cutoff)
   const maxInfluenceDist = RENDER.PARTICLE_RADIUS * 3;
   const maxDistSq = maxInfluenceDist * maxInfluenceDist;
 
   const data32 = new Uint32Array(imageData.data.buffer);
-
-  // Clear canvas to opaque black
   const black = packRgba(0, 0, 0, 255);
   data32.fill(black);
 
-  const w = canvasWidth;
   const invCell = 1 / grid.cellSize;
 
   for (let y = 0; y < canvasHeight; y += pixelSize) {
     for (let x = 0; x < canvasWidth; x += pixelSize) {
-      let influenceSum = 0;
-      let heatWeightedSum = 0;
-
-      // Calculate which grid cells to check
-      const cx = Math.floor(x * invCell);
-      const cy = Math.floor(y * invCell);
-
-      // Check 3x3 grid around pixel
-      const x0 = Math.max(0, cx - 1);
-      const x1 = Math.min(grid.cols - 1, cx + 1);
-      const y0 = Math.max(0, cy - 1);
-      const y1 = Math.min(grid.rows - 1, cy + 1);
-
-      // Only iterate through particles in nearby cells
-      for (let gy = y0; gy <= y1; gy++) {
-        for (let gx = x0; gx <= x1; gx++) {
-          let particleIdx = grid.heads[gridIndex(grid, gx, gy)];
-
-          while (particleIdx !== -1) {
-            const p = particles[particleIdx];
-            const dx = x - p.x;
-            const dy = y - p.y;
-            const distSq = dx * dx + dy * dy;
-
-            // Skip if particle is too far to have meaningful influence
-            if (distSq < maxDistSq) {
-              const influence = r2 / (distSq + 1);
-              influenceSum += influence;
-              heatWeightedSum += influence * p.heat;
-            }
-
-            particleIdx = grid.next[particleIdx];
-          }
-        }
-      }
+      const { influenceSum, heatWeightedSum } = calculatePixelInfluence(
+        x,
+        y,
+        particles,
+        grid,
+        r2,
+        maxDistSq,
+        invCell
+      );
 
       if (influenceSum <= threshold) continue;
 
@@ -94,17 +135,7 @@ export function drawMetaballsWithGrid(
       const lutIdx = heat <= 0 ? 0 : heat >= 1 ? 255 : (heat * 255) | 0;
       const rgba = heatLut256[lutIdx];
 
-      // Fill pixel block
-      for (let py = 0; py < pixelSize; py++) {
-        const yy = y + py;
-        if (yy >= canvasHeight) break;
-
-        let idx = yy * w + x;
-        const rowEnd = Math.min(x + pixelSize, w);
-        for (let xx = x; xx < rowEnd; xx++) {
-          data32[idx++] = rgba;
-        }
-      }
+      fillPixelBlock(data32, x, y, pixelSize, canvasWidth, canvasHeight, rgba);
     }
   }
 }

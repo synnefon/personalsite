@@ -3,7 +3,7 @@
  */
 
 import type { Particle, Vec2, SpatialGrid } from "./types.ts";
-import { SIM, CLUMPS, PARTICLES_PER_PIXEL } from "./constants.ts";
+import { SIM, CLUMPS, PARTICLES_PER_PIXEL, MAX_PARTICLES } from "./constants.ts";
 import { gridIndex } from "./spatialGrid.ts";
 
 // Math utilities
@@ -57,7 +57,8 @@ export function clampAllToBounds(
 // Particle count calculation
 export function computeParticleCount(width: number, height: number): number {
   const area = width * height;
-  return Math.round(area * PARTICLES_PER_PIXEL);
+  const desired = Math.round(area * PARTICLES_PER_PIXEL);
+  return Math.min(desired, MAX_PARTICLES);
 }
 
 // Particle creation

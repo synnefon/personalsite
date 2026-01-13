@@ -8,8 +8,11 @@ import React, {
 } from "react";
 import "../styles/lavalamp.css";
 
+// @ts-expect-error - Asset import
 import musicAudioNoise from "../assets/lavaLamp/guitar.mp3";
+// @ts-expect-error - Asset import
 import clickAudioNoise from "../assets/lavaLamp/click.mp3";
+// @ts-expect-error - Asset import
 import powerIcon from "../assets/lavaLamp/power.svg";
 
 import { PersonalAudio } from "../util/Audio";

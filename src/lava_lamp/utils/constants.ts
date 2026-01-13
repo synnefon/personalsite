@@ -55,6 +55,12 @@ export const CLUMPS = {
  */
 export const PARTICLES_PER_PIXEL = isMobile ? 0.00054 : 0.00061;
 
+/**
+ * Maximum number of particles regardless of screen size.
+ * This prevents performance issues on very large screens.
+ */
+export const MAX_PARTICLES = 2000;
+
 // Speed control configuration
 export const SPEED = {
   MIN: 0.0,
