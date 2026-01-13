@@ -818,7 +818,7 @@ export default function LavaLamp(): ReactElement {
     };
 
     fetchNowPlaying();
-    const interval = setInterval(fetchNowPlaying, 10000); // Poll every 10 seconds
+    const interval = setInterval(fetchNowPlaying, 5000); // Poll every 5 seconds
 
     return () => clearInterval(interval);
   }, [hasStarted, audioSource]);
