@@ -180,7 +180,12 @@ const CLUMPS = {
 } as const;
 
 // Pixel density: pixels per particle
-const PIXELS_PER_PARTICLE = isMobile ? 1800 : 1500;
+/**
+ * The density of the lava lamp simulation (particles per pixel).
+ * Higher values produce a greater number of particles (higher density).
+ * Increase this number to make the lava lamp more dense.
+ */
+const PARTICLES_PER_PIXEL = isMobile ? 0.00054 : 0.00061;
 
 // --- Speed control (indexed slider) ---
 const SPEED = {
@@ -252,7 +257,7 @@ function clampAllToBounds(
 
 function computeParticleCount(width: number, height: number): number {
   const area = width * height;
-  return Math.round(area / PIXELS_PER_PARTICLE);
+  return Math.round(area * PARTICLES_PER_PIXEL);
 }
 
 function readSavedMusicTimeSeconds(): number {
