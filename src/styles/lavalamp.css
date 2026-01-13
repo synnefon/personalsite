@@ -4,6 +4,10 @@
   /* default theme color (kept) */
   --lava-accent: #ffdd00;
   position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 /* --- Start overlay --- */
@@ -56,6 +60,10 @@
   position: fixed;
   inset: 0;
   z-index: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .lava-lamp-start-overlay {

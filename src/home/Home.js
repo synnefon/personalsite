@@ -346,18 +346,25 @@ export default function Home() {
           <h2 className="title">connor hopkins</h2>
           <h5 className="description home-colors home-subtitle">
             {/* <span className="bracket home-colors">{'{'}&nbsp;</span> */}
-            {!subtitleVisible ? (
-              <span className="description-text home-colors">software engineer</span>
-            ) : (
-              <TypeAnimation
-                className="description-text home-colors"
-                sequence={descriptors.slice(1).flatMap((d) => extractDescription(d))}
-                wrapper="span"
-                deletionSpeed={60}
-                repeat={Infinity}
-                cursor={false}
-              />
-            )}
+            <TypeAnimation
+              key={subtitleVisible ? "animated" : "static"}
+              className="description-text home-colors"
+              sequence={
+                subtitleVisible
+                  ? [
+                      "software engineer",
+                      100,
+                      "",
+                      ...descriptors.slice(1).flatMap((d) => extractDescription(d))
+                    ]
+                  : ["software engineer", 999999999]
+              }
+              wrapper="span"
+              speed={50}
+              deletionSpeed={60}
+              repeat={subtitleVisible ? Infinity : 0}
+              cursor={false}
+            />
             {/* <span className="bracket home-colors">{"}"}</span> */}
           </h5>
         </div>
