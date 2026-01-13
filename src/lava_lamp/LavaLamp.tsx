@@ -23,24 +23,49 @@ import powerIcon from "../assets/lavaLamp/power.svg";
 import { PersonalAudio } from "../util/Audio";
 import { AudioAmplitudeAnalyzer } from "../util/audioAmplitude.ts";
 
+const detectMobile = (): boolean => {
+  const userAgent =
+    navigator.userAgent ||
+    navigator.vendor ||
+    (window as Window & { opera?: string }).opera ||
+    "";
+
+  // Check for mobile user agents
+  const mobileRegex =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+  const isMobileUA = mobileRegex.test(userAgent);
+
+  // Check for touch capability
+  const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+
+  // Check screen size (fallback)
+  const isSmallScreen = window.innerWidth <= 500;
+
+  // Consider it mobile if it has mobile UA OR (has touch AND small screen)
+  return isMobileUA || (hasTouch && isSmallScreen);
+};
+
+const isMobile = detectMobile();
+
 // --- Audio sources ---
 const AUDIO_SOURCES = {
   REDWOOD: "redwood",
   KEXP: "kexp",
 } as const;
 
-type AudioSource = typeof AUDIO_SOURCES[keyof typeof AUDIO_SOURCES];
+type AudioSource = (typeof AUDIO_SOURCES)[keyof typeof AUDIO_SOURCES];
 
-const AUDIO_SOURCE_CONFIG: Record<AudioSource, { label: string; url: string }> = {
-  [AUDIO_SOURCES.REDWOOD]: {
-    label: "redwood meditation",
-    url: musicAudioNoise,
-  },
-  [AUDIO_SOURCES.KEXP]: {
-    label: "kexp",
-    url: "https://kexp.streamguys1.com/kexp160.aac",
-  },
-};
+const AUDIO_SOURCE_CONFIG: Record<AudioSource, { label: string; url: string }> =
+  {
+    [AUDIO_SOURCES.REDWOOD]: {
+      label: "redwood meditation",
+      url: musicAudioNoise,
+    },
+    [AUDIO_SOURCES.KEXP]: {
+      label: "kexp",
+      url: "https://kexp.streamguys1.com/kexp160.aac",
+    },
+  };
 
 // --- Colors: keep state (for controlled inputs) + refs (fast access elsewhere) ---
 const DEFAULT_HIGH = "#ffdd00";
@@ -70,7 +95,9 @@ function hslToHex(h: number, s: number, l: number): string {
   const f = (n: number) => {
     const k = (n + h / 30) % 12;
     const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * color).toString(16).padStart(2, '0');
+    return Math.round(255 * color)
+      .toString(16)
+      .padStart(2, "0");
   };
   return `#${f(0)}${f(8)}${f(4)}`;
 }
@@ -148,16 +175,12 @@ const RENDER = {
 
 const CLUMPS = {
   COUNT: 15,
-  RADIUS: 50,
+  RADIUS: isMobile ? 30 : 50,
   TOP_HALF_PROB: 0.3,
 } as const;
 
-// Baseline density: preserves "look" across screens, computed once per page load.
-const BASELINE = {
-  WIDTH: 1920,
-  HEIGHT: 1080,
-  PARTICLES: 1200,
-} as const;
+// Pixel density: pixels per particle
+const PIXELS_PER_PARTICLE = isMobile ? 1800 : 1500;
 
 // --- Speed control (indexed slider) ---
 const SPEED = {
@@ -217,20 +240,19 @@ function bounceInBounds(p: Particle, width: number, height: number) {
   }
 }
 
-function clampAllToBounds(particles: Particle[], width: number, height: number) {
+function clampAllToBounds(
+  particles: Particle[],
+  width: number,
+  height: number
+) {
   for (let i = 0; i < particles.length; i++) {
     bounceInBounds(particles[i], width, height);
   }
 }
 
 function computeParticleCount(width: number, height: number): number {
-  const baselineArea = BASELINE.WIDTH * BASELINE.HEIGHT;
-  const currentArea = width * height;
-
-  const density = BASELINE.PARTICLES / baselineArea;
-  const scaled = Math.round(currentArea * density);
-
-  return Math.max(200, Math.min(2000, scaled));
+  const area = width * height;
+  return Math.round(area / PIXELS_PER_PARTICLE);
 }
 
 function readSavedMusicTimeSeconds(): number {
@@ -351,7 +373,11 @@ function gridIndex(g: SpatialGrid, cx: number, cy: number): number {
 }
 
 // --- Init ---
-function createParticles(width: number, height: number, count: number): Particle[] {
+function createParticles(
+  width: number,
+  height: number,
+  count: number
+): Particle[] {
   const particles: Particle[] = [];
   const particlesPerClump = Math.floor(count / CLUMPS.COUNT);
 
@@ -676,15 +702,23 @@ export default function LavaLamp(): ReactElement {
   // 5) Cache dimensions ONCE (read only on page load)
   const sizeRef = useRef<{ w: number; h: number }>({ w: 1, h: 1 });
 
-  const [audioSource, setAudioSource] = useState<AudioSource>(AUDIO_SOURCES.KEXP);
+  const [audioSource, setAudioSource] = useState<AudioSource>(
+    AUDIO_SOURCES.KEXP
+  );
 
   const gameMusic = useMemo(() => {
     // Initialize directly with KEXP stream
-    const audio = new PersonalAudio(AUDIO_SOURCE_CONFIG[AUDIO_SOURCES.KEXP].url, true);
+    const audio = new PersonalAudio(
+      AUDIO_SOURCE_CONFIG[AUDIO_SOURCES.KEXP].url,
+      true
+    );
     audio.preload = "auto";
     return audio;
   }, []);
-  const clickSound = useMemo(() => new PersonalAudio(clickAudioNoise, false), []);
+  const clickSound = useMemo(
+    () => new PersonalAudio(clickAudioNoise, false),
+    []
+  );
 
   const [hasStarted, setHasStarted] = useState(false);
 
@@ -694,7 +728,9 @@ export default function LavaLamp(): ReactElement {
   // Audio amplitude analysis
   const amplitudeAnalyzerRef = useRef<AudioAmplitudeAnalyzer | null>(null);
   const currentWaveformRef = useRef<number[]>(new Array(10).fill(0));
-  const [displayWaveform, setDisplayWaveform] = useState<number[]>(new Array(10).fill(0));
+  const [displayWaveform, setDisplayWaveform] = useState<number[]>(
+    new Array(10).fill(0)
+  );
   const waveformUpdateCounterRef = useRef(0);
 
   // Speed slider state
@@ -720,9 +756,9 @@ export default function LavaLamp(): ReactElement {
 
       // Add/remove body class for CSS targeting
       if (inFullscreen) {
-        document.body.classList.add('lava-lamp-fullscreen');
+        document.body.classList.add("lava-lamp-fullscreen");
       } else {
-        document.body.classList.remove('lava-lamp-fullscreen');
+        document.body.classList.remove("lava-lamp-fullscreen");
       }
 
       // Resize canvas to match new screen size
@@ -749,7 +785,7 @@ export default function LavaLamp(): ReactElement {
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      document.body.classList.remove('lava-lamp-fullscreen');
+      document.body.classList.remove("lava-lamp-fullscreen");
     };
   }, []);
 
@@ -773,8 +809,8 @@ export default function LavaLamp(): ReactElement {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
 
   const [volume, setVolume] = useState(1.0);
@@ -820,9 +856,9 @@ export default function LavaLamp(): ReactElement {
         gameMusic.play().catch(() => {
           // ignore autoplay errors
         });
-        gameMusic.removeEventListener('canplaythrough', onCanPlay);
+        gameMusic.removeEventListener("canplaythrough", onCanPlay);
       };
-      gameMusic.addEventListener('canplaythrough', onCanPlay, { once: true });
+      gameMusic.addEventListener("canplaythrough", onCanPlay, { once: true });
     }
   }, [audioSource, gameMusic]);
 
@@ -842,13 +878,12 @@ export default function LavaLamp(): ReactElement {
         const mostRecentPlay = data.results?.[0];
 
         if (!mostRecentPlay) {
-          console.log('[KEXP] No plays found');
+          console.log("[KEXP] No plays found");
           return;
         }
 
         // Check if it's an airbreak
         if (mostRecentPlay.play_type === "airbreak") {
-          console.log('[KEXP] Current play is airbreak');
           setNowPlaying({
             song: "airbreak",
             artist: "",
@@ -862,11 +897,10 @@ export default function LavaLamp(): ReactElement {
             album: (mostRecentPlay.album || "unknown album").toLowerCase(),
             isAirbreak: false,
           };
-          console.log('[KEXP] Updating now playing:', newTrack);
           setNowPlaying(newTrack);
         }
       } catch (err) {
-        console.log('[KEXP] Fetch error:', err);
+        console.log("[KEXP] Fetch error:", err);
       }
     };
 
@@ -880,7 +914,10 @@ export default function LavaLamp(): ReactElement {
   useEffect(() => {
     const SCROLL_SPEED = 30; // pixels per second (slower = more readable)
 
-    const calculateScrollDuration = (containerWidth: number, textWidth: number): number => {
+    const calculateScrollDuration = (
+      containerWidth: number,
+      textWidth: number
+    ): number => {
       // Distance = just the text width (text scrolls from 0% to -100%)
       return textWidth / SCROLL_SPEED;
     };
@@ -898,15 +935,30 @@ export default function LavaLamp(): ReactElement {
 
     const checkOverflow = () => {
       if (nowPlayingSongRef.current) {
-        const wrapper = nowPlayingSongRef.current.querySelector('.scroll-wrapper') as HTMLElement;
+        const wrapper = nowPlayingSongRef.current.querySelector(
+          ".scroll-wrapper"
+        ) as HTMLElement;
         const containerWidth = nowPlayingSongRef.current.clientWidth;
         const isOverflowing = wrapper && wrapper.scrollWidth > containerWidth;
         setSongOverflowing(!!isOverflowing);
         if (isOverflowing && wrapper) {
-          const duration = calculateScrollDuration(containerWidth, wrapper.scrollWidth);
-          const delayFraction = calculateSecondCopyDelay(containerWidth, wrapper.scrollWidth, duration);
-          nowPlayingSongRef.current.style.setProperty('--scroll-duration', `${duration}s`);
-          nowPlayingSongRef.current.style.setProperty('--second-copy-delay', `${delayFraction}`);
+          const duration = calculateScrollDuration(
+            containerWidth,
+            wrapper.scrollWidth
+          );
+          const delayFraction = calculateSecondCopyDelay(
+            containerWidth,
+            wrapper.scrollWidth,
+            duration
+          );
+          nowPlayingSongRef.current.style.setProperty(
+            "--scroll-duration",
+            `${duration}s`
+          );
+          nowPlayingSongRef.current.style.setProperty(
+            "--second-copy-delay",
+            `${delayFraction}`
+          );
           nowPlayingSongRef.current.classList.add("overflowing");
         } else {
           nowPlayingSongRef.current.classList.remove("overflowing");
@@ -914,15 +966,30 @@ export default function LavaLamp(): ReactElement {
       }
 
       if (nowPlayingArtistRef.current) {
-        const wrapper = nowPlayingArtistRef.current.querySelector('.scroll-wrapper') as HTMLElement;
+        const wrapper = nowPlayingArtistRef.current.querySelector(
+          ".scroll-wrapper"
+        ) as HTMLElement;
         const containerWidth = nowPlayingArtistRef.current.clientWidth;
         const isOverflowing = wrapper && wrapper.scrollWidth > containerWidth;
         setArtistOverflowing(!!isOverflowing);
         if (isOverflowing && wrapper) {
-          const duration = calculateScrollDuration(containerWidth, wrapper.scrollWidth);
-          const delayFraction = calculateSecondCopyDelay(containerWidth, wrapper.scrollWidth, duration);
-          nowPlayingArtistRef.current.style.setProperty('--scroll-duration', `${duration}s`);
-          nowPlayingArtistRef.current.style.setProperty('--second-copy-delay', `${delayFraction}`);
+          const duration = calculateScrollDuration(
+            containerWidth,
+            wrapper.scrollWidth
+          );
+          const delayFraction = calculateSecondCopyDelay(
+            containerWidth,
+            wrapper.scrollWidth,
+            duration
+          );
+          nowPlayingArtistRef.current.style.setProperty(
+            "--scroll-duration",
+            `${duration}s`
+          );
+          nowPlayingArtistRef.current.style.setProperty(
+            "--second-copy-delay",
+            `${delayFraction}`
+          );
           nowPlayingArtistRef.current.classList.add("overflowing");
         } else {
           nowPlayingArtistRef.current.classList.remove("overflowing");
@@ -930,15 +997,30 @@ export default function LavaLamp(): ReactElement {
       }
 
       if (nowPlayingAlbumRef.current) {
-        const wrapper = nowPlayingAlbumRef.current.querySelector('.scroll-wrapper') as HTMLElement;
+        const wrapper = nowPlayingAlbumRef.current.querySelector(
+          ".scroll-wrapper"
+        ) as HTMLElement;
         const containerWidth = nowPlayingAlbumRef.current.clientWidth;
         const isOverflowing = wrapper && wrapper.scrollWidth > containerWidth;
         setAlbumOverflowing(!!isOverflowing);
         if (isOverflowing && wrapper) {
-          const duration = calculateScrollDuration(containerWidth, wrapper.scrollWidth);
-          const delayFraction = calculateSecondCopyDelay(containerWidth, wrapper.scrollWidth, duration);
-          nowPlayingAlbumRef.current.style.setProperty('--scroll-duration', `${duration}s`);
-          nowPlayingAlbumRef.current.style.setProperty('--second-copy-delay', `${delayFraction}`);
+          const duration = calculateScrollDuration(
+            containerWidth,
+            wrapper.scrollWidth
+          );
+          const delayFraction = calculateSecondCopyDelay(
+            containerWidth,
+            wrapper.scrollWidth,
+            duration
+          );
+          nowPlayingAlbumRef.current.style.setProperty(
+            "--scroll-duration",
+            `${duration}s`
+          );
+          nowPlayingAlbumRef.current.style.setProperty(
+            "--second-copy-delay",
+            `${delayFraction}`
+          );
           nowPlayingAlbumRef.current.classList.add("overflowing");
         } else {
           nowPlayingAlbumRef.current.classList.remove("overflowing");
@@ -961,7 +1043,9 @@ export default function LavaLamp(): ReactElement {
   const rainbowLowHueRef = useRef(0);
   const rainbowHighHueRef = useRef(0);
 
-  const heatLutRef = useRef<Uint32Array>(buildHeatLut256(DEFAULT_LOW, DEFAULT_HIGH));
+  const heatLutRef = useRef<Uint32Array>(
+    buildHeatLut256(DEFAULT_LOW, DEFAULT_HIGH)
+  );
 
   // Rebuild LUT whenever colors change; redraw immediately if running.
   useEffect(() => {
@@ -1072,45 +1156,55 @@ export default function LavaLamp(): ReactElement {
     const ctx = ctxRef.current;
     if (!canvas || !ctx) return;
 
-    renderFrame(ctx, canvas, particlesRef.current, imageRef, heatLutRef.current);
+    renderFrame(
+      ctx,
+      canvas,
+      particlesRef.current,
+      imageRef,
+      heatLutRef.current
+    );
   }, []);
 
   // 0) Fixed update cadence: updates happen at FIXED_FPS regardless of render speed.
   const clockRef = useRef<{ last: number; acc: number }>({ last: 0, acc: 0 });
 
-  const animate = useCallback((now: number) => {
-    const clock = clockRef.current;
+  const animate = useCallback(
+    (now: number) => {
+      const clock = clockRef.current;
 
-    if (clock.last === 0) clock.last = now;
-    const delta = now - clock.last;
-    clock.last = now;
+      if (clock.last === 0) clock.last = now;
+      const delta = now - clock.last;
+      clock.last = now;
 
-    // Clamp massive deltas (tab-switch etc.)
-    clock.acc += Math.min(250, Math.max(0, delta));
+      // Clamp massive deltas (tab-switch etc.)
+      clock.acc += Math.min(250, Math.max(0, delta));
 
-    let steps = 0;
-    while (clock.acc >= FIXED_MS && steps < MAX_CATCHUP_STEPS) {
-      updateOnce();
-      clock.acc -= FIXED_MS;
-      steps++;
-    }
-
-    // Drop extra backlog to avoid death spiral
-    if (clock.acc >= FIXED_MS) clock.acc = 0;
-
-    // Update audio waveform bars (update state every 5 frames for smoother, calmer animation)
-    if (amplitudeAnalyzerRef.current) {
-      currentWaveformRef.current = amplitudeAnalyzerRef.current.getWaveformBars(10);
-      waveformUpdateCounterRef.current++;
-      if (waveformUpdateCounterRef.current >= 5) {
-        setDisplayWaveform(currentWaveformRef.current);
-        waveformUpdateCounterRef.current = 0;
+      let steps = 0;
+      while (clock.acc >= FIXED_MS && steps < MAX_CATCHUP_STEPS) {
+        updateOnce();
+        clock.acc -= FIXED_MS;
+        steps++;
       }
-    }
 
-    draw();
-    rafRef.current = requestAnimationFrame(animate);
-  }, [draw, updateOnce]);
+      // Drop extra backlog to avoid death spiral
+      if (clock.acc >= FIXED_MS) clock.acc = 0;
+
+      // Update audio waveform bars (update state every 5 frames for smoother, calmer animation)
+      if (amplitudeAnalyzerRef.current) {
+        currentWaveformRef.current =
+          amplitudeAnalyzerRef.current.getWaveformBars(10);
+        waveformUpdateCounterRef.current++;
+        if (waveformUpdateCounterRef.current >= 5) {
+          setDisplayWaveform(currentWaveformRef.current);
+          waveformUpdateCounterRef.current = 0;
+        }
+      }
+
+      draw();
+      rafRef.current = requestAnimationFrame(animate);
+    },
+    [draw, updateOnce]
+  );
 
   // Initialize rainbow hues from current colors ONLY when rainbow mode is enabled
   const prevRainbowModeRef = useRef(false);
@@ -1145,8 +1239,10 @@ export default function LavaLamp(): ReactElement {
       const lowIncrement = baseSpeed * speed * normalizedDelta;
       const highIncrement = baseSpeed * speed * normalizedDelta * 1.3; // 30% faster
 
-      rainbowLowHueRef.current = (rainbowLowHueRef.current + lowIncrement) % 360;
-      rainbowHighHueRef.current = (rainbowHighHueRef.current + highIncrement) % 360;
+      rainbowLowHueRef.current =
+        (rainbowLowHueRef.current + lowIncrement) % 360;
+      rainbowHighHueRef.current =
+        (rainbowHighHueRef.current + highIncrement) % 360;
 
       const lowColor = hslToHex(rainbowLowHueRef.current, 1.0, 0.5);
       const highColor = hslToHex(rainbowHighHueRef.current, 1.0, 0.5);
@@ -1211,7 +1307,11 @@ export default function LavaLamp(): ReactElement {
     const t = readSavedMusicTimeSeconds();
     try {
       const duration = (gameMusic as any).duration as number | undefined;
-      if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
+      if (
+        typeof duration === "number" &&
+        Number.isFinite(duration) &&
+        duration > 0
+      ) {
         gameMusic.currentTime = t % duration;
       } else {
         gameMusic.currentTime = t;
@@ -1243,9 +1343,9 @@ export default function LavaLamp(): ReactElement {
         const connected = analyzer.connect(gameMusic);
         if (connected) {
           amplitudeAnalyzerRef.current = analyzer;
-          console.log('[LavaLamp] Audio amplitude analyzer connected');
+          console.log("[LavaLamp] Audio amplitude analyzer connected");
         } else {
-          console.warn('[LavaLamp] Failed to connect audio amplitude analyzer');
+          console.warn("[LavaLamp] Failed to connect audio amplitude analyzer");
         }
       }
     }
@@ -1272,9 +1372,9 @@ export default function LavaLamp(): ReactElement {
         } catch {
           // ignore if still fails
         }
-        gameMusic.removeEventListener('canplaythrough', onCanPlay);
+        gameMusic.removeEventListener("canplaythrough", onCanPlay);
       };
-      gameMusic.addEventListener('canplaythrough', onCanPlay, { once: true });
+      gameMusic.addEventListener("canplaythrough", onCanPlay, { once: true });
     } else {
       // Audio already loaded, play immediately
       try {
@@ -1311,14 +1411,20 @@ export default function LavaLamp(): ReactElement {
       />
 
       {nowPlaying && (
-        <div className={`lava-lamp-now-playing ${nowPlayingExpanded ? 'expanded' : 'collapsed'}`}>
+        <div
+          className={`lava-lamp-now-playing ${
+            nowPlayingExpanded ? "expanded" : "collapsed"
+          }`}
+        >
           <button
             type="button"
             className="lava-lamp-now-playing-toggle"
             onClick={() => setNowPlayingExpanded(!nowPlayingExpanded)}
-            aria-label={nowPlayingExpanded ? "Collapse now playing" : "Expand now playing"}
+            aria-label={
+              nowPlayingExpanded ? "Collapse now playing" : "Expand now playing"
+            }
           >
-            {nowPlayingExpanded ? '›' : '‹'}
+            {nowPlayingExpanded ? "›" : "‹"}
           </button>
           <div className="lava-lamp-now-playing-content">
             <div className="lava-lamp-now-playing-header">
@@ -1329,38 +1435,36 @@ export default function LavaLamp(): ReactElement {
                     <div
                       key={i}
                       className="lava-lamp-soundwave-bar"
-                      style={{ '--bar-height': height } as React.CSSProperties}
+                      style={{ "--bar-height": height } as React.CSSProperties}
                     />
                   ))}
                 </div>
               )}
             </div>
             <div ref={nowPlayingSongRef} className="lava-lamp-now-playing-song">
-              <span className="scroll-wrapper">
-                {nowPlaying.song}
-              </span>
+              <span className="scroll-wrapper">{nowPlaying.song}</span>
               {songOverflowing && (
-                <span className="scroll-wrapper second">
-                  {nowPlaying.song}
-                </span>
+                <span className="scroll-wrapper second">{nowPlaying.song}</span>
               )}
             </div>
             {!nowPlaying.isAirbreak && (
               <>
-                <div ref={nowPlayingArtistRef} className="lava-lamp-now-playing-artist">
-                  <span className="scroll-wrapper">
-                    {nowPlaying.artist}
-                  </span>
+                <div
+                  ref={nowPlayingArtistRef}
+                  className="lava-lamp-now-playing-artist"
+                >
+                  <span className="scroll-wrapper">{nowPlaying.artist}</span>
                   {artistOverflowing && (
                     <span className="scroll-wrapper second">
                       {nowPlaying.artist}
                     </span>
                   )}
                 </div>
-                <div ref={nowPlayingAlbumRef} className="lava-lamp-now-playing-album">
-                  <span className="scroll-wrapper">
-                    {nowPlaying.album}
-                  </span>
+                <div
+                  ref={nowPlayingAlbumRef}
+                  className="lava-lamp-now-playing-album"
+                >
+                  <span className="scroll-wrapper">{nowPlaying.album}</span>
                   {albumOverflowing && (
                     <span className="scroll-wrapper second">
                       {nowPlaying.album}
@@ -1401,7 +1505,9 @@ export default function LavaLamp(): ReactElement {
               {/* Speed */}
               <div className="lava-lamp-control-block">
                 <div className="lava-lamp-control-header">
-                  <div className="lava-lamp-control-title">speed: {speedIdx}</div>
+                  <div className="lava-lamp-control-title">
+                    speed: {speedIdx}
+                  </div>
                 </div>
 
                 <div className="lava-lamp-slider-wrap">
@@ -1413,7 +1519,9 @@ export default function LavaLamp(): ReactElement {
                     step={1}
                     value={speedIdx}
                     onChange={(e) =>
-                      setSpeedIdx(clampInt(Number(e.target.value), 0, lastSpeedIdx))
+                      setSpeedIdx(
+                        clampInt(Number(e.target.value), 0, lastSpeedIdx)
+                      )
                     }
                     aria-label="Simulation speed"
                   />
@@ -1452,14 +1560,18 @@ export default function LavaLamp(): ReactElement {
                   <select
                     className="lava-lamp-slider"
                     value={audioSource}
-                    onChange={(e) => setAudioSource(e.target.value as AudioSource)}
+                    onChange={(e) =>
+                      setAudioSource(e.target.value as AudioSource)
+                    }
                     aria-label="Audio source"
                   >
-                    {Object.entries(AUDIO_SOURCE_CONFIG).map(([key, config]) => (
-                      <option key={key} value={key}>
-                        {config.label}
-                      </option>
-                    ))}
+                    {Object.entries(AUDIO_SOURCE_CONFIG).map(
+                      ([key, config]) => (
+                        <option key={key} value={key}>
+                          {config.label}
+                        </option>
+                      )
+                    )}
                   </select>
                 </div>
               </div>
@@ -1471,20 +1583,31 @@ export default function LavaLamp(): ReactElement {
                 </div>
 
                 {/* Rainbow mode toggle */}
-                <div className="lava-lamp-slider-wrap" style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <div
+                  className="lava-lamp-slider-wrap"
+                  style={{ marginBottom: "12px" }}
+                >
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      cursor: "pointer",
+                    }}
+                  >
                     <input
                       type="checkbox"
                       className="lava-lamp-checkbox"
                       checked={rainbowMode}
                       onChange={(e) => setRainbowMode(e.target.checked)}
                     />
-                    <span style={{ fontSize: '13px', opacity: 0.9 }}>rainbow drift mode</span>
+                    <span style={{ fontSize: "13px", opacity: 0.9 }}>
+                      rainbow drift mode
+                    </span>
                   </label>
                 </div>
 
                 <div className="lava-lamp-color-row">
-
                   <label className="lava-lamp-color-label">
                     hot
                     <input
@@ -1533,14 +1656,23 @@ export default function LavaLamp(): ReactElement {
               {/* Fullscreen */}
               <div className="lava-lamp-control-block">
                 <div className="lava-lamp-slider-wrap">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      cursor: "pointer",
+                    }}
+                  >
                     <input
                       type="checkbox"
                       className="lava-lamp-checkbox"
                       checked={isFullscreen}
                       onChange={toggleFullscreen}
                     />
-                    <span style={{ fontSize: '13px', opacity: 0.9 }}>fullscreen mode</span>
+                    <span style={{ fontSize: "13px", opacity: 0.9 }}>
+                      fullscreen mode
+                    </span>
                   </label>
                 </div>
               </div>
@@ -1553,7 +1685,11 @@ export default function LavaLamp(): ReactElement {
                   onClick={() => window.location.reload()}
                   aria-label="Power off"
                 >
-                  <img src={powerIcon} alt="Power off" className="lava-lamp-power-off-icon" />
+                  <img
+                    src={powerIcon}
+                    alt="Power off"
+                    className="lava-lamp-power-off-icon"
+                  />
                   <span>power off</span>
                 </button>
               </div>
