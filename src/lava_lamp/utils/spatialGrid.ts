@@ -2,8 +2,15 @@
  * Spatial grid utilities for efficient neighbor queries
  */
 
-import type { SpatialGrid } from "./types.ts";
 import type React from "react";
+
+export type SpatialGrid = {
+  cellSize: number;
+  cols: number;
+  rows: number;
+  heads: Int32Array; // length cols*rows, head index or -1
+  next: Int32Array; // length particleCount, next index or -1
+};
 
 export function ensureGrid(
   gridRef: React.MutableRefObject<SpatialGrid | null>,
@@ -38,3 +45,4 @@ export function ensureGrid(
 export function gridIndex(g: SpatialGrid, cx: number, cy: number): number {
   return cy * g.cols + cx;
 }
+

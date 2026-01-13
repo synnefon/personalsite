@@ -123,7 +123,8 @@ export function integrate(p: Particle, dt: number): void {
 export function applyPointerHeat(
   p: Particle,
   pointerPos: Vec2,
-  dt: number
+  dt: number,
+  cooling: boolean = false
 ): void {
   const dx = p.x - pointerPos.x;
   const dy = p.y - pointerPos.y;
@@ -134,7 +135,8 @@ export function applyPointerHeat(
   if (d2 < r2) {
     const d = Math.sqrt(d2);
     const intensity = 1 - d * (1 / r);
-    p.heat += SIM.HEAT_RATE * 2 * intensity * dt;
+    const heatChange = SIM.HEAT_RATE * 10 * intensity * dt;
+    p.heat += cooling ? -heatChange : heatChange;
   }
 }
 
@@ -198,7 +200,8 @@ export function stepSimulationOnePairPass(
   pointerPos: Vec2,
   neighborCounts: Uint16Array,
   timeScale: number,
-  grid: SpatialGrid
+  grid: SpatialGrid,
+  pointerCooling: boolean = false
 ): void {
   const dt = Math.max(0, Math.min(4.0, timeScale));
 
@@ -210,7 +213,7 @@ export function stepSimulationOnePairPass(
     applyFriction(p, dt);
     integrate(p, dt);
 
-    if (pointerDown) applyPointerHeat(p, pointerPos, dt);
+    if (pointerDown) applyPointerHeat(p, pointerPos, dt, pointerCooling);
 
     neighborCounts[i] = 0;
     bounceInBounds(p, width, height);
