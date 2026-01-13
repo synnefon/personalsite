@@ -21,6 +21,7 @@ export {
   FIXED_MS,
   MAX_CATCHUP_STEPS,
   MUSIC_TIME_KEY,
+  computePixelSize,
 } from "./constants.ts";
 
 // Device detection

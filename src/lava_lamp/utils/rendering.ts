@@ -4,7 +4,7 @@
 
 import type React from "react";
 import type { Particle, SpatialGrid } from "./types.ts";
-import { RENDER } from "./constants.ts";
+import { RENDER, computePixelSize } from "./constants.ts";
 import { packRgba } from "./colorUtils.ts";
 import { gridIndex } from "./spatialGrid.ts";
 
@@ -149,9 +149,9 @@ export function drawMetaballs(
   particles: Particle[],
   canvasWidth: number,
   canvasHeight: number,
-  heatLut256: Uint32Array
+  heatLut256: Uint32Array,
+  pixelSize: number
 ): void {
-  const pixelSize = RENDER.PIXEL_SIZE;
   const threshold = RENDER.THRESHOLD;
   const r2 = RENDER.PARTICLE_RADIUS * RENDER.PARTICLE_RADIUS;
 
@@ -208,11 +208,12 @@ export function renderFrame(
   grid?: SpatialGrid
 ): void {
   const imageData = ensureImageData(ctx, imageRef, canvas.width, canvas.height);
+  const pixelSize = computePixelSize(canvas.width, canvas.height);
 
   if (grid) {
     drawMetaballsWithGrid(imageData, particles, canvas.width, canvas.height, heatLut256, grid);
   } else {
-    drawMetaballs(imageData, particles, canvas.width, canvas.height, heatLut256);
+    drawMetaballs(imageData, particles, canvas.width, canvas.height, heatLut256, pixelSize);
   }
 
   ctx.putImageData(imageData, 0, 0);

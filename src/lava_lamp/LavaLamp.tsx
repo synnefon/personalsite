@@ -518,14 +518,27 @@ export default function LavaLamp(): ReactElement {
       particlesRef.current,
       imageRef,
       heatLutRef.current
+      // Grid optimization changes visual appearance - disabled for now
     );
   }, []);
 
   // 0) Fixed update cadence: updates happen at FIXED_FPS regardless of render speed.
   const clockRef = useRef<{ last: number; acc: number }>({ last: 0, acc: 0 });
 
+  // Performance monitoring - only log every 10 seconds
+  const perfRef = useRef({
+    frameCount: 0,
+    totalTime: 0,
+    physicsTime: 0,
+    renderTime: 0,
+    otherTime: 0,
+    lastLogTime: 0,
+  });
+
   const animate = useCallback(
     (now: number) => {
+      const frameStart = performance.now();
+
       const clock = clockRef.current;
 
       if (clock.last === 0) clock.last = now;
@@ -535,12 +548,15 @@ export default function LavaLamp(): ReactElement {
       // Clamp massive deltas (tab-switch etc.)
       clock.acc += Math.min(250, Math.max(0, delta));
 
+      // Physics timing
+      const physicsStart = performance.now();
       let steps = 0;
       while (clock.acc >= FIXED_MS && steps < MAX_CATCHUP_STEPS) {
         updateOnce();
         clock.acc -= FIXED_MS;
         steps++;
       }
+      const physicsEnd = performance.now();
 
       // Drop extra backlog to avoid death spiral
       if (clock.acc >= FIXED_MS) clock.acc = 0;
@@ -556,7 +572,62 @@ export default function LavaLamp(): ReactElement {
         }
       }
 
+      // Rendering timing
+      const renderStart = performance.now();
       draw();
+      const renderEnd = performance.now();
+
+      // Performance tracking
+      const frameEnd = performance.now();
+      const frameTime = frameEnd - frameStart;
+      const physicsTime = physicsEnd - physicsStart;
+      const renderTime = renderEnd - renderStart;
+      const otherTime = frameTime - physicsTime - renderTime;
+
+      const perf = perfRef.current;
+      perf.frameCount++;
+      perf.totalTime += frameTime;
+      perf.physicsTime += physicsTime;
+      perf.renderTime += renderTime;
+      perf.otherTime += otherTime;
+
+      // Log every 10 seconds
+      if (perf.lastLogTime === 0) perf.lastLogTime = now;
+      const elapsed = now - perf.lastLogTime;
+      if (elapsed >= 10000) {
+        const avgFrameTime = perf.totalTime / perf.frameCount;
+        const avgPhysics = perf.physicsTime / perf.frameCount;
+        const avgRender = perf.renderTime / perf.frameCount;
+        const avgOther = perf.otherTime / perf.frameCount;
+        const fps = (perf.frameCount / elapsed) * 1000;
+
+        const physicsPercent = (avgPhysics / avgFrameTime) * 100;
+        const renderPercent = (avgRender / avgFrameTime) * 100;
+        const otherPercent = (avgOther / avgFrameTime) * 100;
+
+        const canvas = canvasRef.current;
+        const screenW = canvas?.width || 0;
+        const screenH = canvas?.height || 0;
+        const pixelSize = screenW && screenH ? Math.max(6, Math.min(24, Math.round(Math.sqrt((screenW * screenH) / 12_889)))) : 0;
+
+        console.log("=== Performance (10s average) ===");
+        console.log(`Screen: ${screenW}x${screenH} (${pixelSize}px chunks)`);
+        console.log(`FPS: ${fps.toFixed(1)}`);
+        console.log(`Total Frame: ${avgFrameTime.toFixed(2)}ms`);
+        console.log(`  Physics: ${avgPhysics.toFixed(2)}ms (${physicsPercent.toFixed(1)}%)`);
+        console.log(`  Render:  ${avgRender.toFixed(2)}ms (${renderPercent.toFixed(1)}%)`);
+        console.log(`  Other:   ${avgOther.toFixed(2)}ms (${otherPercent.toFixed(1)}%)`);
+        console.log("=================================");
+
+        // Reset counters
+        perf.frameCount = 0;
+        perf.totalTime = 0;
+        perf.physicsTime = 0;
+        perf.renderTime = 0;
+        perf.otherTime = 0;
+        perf.lastLogTime = now;
+      }
+
       rafRef.current = requestAnimationFrame(animate);
     },
     [draw, updateOnce]

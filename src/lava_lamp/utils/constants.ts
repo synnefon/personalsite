@@ -35,11 +35,33 @@ export const SIM = {
 } as const;
 
 // Rendering constants
+// PIXEL_SIZE is now computed adaptively based on screen size
 export const RENDER = {
   PARTICLE_RADIUS: 10,
-  PIXEL_SIZE: 6,
   THRESHOLD: 0.8,
 } as const;
+
+/**
+ * Calculate adaptive pixel size based on screen dimensions
+ * Based on benchmarks:
+ * - 2522x1656 (4.18M) with 10px → 90ms (too slow) → needs 18px
+ * - 1681x1104 (1.86M) with 10px → 20ms (close) → needs 12px
+ * - 1401x920 (1.29M) with 10px → 10ms (perfect!) → keep 10px
+ * - 375x667 (250K) with 10px → 1ms (overkill) → could use 6px
+ *
+ * Target: ~10ms render time for smooth 60fps
+ */
+export function computePixelSize(width: number, height: number): number {
+  const area = width * height;
+
+  // Sweet spot: 1.29M pixels with 10px = 9.79ms
+  // Formula: pixelSize = sqrt(area / 12,889) to maintain similar render time
+  // 1,288,920 / (10^2) = 12,889
+  const basePixelSize = Math.sqrt(area / 12_889);
+
+  // Clamp between 6 and 24
+  return Math.max(6, Math.min(24, Math.round(basePixelSize)));
+}
 
 // Particle clustering configuration
 export const CLUMPS = {
