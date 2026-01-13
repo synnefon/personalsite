@@ -393,7 +393,7 @@ select.lava-lamp-slider option {
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 
-  max-width: 320px;
+  max-width: min(320px, 70vw);
   user-select: none;
 }
 
