@@ -185,6 +185,11 @@ div#footer {
   user-select: none;
 }
 
+/* Hide footer in fullscreen mode */
+body.lava-lamp-fullscreen div#footer {
+  display: none !important;
+}
+
 /* ============================================
    RESPONSIVE DESIGN
    ============================================ */

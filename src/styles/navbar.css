@@ -16,6 +16,11 @@
   pointer-events: none;
 }
 
+/* Hide navbar in fullscreen mode */
+body.lava-lamp-fullscreen .navbar {
+  display: none !important;
+}
+
 
 .hamburger-react {
   position: relative;

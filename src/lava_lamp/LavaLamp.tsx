@@ -710,6 +710,59 @@ export default function LavaLamp(): ReactElement {
   const toggleMenu = useCallback(() => setMenuOpen((v) => !v), []);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  // Handle fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = (): void => {
+      const inFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(inFullscreen);
+
+      // Add/remove body class for CSS targeting
+      if (inFullscreen) {
+        document.body.classList.add('lava-lamp-fullscreen');
+      } else {
+        document.body.classList.remove('lava-lamp-fullscreen');
+      }
+
+      // Resize canvas to match new screen size
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      canvas.width = w;
+      canvas.height = h;
+
+      // Update cached size
+      sizeRef.current = { w, h };
+
+      // Reset image data to force recalculation
+      imageRef.current = null;
+
+      // Clamp existing particles to new bounds
+      if (particlesRef.current) {
+        clampAllToBounds(particlesRef.current, w, h);
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.body.classList.remove('lava-lamp-fullscreen');
+    };
+  }, []);
+
+  const toggleFullscreen = useCallback((): void => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error("Error attempting to enable fullscreen:", err);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  }, []);
+
   // Close menu when clicking outside
   useEffect(() => {
     if (!menuOpen) return;
@@ -1474,6 +1527,21 @@ export default function LavaLamp(): ReactElement {
                   >
                     reset
                   </button>
+                </div>
+              </div>
+
+              {/* Fullscreen */}
+              <div className="lava-lamp-control-block">
+                <div className="lava-lamp-slider-wrap">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      className="lava-lamp-checkbox"
+                      checked={isFullscreen}
+                      onChange={toggleFullscreen}
+                    />
+                    <span style={{ fontSize: '13px', opacity: 0.9 }}>fullscreen mode</span>
+                  </label>
                 </div>
               </div>
 
