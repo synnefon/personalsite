@@ -27,6 +27,7 @@ import { ensureGrid } from "./utils/spatialGrid.ts";
 import { renderFrame } from "./utils/rendering.ts";
 import { readSavedMusicTimeSeconds, writeSavedMusicTimeSeconds } from "./utils/storage.ts";
 import { clampInt, indexToSpeed, speedToNearestIndex } from "./utils/speedUtils.ts";
+import { detectMobile } from "./utils/deviceDetection.ts";
 
 // Audio source configuration (needs access to audio asset imports)
 const AUDIO_SOURCE_CONFIG = {
@@ -43,6 +44,8 @@ const AUDIO_SOURCE_CONFIG = {
 
 // Component
 export default function LavaLamp(): ReactElement {
+  const isMobile = detectMobile();
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 
@@ -1012,28 +1015,30 @@ export default function LavaLamp(): ReactElement {
               </div>
 
               {/* Fullscreen */}
-              <div className="lava-lamp-control-block">
-                <div className="lava-lamp-slider-wrap">
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      className="lava-lamp-checkbox"
-                      checked={isFullscreen}
-                      onChange={toggleFullscreen}
-                    />
-                    <span style={{ fontSize: "13px", opacity: 0.9 }}>
-                      fullscreen mode
-                    </span>
-                  </label>
+              {!isMobile && (
+                <div className="lava-lamp-control-block">
+                  <div className="lava-lamp-slider-wrap">
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        className="lava-lamp-checkbox"
+                        checked={isFullscreen}
+                        onChange={toggleFullscreen}
+                      />
+                      <span style={{ fontSize: "13px", opacity: 0.9 }}>
+                        fullscreen mode
+                      </span>
+                    </label>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Power off */}
               <div className="lava-lamp-control-block">
