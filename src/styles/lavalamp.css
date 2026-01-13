@@ -549,3 +549,34 @@ select.lava-lamp-slider option {
     transform: translateX(-100%);
   }
 }
+
+/* Checkbox styling */
+.lava-lamp-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  border: 2px solid color-mix(in srgb, var(--lava-accent) 50%, transparent);
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.3);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.lava-lamp-checkbox:checked {
+  background-color: var(--lava-accent);
+  border-color: var(--lava-accent);
+}
+
+.lava-lamp-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  color: #000;
+  font-size: 12px;
+  font-weight: bold;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

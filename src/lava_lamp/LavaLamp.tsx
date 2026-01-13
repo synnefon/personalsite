@@ -46,6 +46,63 @@ const AUDIO_SOURCE_CONFIG: Record<AudioSource, { label: string; url: string }> =
 const DEFAULT_HIGH = "#ffdd00";
 const DEFAULT_LOW = "#ff5500";
 
+// --- Helper: Convert hex to RGB ---
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = hex.trim().replace("#", "");
+  if (h.length === 3) {
+    const r = parseInt(h[0] + h[0], 16);
+    const g = parseInt(h[1] + h[1], 16);
+    const b = parseInt(h[2] + h[2], 16);
+    return { r, g, b };
+  }
+  if (h.length === 6) {
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return { r, g, b };
+  }
+  return { r: 255, g: 221, b: 0 };
+}
+
+// --- Helper: Convert HSL to hex ---
+function hslToHex(h: number, s: number, l: number): string {
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+// --- Helper: Convert hex to hue ---
+function hexToHue(hex: string): number {
+  const rgb = hexToRgb(hex);
+  const r = rgb.r / 255;
+  const g = rgb.g / 255;
+  const b = rgb.b / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+
+  if (delta === 0) return 0;
+
+  let hue = 0;
+  if (max === r) {
+    hue = ((g - b) / delta) % 6;
+  } else if (max === g) {
+    hue = (b - r) / delta + 2;
+  } else {
+    hue = (r - g) / delta + 4;
+  }
+
+  hue = Math.round(hue * 60);
+  if (hue < 0) hue += 360;
+
+  return hue;
+}
+
 // --- Types ---
 interface Particle {
   x: number;
@@ -238,23 +295,6 @@ function speedToNearestIndex(speed: number): number {
 }
 
 // --- Color / LUT ---
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const h = hex.trim().replace("#", "");
-  if (h.length === 3) {
-    const r = parseInt(h[0] + h[0], 16);
-    const g = parseInt(h[1] + h[1], 16);
-    const b = parseInt(h[2] + h[2], 16);
-    return { r, g, b };
-  }
-  if (h.length === 6) {
-    const r = parseInt(h.slice(0, 2), 16);
-    const g = parseInt(h.slice(2, 4), 16);
-    const b = parseInt(h.slice(4, 6), 16);
-    return { r, g, b };
-  }
-  return { r: 255, g: 221, b: 0 };
-}
-
 function packRgba(r: number, g: number, b: number, a: number): number {
   // Uint32Array view over ImageData.data.buffer (common little-endian fast path).
   return (a << 24) | (b << 16) | (g << 8) | r;
@@ -847,6 +887,9 @@ export default function LavaLamp(): ReactElement {
 
   const [lavaLowColor, setLavaLowColor] = useState(DEFAULT_LOW);
   const [lavaHighColor, setLavaHighColor] = useState(DEFAULT_HIGH);
+  const [rainbowMode, setRainbowMode] = useState(false);
+  const rainbowLowHueRef = useRef(0);
+  const rainbowHighHueRef = useRef(0);
 
   const heatLutRef = useRef<Uint32Array>(buildHeatLut256(DEFAULT_LOW, DEFAULT_HIGH));
 
@@ -998,6 +1041,56 @@ export default function LavaLamp(): ReactElement {
     draw();
     rafRef.current = requestAnimationFrame(animate);
   }, [draw, updateOnce]);
+
+  // Initialize rainbow hues from current colors ONLY when rainbow mode is enabled
+  const prevRainbowModeRef = useRef(false);
+  useEffect(() => {
+    // Only initialize when rainbow mode transitions from false -> true
+    if (rainbowMode && !prevRainbowModeRef.current) {
+      // Start rainbow from the current colors' hues
+      rainbowLowHueRef.current = hexToHue(lavaLowColor);
+      rainbowHighHueRef.current = hexToHue(lavaHighColor);
+    }
+    prevRainbowModeRef.current = rainbowMode;
+  }, [rainbowMode, lavaLowColor, lavaHighColor]);
+
+  // Rainbow mode color cycling
+  useEffect(() => {
+    if (!rainbowMode) return;
+
+    let animationId: number;
+    let lastTime = performance.now();
+
+    const updateRainbowColors = (now: number) => {
+      const deltaTime = now - lastTime;
+      lastTime = now;
+
+      // Speed scales from 0 (frozen) to 5 (max)
+      // Rainbow speed: 0.02 degrees per frame at speed=1, scales linearly
+      const baseSpeed = 0.02;
+      const speed = speedRef.current;
+      const normalizedDelta = deltaTime / 16.67; // normalize to ~60fps
+
+      // Drift hot and cold independently at slightly different rates
+      const lowIncrement = baseSpeed * speed * normalizedDelta;
+      const highIncrement = baseSpeed * speed * normalizedDelta * 1.3; // 30% faster
+
+      rainbowLowHueRef.current = (rainbowLowHueRef.current + lowIncrement) % 360;
+      rainbowHighHueRef.current = (rainbowHighHueRef.current + highIncrement) % 360;
+
+      const lowColor = hslToHex(rainbowLowHueRef.current, 1.0, 0.5);
+      const highColor = hslToHex(rainbowHighHueRef.current, 1.0, 0.5);
+
+      setLavaLowColor(lowColor);
+      setLavaHighColor(highColor);
+
+      animationId = requestAnimationFrame(updateRainbowColors);
+    };
+
+    animationId = requestAnimationFrame(updateRainbowColors);
+
+    return () => cancelAnimationFrame(animationId);
+  }, [rainbowMode]);
 
   // Pointer handling
   useEffect(() => {
@@ -1307,6 +1400,19 @@ export default function LavaLamp(): ReactElement {
                   <div className="lava-lamp-control-title">lava colors</div>
                 </div>
 
+                {/* Rainbow mode toggle */}
+                <div className="lava-lamp-slider-wrap" style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      className="lava-lamp-checkbox"
+                      checked={rainbowMode}
+                      onChange={(e) => setRainbowMode(e.target.checked)}
+                    />
+                    <span style={{ fontSize: '13px', opacity: 0.9 }}>rainbow drift mode</span>
+                  </label>
+                </div>
+
                 <div className="lava-lamp-color-row">
 
                   <label className="lava-lamp-color-label">
@@ -1315,7 +1421,11 @@ export default function LavaLamp(): ReactElement {
                       className="lava-lamp-color-input"
                       type="color"
                       value={lavaHighColor}
-                      onChange={(e) => setLavaHighColor(e.target.value)}
+                      onChange={(e) => {
+                        setLavaHighColor(e.target.value);
+                        setRainbowMode(false);
+                      }}
+                      disabled={rainbowMode}
                       aria-label="Lava high color"
                     />
                   </label>
@@ -1326,7 +1436,11 @@ export default function LavaLamp(): ReactElement {
                       className="lava-lamp-color-input"
                       type="color"
                       value={lavaLowColor}
-                      onChange={(e) => setLavaLowColor(e.target.value)}
+                      onChange={(e) => {
+                        setLavaLowColor(e.target.value);
+                        setRainbowMode(false);
+                      }}
+                      disabled={rainbowMode}
                       aria-label="Lava low color"
                     />
                   </label>
@@ -1337,7 +1451,9 @@ export default function LavaLamp(): ReactElement {
                     onClick={() => {
                       setLavaLowColor(DEFAULT_LOW);
                       setLavaHighColor(DEFAULT_HIGH);
+                      setRainbowMode(false);
                     }}
+                    disabled={rainbowMode}
                   >
                     reset
                   </button>
