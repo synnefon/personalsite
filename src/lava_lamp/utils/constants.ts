@@ -53,10 +53,7 @@ export const RENDER = {
  */
 export function computePixelSize(width: number, height: number): number {
   const area = width * height;
-
-  // Sweet spot: 1.29M pixels with 10px = 9.79ms
-  // Formula: pixelSize = sqrt(area / 12,889) to maintain similar render time
-  // 1,288,920 / (10^2) = 12,889
+  
   const targetArea = 16000;
   const basePixelSize = Math.sqrt(area / targetArea);
 
