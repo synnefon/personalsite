@@ -95,6 +95,10 @@ export default function NowPlayingWidget({
     return null;
   }
 
+  const handleSongClick = () => {
+    window.open("https://www.kexp.org/playlist/", '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div
       className={`lava-lamp-now-playing ${expanded ? "expanded" : "collapsed"}`}
@@ -122,7 +126,13 @@ export default function NowPlayingWidget({
             </div>
           )}
         </div>
-        <div ref={nowPlayingSongRef} className="lava-lamp-now-playing-song">
+        <div
+          ref={nowPlayingSongRef}
+          className="lava-lamp-now-playing-song"
+          onClick={handleSongClick}
+          style={{ cursor: 'var(--pointer)' }}
+          title="see on kexp"
+        >
           <span className="scroll-wrapper">{nowPlaying.song}</span>
           {songOverflowing && (
             <span className="scroll-wrapper second">{nowPlaying.song}</span>

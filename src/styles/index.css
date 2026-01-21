@@ -104,6 +104,8 @@
 
   /* Cursors */
   --pointer: url("../assets/cursors/Dark/Hands/Hand3.png"), auto;
+  --grabbing: url("../assets/cursors/Dark/Hands/Hand_Drag2.png"), grabbing;
+  --not-allowed: url("../assets/cursors/Dark/Not Allowed/Not_Allowed_Thick.png"), not-allowed;
   --arrow: url("../assets/cursors/Dark/Arrows/Arrow2.png"), auto;
   --text: url("../assets/cursors/Dark/Text/Text2.png"), auto;
 

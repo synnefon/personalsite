@@ -32,6 +32,7 @@ export default function ColorWheel({
   draggingWheel,
 }: ColorWheelProps) {
   const rgb = hexToRgb(color);
+  const isDragging = draggingWheel === wheelType;
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (rainbowMode || draggingWheel) return;
@@ -62,7 +63,11 @@ export default function ColorWheel({
           position: "relative",
           width: "80px",
           height: "80px",
-          cursor: rainbowMode ? "not-allowed" : "pointer",
+          cursor: rainbowMode
+            ? "var(--not-allowed)"
+            : isDragging
+              ? "var(--grabbing)"
+              : "var(--pointer)",
           opacity: rainbowMode ? 0.5 : 1,
         }}
         onClick={handleClick}

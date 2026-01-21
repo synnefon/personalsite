@@ -91,6 +91,9 @@ export default function ControlsMenu({
   useEffect(() => {
     if (!draggingWheel) return;
 
+    // Set drag cursor on body while dragging
+    document.body.style.cursor = "var(--grabbing)";
+
     const handleMouseMove = (e: MouseEvent) => {
       const wheelElement = document.querySelector(`[data-wheel="${draggingWheel}"]`) as HTMLDivElement;
       if (wheelElement) {
@@ -108,6 +111,8 @@ export default function ControlsMenu({
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      // Reset cursor
+      document.body.style.cursor = '';
     };
   }, [draggingWheel, handleWheelDrag]);
 
@@ -196,51 +201,33 @@ export default function ControlsMenu({
               />
             </div>
           </div>
-          {/* Volume */}
-          <div className="lava-lamp-control-block">
-            <div className="lava-lamp-control-header">
-              <div className="lava-lamp-control-title">
-                volume: {Math.round(volume * 100)}%
+          {/* Fullscreen */}
+          {!isMobile && (
+            <div className="lava-lamp-control-block">
+              <div className="lava-lamp-slider-wrap">
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    cursor: "var(--pointer)",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="lava-lamp-checkbox"
+                    checked={isFullscreen}
+                    onChange={toggleFullscreen}
+                  />
+                  <span style={{ fontSize: 13, opacity: 0.9 }}>
+                    fullscreen mode
+                  </span>
+                </label>
               </div>
             </div>
-            <div className="lava-lamp-slider-wrap">
-              <input
-                className="lava-lamp-slider"
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={volume}
-                onChange={(e) => setVolume(+e.target.value)}
-                aria-label="Music volume"
-              />
-            </div>
-          </div>
-          {/* Audio Source */}
-          <div className="lava-lamp-control-block">
-            <div className="lava-lamp-control-header">
-              <div className="lava-lamp-control-title">audio source</div>
-            </div>
-            <div className="lava-lamp-slider-wrap">
-              <select
-                className="lava-lamp-slider"
-                value={audioSource}
-                onChange={(e) => setAudioSource(e.target.value as AudioSource)}
-                aria-label="Audio source"
-              >
-                {Object.entries(AUDIO_SOURCE_CONFIG).map(([k, c]) => (
-                  <option key={k} value={k}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          )}
           {/* Lava colors */}
           <div className="lava-lamp-control-block">
-            <div className="lava-lamp-control-header">
-              <div className="lava-lamp-control-title">lava colors</div>
-            </div>
             {/* Rainbow mode toggle */}
             <div
               className="lava-lamp-slider-wrap"
@@ -251,7 +238,7 @@ export default function ControlsMenu({
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  cursor: "pointer",
+                  cursor: "var(--pointer)",
                 }}
               >
                 <input
@@ -275,7 +262,7 @@ export default function ControlsMenu({
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  cursor: "pointer",
+                  cursor: "var(--pointer)",
                 }}
               >
                 <input
@@ -327,31 +314,43 @@ export default function ControlsMenu({
               />
             </div>
           </div>
-          {/* Fullscreen */}
-          {!isMobile && (
-            <div className="lava-lamp-control-block">
-              <div className="lava-lamp-slider-wrap">
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    cursor: "pointer",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    className="lava-lamp-checkbox"
-                    checked={isFullscreen}
-                    onChange={toggleFullscreen}
-                  />
-                  <span style={{ fontSize: 13, opacity: 0.9 }}>
-                    fullscreen mode
-                  </span>
-                </label>
+          {/* Audio Source & Volume */}
+          <div className="lava-lamp-control-block">
+            <div className="lava-lamp-control-header">
+              <div className="lava-lamp-control-title">audio source</div>
+            </div>
+            <div className="lava-lamp-slider-wrap">
+              <select
+                className="lava-lamp-slider"
+                value={audioSource}
+                onChange={(e) => setAudioSource(e.target.value as AudioSource)}
+                aria-label="Audio source"
+              >
+                {Object.entries(AUDIO_SOURCE_CONFIG).map(([k, c]) => (
+                  <option key={k} value={k}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="lava-lamp-control-header" style={{ marginTop: 12 }}>
+              <div className="lava-lamp-control-title">
+                volume: {Math.round(volume * 100)}%
               </div>
             </div>
-          )}
+            <div className="lava-lamp-slider-wrap">
+              <input
+                className="lava-lamp-slider"
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={volume}
+                onChange={(e) => setVolume(+e.target.value)}
+                aria-label="Music volume"
+              />
+            </div>
+          </div>
           {/* Power off */}
           <div className="lava-lamp-control-block">
             <button
