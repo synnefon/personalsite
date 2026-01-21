@@ -181,17 +181,21 @@ export function useColorManagement(speedRef: React.MutableRefObject<number>) {
         const lowShouldBeNegative = signedDistance > 0;
         const highShouldBePositive = signedDistance > 0;
 
-        // Fix directions if they're wrong
+        // Fix directions if they're wrong, with new random speeds
         if (lowShouldBeNegative && lowSpeed > 0) {
-          rainbowLowSpeedRef.current = -Math.abs(lowSpeed);
+          const newSpeed = 0.5 + Math.random() * 1.5;
+          rainbowLowSpeedRef.current = -newSpeed;
         } else if (!lowShouldBeNegative && lowSpeed < 0) {
-          rainbowLowSpeedRef.current = Math.abs(lowSpeed);
+          const newSpeed = 0.5 + Math.random() * 1.5;
+          rainbowLowSpeedRef.current = newSpeed;
         }
 
         if (highShouldBePositive && highSpeed < 0) {
-          rainbowHighSpeedRef.current = Math.abs(highSpeed);
+          const newSpeed = 0.5 + Math.random() * 1.5;
+          rainbowHighSpeedRef.current = newSpeed;
         } else if (!highShouldBePositive && highSpeed > 0) {
-          rainbowHighSpeedRef.current = -Math.abs(highSpeed);
+          const newSpeed = 0.5 + Math.random() * 1.5;
+          rainbowHighSpeedRef.current = -newSpeed;
         }
       }
 
