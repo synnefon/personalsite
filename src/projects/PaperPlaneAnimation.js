@@ -5,7 +5,7 @@ import {
   getInitialConditions,
   RADIANS_TO_DEGREES,
   updatePhysicsState,
-} from "../utils/paperPlanePhysics";
+} from "./paperPlanePhysics";
 
 import "../styles/paperPlane.css";
 

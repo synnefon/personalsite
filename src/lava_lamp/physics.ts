@@ -3,7 +3,7 @@
  */
 
 import type { Particle, Vec2, SpatialGrid } from "./config.ts";
-import { SIM, CLUMPS, PARTICLES_PER_PIXEL, MAX_PARTICLES } from "./config.ts";
+import { SIM, CLUMPS, PARTICLES_PER_PIXEL, MAX_PARTICLES, computeCoolRate, computeHeatSourceDistance } from "./config.ts";
 import { gridIndex } from "./helpers.ts";
 
 // Math utilities
@@ -177,9 +177,10 @@ export function applyBottomHeatOrAirCooling(
   dt: number
 ): void {
   const distanceFromBottom = height - p.y;
+  const heatSourceDistance = computeHeatSourceDistance(height);
 
-  if (distanceFromBottom < SIM.HEAT_SOURCE_DISTANCE) {
-    const intensity = 1 - distanceFromBottom * (1 / SIM.HEAT_SOURCE_DISTANCE);
+  if (distanceFromBottom < heatSourceDistance) {
+    const intensity = 1 - distanceFromBottom * (1 / heatSourceDistance);
     p.heat += SIM.HEAT_RATE * intensity * dt;
     return;
   }
@@ -188,7 +189,8 @@ export function applyBottomHeatOrAirCooling(
   const neighbors = neighborCount < maxNeighbors ? neighborCount : maxNeighbors;
   const airExposure = 1 - neighbors / maxNeighbors;
 
-  p.heat -= SIM.COOL_RATE * (0.2 + airExposure * 0.8) * dt;
+  const coolRate = computeCoolRate(height);
+  p.heat -= coolRate * (0.2 + airExposure * 0.8) * dt;
 }
 
 // Main simulation step

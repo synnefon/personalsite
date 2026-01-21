@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import fanIcon from "../assets/projects/fan.svg";
-import PaperPlaneAnimation from "../components/PaperPlaneAnimation";
+import PaperPlaneAnimation from "./PaperPlaneAnimation";
 
 import "../styles/app.css";
 import "../styles/projects.css";

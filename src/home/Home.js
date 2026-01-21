@@ -1,11 +1,11 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TypeAnimation } from "react-type-animation";
 
-import duckIcon from "../assets/nav_icons/duck.svg";
 import quackSound from "../assets/home/quack.wav";
-import { playRandom8BitSound, playPopSound } from "../utils/eightBitSynth";
+import duckIcon from "../assets/nav_icons/duck.svg";
 import "../styles/app.css";
 import "../styles/home.css";
+import { playPopSound, playRandom8BitSound } from "./eightBitSynth";
 
 // Sound and animation timing constants (single source of truth)
 const SOUND_DURATION_MS = 1300;

@@ -77,16 +77,33 @@ export const SIM = {
   FRICTION: 0.98,
 
   HEAT_RATE: 0.005,
-  COOL_RATE: 0.0017,
+  COOL_RATE_BASE: 0.0017,
   HEAT_CONDUCTION: 0.002,
 
-  HEAT_SOURCE_DISTANCE: 45,
+  HEAT_SOURCE_DISTANCE_BASE: 45,
+  REFERENCE_HEIGHT: 1000, // Reference screen height for scaling
 
   COHESION_RADIUS: 25,
   COHESION_STRENGTH: 0.0035,
 
   MOUSE_HEAT_RADIUS: 100,
 } as const;
+
+/**
+ * Calculate cooling rate based on screen height
+ * Scales cooling rate proportionally with height to maintain consistent behavior
+ */
+export function computeCoolRate(height: number): number {
+  return SIM.COOL_RATE_BASE * (height / SIM.REFERENCE_HEIGHT);
+}
+
+/**
+ * Calculate heat source distance (bottom heater zone) based on screen height
+ * Scales proportionally to maintain consistent heating behavior
+ */
+export function computeHeatSourceDistance(height: number): number {
+  return SIM.HEAT_SOURCE_DISTANCE_BASE * (height / SIM.REFERENCE_HEIGHT);
+}
 
 // Rendering constants
 export const RENDER = {
