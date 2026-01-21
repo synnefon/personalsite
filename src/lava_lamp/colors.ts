@@ -92,11 +92,6 @@ export function lerpInt(a: number, b: number, t: number): number {
   return v <= 0 ? 0 : v >= 255 ? 255 : (0.5 + v) | 0;
 }
 
-// Clamp value to [0, 1]
-function clamp01(v: number): number {
-  return v < 0 ? 0 : v > 1 ? 1 : v;
-}
-
 // RGB to HSL conversion
 export function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
   // Normalize to [0, 1]

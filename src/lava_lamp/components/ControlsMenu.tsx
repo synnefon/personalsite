@@ -164,7 +164,7 @@ export default function ControlsMenu({
         {menuOpen ? "✕" : "☰"}
       </button>
       {menuOpen && (
-        <div className="lava-lamp-menu">
+        <div className="lava-lamp-menu" style={{ maxHeight: "65vh", overflowY: "auto" }}>
           {/* Speed */}
           <div className="lava-lamp-control-block">
             <div className="lava-lamp-control-header">
