@@ -3,8 +3,8 @@ import {
   buildHeatLut256,
   hexToHue,
   hslToHex,
-} from "../utils/colorUtils.ts";
-import { DEFAULT_HIGH, DEFAULT_LOW } from "../utils/constants.ts";
+} from "../colors.ts";
+import { DEFAULT_HIGH, DEFAULT_LOW } from "../config.ts";
 
 export function useColorManagement(speedRef: React.MutableRefObject<number>) {
   const [lavaLowColor, setLavaLowColor] = useState(DEFAULT_LOW);

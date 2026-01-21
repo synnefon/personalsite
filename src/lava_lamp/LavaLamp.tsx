@@ -16,9 +16,8 @@ import { useFullscreen } from "./hooks/useFullscreen.ts";
 import { useNowPlaying } from "./hooks/useNowPlaying.ts";
 import { usePointerHandling } from "./hooks/usePointerHandling.ts";
 import { useSimulation } from "./hooks/useSimulation.ts";
-import { AUDIO_SOURCES, SPEED } from "./utils/constants.ts";
-import { detectMobile } from "./utils/deviceDetection.ts";
-import { indexToSpeed, speedToNearestIndex } from "./utils/speedUtils.ts";
+import { AUDIO_SOURCES, SPEED, detectMobile } from "./config.ts";
+import { indexToSpeed, speedToNearestIndex } from "./helpers.ts";
 
 export default function LavaLamp(): ReactElement {
   const isMobile = detectMobile();

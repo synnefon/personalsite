@@ -3,11 +3,11 @@ import {
   computeParticleCount,
   createParticles,
   stepSimulationOnePairPass,
-} from "../utils/physics.ts";
-import { renderFrame } from "../utils/rendering.ts";
-import { ensureGrid } from "../utils/spatialGrid.ts";
-import { FIXED_MS, MAX_CATCHUP_STEPS, SIM } from "../utils/constants.ts";
-import type { Particle, SpatialGrid, Vec2 } from "../utils/types.ts";
+} from "../physics.ts";
+import { renderFrame } from "../rendering.ts";
+import { ensureGrid } from "../helpers.ts";
+import { FIXED_MS, MAX_CATCHUP_STEPS, SIM } from "../config.ts";
+import type { Particle, SpatialGrid, Vec2 } from "../config.ts";
 
 interface UseSimulationParams {
   canvasRef: RefObject<HTMLCanvasElement | null>;

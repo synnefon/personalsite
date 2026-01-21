@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PersonalAudio } from "../../util/Audio";
 import { AudioAmplitudeAnalyzer } from "../../util/audioAmplitude.ts";
-import { AUDIO_SOURCES } from "../utils/constants.ts";
+import { AUDIO_SOURCES } from "../config.ts";
 import {
   readSavedMusicTimeSeconds,
   writeSavedMusicTimeSeconds,
-} from "../utils/storage.ts";
+} from "../helpers.ts";
 import { AUDIO_SOURCE_CONFIG, CLICK_AUDIO_URL } from "../audioConfig.ts";
-import type { AudioSource } from "../utils/types.ts";
+import type { AudioSource } from "../config.ts";
 
 export function useAudioManagement(hasStarted: boolean) {
   const [audioSource, setAudioSource] = useState<AudioSource>(

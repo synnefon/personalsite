@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, RefObject } from "react";
-import { clampAllToBounds } from "../utils/physics.ts";
-import type { Particle } from "../utils/types.ts";
+import { clampAllToBounds } from "../physics.ts";
+import type { Particle } from "../config.ts";
 
 interface UseFullscreenParams {
   canvasRef: RefObject<HTMLCanvasElement | null>;

@@ -1,9 +1,9 @@
 import React, { ReactElement, useCallback, useEffect, useRef, useState } from "react";
 import powerIcon from "../../assets/lavaLamp/power.svg";
 import { AUDIO_SOURCE_CONFIG } from "../audioConfig.ts";
-import { DEFAULT_HIGH, DEFAULT_LOW, SPEED } from "../utils/constants.ts";
-import { clampInt } from "../utils/speedUtils.ts";
-import type { AudioSource } from "../utils/types.ts";
+import { DEFAULT_HIGH, DEFAULT_LOW, SPEED } from "../config.ts";
+import { clampInt } from "../helpers.ts";
+import type { AudioSource } from "../config.ts";
 
 interface ControlsMenuProps {
   speedIdx: number;

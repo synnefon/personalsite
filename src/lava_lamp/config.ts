@@ -1,10 +1,64 @@
 /**
- * Configuration constants for the Lava Lamp simulation
+ * Configuration constants and type definitions for the Lava Lamp simulation
  */
 
-import { detectMobile } from "./deviceDetection.ts";
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  heat: number; // [0..1]
+}
+
+export type Vec2 = { x: number; y: number };
+
+export interface SpatialGrid {
+  cellSize: number;
+  cols: number;
+  rows: number;
+  heads: Int32Array; // head index or -1
+  next: Int32Array; // next index or -1
+}
+
+export type AudioSource = "redwood" | "kexp";
+
+export interface NowPlayingInfo {
+  song: string;
+  artist: string;
+  album: string;
+  isAirbreak: boolean;
+}
+
+// ============================================================================
+// Device Detection (inline to avoid separate file)
+// ============================================================================
+
+export const detectMobile = (): boolean => {
+  const userAgent =
+    navigator.userAgent ||
+    navigator.vendor ||
+    (window as Window & { opera?: string }).opera ||
+    "";
+
+  const mobileRegex =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+  const isMobileUA = mobileRegex.test(userAgent);
+
+  const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  const isSmallScreen = window.innerWidth <= 500;
+
+  return isMobileUA || (hasTouch && isSmallScreen);
+};
 
 const isMobile = detectMobile();
+
+// ============================================================================
+// Constants
+// ============================================================================
 
 // Audio source configuration
 export const AUDIO_SOURCES = {
@@ -35,7 +89,6 @@ export const SIM = {
 } as const;
 
 // Rendering constants
-// PIXEL_SIZE is now computed adaptively based on screen size
 export const RENDER = {
   PARTICLE_RADIUS: 10,
   THRESHOLD: 0.8,
@@ -43,12 +96,6 @@ export const RENDER = {
 
 /**
  * Calculate adaptive pixel size based on screen dimensions
- * Based on benchmarks:
- * - 2522x1656 (4.18M) with 8px → needs ~14.4px
- * - 1681x1104 (1.86M) with 8px → needs ~9.6px
- * - 1401x920 (1.29M) with 8px → 8px (baseline)
- * - 375x667 (250K) with 8px → could be ~4.8px
- *
  * Target: ~14ms render time for 60fps
  */
 export function computePixelSize(
@@ -57,13 +104,8 @@ export function computePixelSize(
   basePixelSize: number = 8
 ): number {
   const area = width * height;
-
-  // Sweet spot: 1.29M pixels with 8px baseline
-  // Formula: pixelSize = basePixelSize * sqrt(area / 1,288,920)
   const scaleFactor = Math.sqrt(area / 1_288_920);
   const adaptivePixelSize = basePixelSize * scaleFactor;
-
-  // Clamp between 4 and 24
   return Math.max(4, Math.min(24, Math.round(adaptivePixelSize)));
 }
 
@@ -76,14 +118,11 @@ export const CLUMPS = {
 
 /**
  * The density of the lava lamp simulation (particles per pixel).
- * Higher values produce a greater number of particles (higher density).
- * Increase this number to make the lava lamp more dense.
  */
 export const PARTICLES_PER_PIXEL = isMobile ? 0.00054 : 0.00061;
 
 /**
  * Maximum number of particles regardless of screen size.
- * This prevents performance issues on very large screens.
  */
 export const MAX_PARTICLES = 2000;
 
@@ -92,10 +131,10 @@ export const SPEED = {
   MIN: 0.0,
   MAX: 5,
   DEFAULT: 0.25,
-  STEPS: 10, // number of discrete positions
+  STEPS: 10,
 } as const;
 
-// Fixed update rate (independent of render cost / screen size)
+// Fixed update rate
 export const FIXED_FPS = 60;
 export const FIXED_MS = 1000 / FIXED_FPS;
 export const MAX_CATCHUP_STEPS = 5;

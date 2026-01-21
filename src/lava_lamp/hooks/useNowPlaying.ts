@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { AUDIO_SOURCES } from "../utils/constants.ts";
-import type { AudioSource } from "../utils/types.ts";
+import { AUDIO_SOURCES } from "../config.ts";
+import type { AudioSource } from "../config.ts";
 
 interface NowPlayingInfo {
   song: string;

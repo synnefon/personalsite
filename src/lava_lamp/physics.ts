@@ -2,9 +2,9 @@
  * Physics simulation and particle behavior
  */
 
-import type { Particle, Vec2, SpatialGrid } from "./types.ts";
-import { SIM, CLUMPS, PARTICLES_PER_PIXEL, MAX_PARTICLES } from "./constants.ts";
-import { gridIndex } from "./spatialGrid.ts";
+import type { Particle, Vec2, SpatialGrid } from "./config.ts";
+import { SIM, CLUMPS, PARTICLES_PER_PIXEL, MAX_PARTICLES } from "./config.ts";
+import { gridIndex } from "./helpers.ts";
 
 // Math utilities
 export function clamp01(v: number): number {

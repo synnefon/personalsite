@@ -1,5 +1,5 @@
 import { useEffect, useRef, RefObject } from "react";
-import type { Vec2 } from "../utils/types.ts";
+import type { Vec2 } from "../config.ts";
 
 export function usePointerHandling(canvasRef: RefObject<HTMLCanvasElement | null>) {
   const pointerDownRef = useRef(false);

@@ -3,9 +3,9 @@
  */
 
 import type React from "react";
-import type { Particle } from "./types.ts";
-import { RENDER, computePixelSize } from "./constants.ts";
-import { packRgba } from "./colorUtils.ts";
+import type { Particle } from "./config.ts";
+import { RENDER, computePixelSize } from "./config.ts";
+import { packRgba } from "./colors.ts";
 
 // Cached black value for fill (avoid recomputation)
 const BLACK_RGBA = packRgba(0, 0, 0, 255);
