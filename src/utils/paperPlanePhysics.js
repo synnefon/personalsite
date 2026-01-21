@@ -34,10 +34,14 @@ export const DEGREES_TO_RADIANS = Math.PI / 180;
 const degToRad = (deg) => deg * DEGREES_TO_RADIANS;
 
 // Initial conditions ranges
-export const MAX_SPEED_MULTIPLIER = 1.3;
-export const MIN_SPEED_MULTIPLIER = 0.7;
+export const MAX_SPEED_MULTIPLIER = 1.0; // Set to 1.0 for consistent speed
+export const MIN_SPEED_MULTIPLIER = 1.0; // Set to 1.0 for consistent speed
 export const MAX_ANGLE = 25;
 export const MIN_ANGLE = -15;
+
+// Target screen speed as fraction of screen width per second
+// 0.25 means the plane crosses 25% of screen width per second (4 seconds to cross full screen)
+export const SCREEN_WIDTH_FRACTION_PER_SEC = 0.25;
 
 // ============================================================================
 // CALCULATED VALUES (derived from global constants)
@@ -61,6 +65,17 @@ const EQUILIBRIUM_VELOCITY = Math.sqrt(
 export const EQUILIBRIUM_LIFT_COEFFICIENT = LIFT_DRAG_COEFFICIENT;
 export const EQUILIBRIUM_DRAG_COEFFICIENT =
   ZERO_LIFT_DRAG_COEFFICIENT + INDUCED_DRAG_FACTOR * LIFT_DRAG_COEFFICIENT ** 2;
+
+/**
+ * Calculate coordinate scaling factor based on screen width
+ * This ensures planes travel at the same relative speed across all screen sizes
+ * @param {number} screenWidth - Window inner width in pixels
+ * @returns {number} Coordinate scale factor
+ */
+export function calculateCoordinateScale(screenWidth) {
+  const targetSpeedPxPerSec = screenWidth * SCREEN_WIDTH_FRACTION_PER_SEC;
+  return targetSpeedPxPerSec / EQUILIBRIUM_VELOCITY;
+}
 
 /**
  * Get random initial conditions for paper plane flight

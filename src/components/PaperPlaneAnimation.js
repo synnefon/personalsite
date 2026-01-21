@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   ANGLE_OFFSET_RADIANS,
+  calculateCoordinateScale,
   getInitialConditions,
   RADIANS_TO_DEGREES,
   updatePhysicsState,
@@ -10,9 +11,6 @@ import "../styles/paperPlane.css";
 
 // Offscreen cleanup timing
 const OFFSCREEN_CLEANUP_DELAY_MS = 10000; // 10 seconds
-
-// Coordinate scaling
-const COORDINATE_SCALE = 100;
 
 // Direction multipliers
 const DIRECTION_LEFT = -1;
@@ -45,6 +43,7 @@ const PaperPlaneAnimation = ({
   const [position, setPosition] = useState(null);
   const animationRef = useRef(null);
   const stateRef = useRef(null);
+  const scaleRef = useRef(null);
   const lastGustTimestampRef = useRef(0);
   const offscreenCheckRef = useRef(null);
   const wasOffscreenRef = useRef(false);
@@ -55,13 +54,13 @@ const PaperPlaneAnimation = ({
     const directionMultiplier =
       direction === "left" ? DIRECTION_LEFT : DIRECTION_RIGHT;
     return (
-      startPosition.x + state.Range * COORDINATE_SCALE * directionMultiplier
+      startPosition.x + state.Range * scaleRef.current * directionMultiplier
     );
   }
 
   function getPlaneYPosition(state, startPosition) {
     // state.H is altitude change: negative = descended, positive = ascended
-    return startPosition.y - state.H * COORDINATE_SCALE;
+    return startPosition.y - state.H * scaleRef.current;
   }
 
   function calculatePositionalGustEffect(gustState, planeX, planeY) {
@@ -154,7 +153,9 @@ const PaperPlaneAnimation = ({
     const initialConditions = getInitialConditions();
     stateRef.current = { ...initialConditions };
 
-    const scale = COORDINATE_SCALE;
+    // Calculate scale based on current screen width for consistent relative speed
+    const scale = calculateCoordinateScale(window.innerWidth);
+    scaleRef.current = scale;
 
     function getScreenCoords(
       startPosition,
