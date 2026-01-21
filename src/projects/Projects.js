@@ -229,7 +229,7 @@ export default function Projects() {
           >
             <p className="link-text proj-colors">lava lamp radio</p>
             <p className="tooltip-text proj-colors">
-              pixelated cellular automata lava lamp radio
+              lava lamp + radio
             </p>
           </Link>
           <Link className="link proj-colors" to="/shavianator" rel="noreferrer">
