@@ -20,6 +20,8 @@ interface ControlsMenuProps {
   setLavaHighColor: (color: string) => void;
   rainbowMode: boolean;
   setRainbowMode: (mode: boolean) => void;
+  spectrumMode: boolean;
+  setSpectrumMode: (mode: boolean) => void;
   isFullscreen: boolean;
   toggleFullscreen: () => void;
   isMobile: boolean;
@@ -38,6 +40,8 @@ export default function ControlsMenu({
   setLavaHighColor,
   rainbowMode,
   setRainbowMode,
+  spectrumMode,
+  setSpectrumMode,
   isFullscreen,
   toggleFullscreen,
   isMobile,
@@ -107,11 +111,18 @@ export default function ControlsMenu({
     };
   }, [draggingWheel, handleWheelDrag]);
 
-  // Generate gradient preview using HSL interpolation (hot to cool)
+  // Generate gradient preview (hot to cool)
   const gradientPreview = useMemo(() => {
+    const stops: string[] = [];
+
+    if (!spectrumMode) {
+      // Gradient mode: simple RGB interpolation
+      return `linear-gradient(to right, ${lavaHighColor}, ${lavaLowColor})`;
+    }
+
+    // Spectrum mode: HSL interpolation with stable direction
     const loHsl = hexToHsl(lavaLowColor);
     const hiHsl = hexToHsl(lavaHighColor);
-    const stops: string[] = [];
 
     let h0 = hiHsl.h;
     let h1 = loHsl.h;
@@ -150,7 +161,7 @@ export default function ControlsMenu({
     }
 
     return `linear-gradient(to right, ${stops.join(', ')})`;
-  }, [lavaLowColor, lavaHighColor]);
+  }, [lavaLowColor, lavaHighColor, spectrumMode]);
 
   return (
     <div className="lava-lamp-controls" ref={menuRef}>
@@ -251,6 +262,30 @@ export default function ControlsMenu({
                 />
                 <span style={{ fontSize: 13, opacity: 0.9 }}>
                   rainbow drift mode
+                </span>
+              </label>
+            </div>
+            {/* Spectrum/Gradient mode toggle */}
+            <div
+              className="lava-lamp-slider-wrap"
+              style={{ marginBottom: 12 }}
+            >
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  className="lava-lamp-checkbox"
+                  checked={spectrumMode}
+                  onChange={(e) => setSpectrumMode(e.target.checked)}
+                />
+                <span style={{ fontSize: 13, opacity: 0.9 }}>
+                  spectrum mode
                 </span>
               </label>
             </div>

@@ -6,19 +6,18 @@ import {
   hexToHsl,
 } from "../colors.ts";
 
-// Generate random starting colors at least 35 degrees apart
+// Generate random starting colors between 90 and 270 degrees apart
 function generateRandomColors(): { low: string; high: string } {
   const hue1 = Math.random();
-  let hue2 = Math.random();
 
-  // Ensure at least 35 degrees (35/360 = ~0.097) separation
-  const minSeparation = 35 / 360;
-  const separation = Math.abs(hue2 - hue1);
-  const wrappedSeparation = 1 - separation;
+  // Generate separation between 90 and 270 degrees
+  const minSeparation = 90 / 360;
+  const maxSeparation = 270 / 360;
+  const separation = minSeparation + Math.random() * (maxSeparation - minSeparation);
 
-  if (separation < minSeparation && wrappedSeparation < minSeparation) {
-    hue2 = (hue1 + minSeparation + Math.random() * (1 - 2 * minSeparation)) % 1;
-  }
+  // Randomly choose direction
+  const direction = Math.random() < 0.5 ? 1 : -1;
+  const hue2 = (hue1 + separation * direction + 1) % 1;
 
   const color1 = hslToRgb(hue1, 1.0, 0.5);
   const color2 = hslToRgb(hue2, 1.0, 0.5);
@@ -29,15 +28,33 @@ function generateRandomColors(): { low: string; high: string } {
   return { low: hex1, high: hex2 };
 }
 
-// Build heat LUT with stable direction
+// Build heat LUT with stable direction (spectrum mode)
 function buildStableHeatLut256(
   lowHex: string,
   highHex: string,
-  directionRef: React.MutableRefObject<number>
+  directionRef: React.MutableRefObject<number>,
+  useSpectrum: boolean
 ): Uint32Array {
+  const lut = new Uint32Array(256);
+
+  if (!useSpectrum) {
+    // Gradient mode: simple RGB interpolation
+    const lowRgb = hexToRgb(lowHex);
+    const highRgb = hexToRgb(highHex);
+
+    for (let i = 0; i < 256; ++i) {
+      const t = i / 255;
+      const r = Math.round(lowRgb.r + (highRgb.r - lowRgb.r) * t);
+      const g = Math.round(lowRgb.g + (highRgb.g - lowRgb.g) * t);
+      const b = Math.round(lowRgb.b + (highRgb.b - lowRgb.b) * t);
+      lut[i] = ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0;
+    }
+    return lut;
+  }
+
+  // Spectrum mode: HSL interpolation with stable direction
   const loHsl = hexToHsl(lowHex);
   const hiHsl = hexToHsl(highHex);
-  const lut = new Uint32Array(256);
 
   let h0 = loHsl.h;
   let h1 = hiHsl.h;
@@ -73,26 +90,39 @@ function buildStableHeatLut256(
   return lut;
 }
 
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : { r: 0, g: 0, b: 0 };
+}
+
 const initialColors = generateRandomColors();
+const initialSpectrumMode = Math.random() < 0.25;
 
 export function useColorManagement(speedRef: React.MutableRefObject<number>) {
   const [lavaLowColor, setLavaLowColor] = useState(initialColors.low);
   const [lavaHighColor, setLavaHighColor] = useState(initialColors.high);
   const [rainbowMode, setRainbowMode] = useState(false);
+  const [spectrumMode, setSpectrumMode] = useState(initialSpectrumMode);
 
   const gradientDirectionRef = useRef<number>(0);
   const heatLutRef = useRef<Uint32Array>(
-    buildStableHeatLut256(initialColors.low, initialColors.high, gradientDirectionRef)
+    buildStableHeatLut256(initialColors.low, initialColors.high, gradientDirectionRef, initialSpectrumMode)
   );
   const lavaLowColorRef = useRef(initialColors.low);
   const lavaHighColorRef = useRef(initialColors.high);
 
-  // Update heat LUT when colors change
+  // Update heat LUT when colors or mode change
   useEffect(() => {
     lavaLowColorRef.current = lavaLowColor;
     lavaHighColorRef.current = lavaHighColor;
-    heatLutRef.current = buildStableHeatLut256(lavaLowColor, lavaHighColor, gradientDirectionRef);
-  }, [lavaLowColor, lavaHighColor]);
+    heatLutRef.current = buildStableHeatLut256(lavaLowColor, lavaHighColor, gradientDirectionRef, spectrumMode);
+  }, [lavaLowColor, lavaHighColor, spectrumMode]);
 
   // Rainbow mode: drift hues over time
   const rainbowLowHueRef = useRef(0);
@@ -146,6 +176,8 @@ export function useColorManagement(speedRef: React.MutableRefObject<number>) {
     setLavaHighColor,
     rainbowMode,
     setRainbowMode,
+    spectrumMode,
+    setSpectrumMode,
     heatLutRef,
   };
 }

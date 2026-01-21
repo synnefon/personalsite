@@ -61,6 +61,8 @@ export default function LavaLamp(): ReactElement {
     setLavaHighColor,
     rainbowMode,
     setRainbowMode,
+    spectrumMode,
+    setSpectrumMode,
     heatLutRef,
   } = useColorManagement(speedRef);
 
@@ -176,6 +178,8 @@ export default function LavaLamp(): ReactElement {
           setLavaHighColor={setLavaHighColor}
           rainbowMode={rainbowMode}
           setRainbowMode={setRainbowMode}
+          spectrumMode={spectrumMode}
+          setSpectrumMode={setSpectrumMode}
           isFullscreen={isFullscreen}
           toggleFullscreen={toggleFullscreen}
           isMobile={isMobile}
