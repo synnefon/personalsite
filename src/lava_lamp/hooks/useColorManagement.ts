@@ -27,12 +27,18 @@ export function useColorManagement(speedRef: React.MutableRefObject<number>) {
   // Rainbow mode: drift hues over time
   const rainbowLowHueRef = useRef(0);
   const rainbowHighHueRef = useRef(0);
+  const rainbowLowSpeedRef = useRef(1);
+  const rainbowHighSpeedRef = useRef(1.3);
   const prevRainbow = useRef(false);
 
   useEffect(() => {
     if (rainbowMode && !prevRainbow.current) {
+      // Start from current colors
       rainbowLowHueRef.current = hexToHue(lavaLowColor);
       rainbowHighHueRef.current = hexToHue(lavaHighColor);
+      // Random drift speeds: 0.5x to 2x base rate
+      rainbowLowSpeedRef.current = 0.5 + Math.random() * 1.5;
+      rainbowHighSpeedRef.current = 0.5 + Math.random() * 1.5;
     }
     prevRainbow.current = rainbowMode;
   }, [rainbowMode, lavaLowColor, lavaHighColor]);
@@ -48,9 +54,9 @@ export function useColorManagement(speedRef: React.MutableRefObject<number>) {
         norm = dt / 16.67,
         base = 0.02;
       rainbowLowHueRef.current =
-        (rainbowLowHueRef.current + base * s * norm) % 360;
+        (rainbowLowHueRef.current + base * s * norm * rainbowLowSpeedRef.current) % 360;
       rainbowHighHueRef.current =
-        (rainbowHighHueRef.current + base * s * norm * 1.3) % 360;
+        (rainbowHighHueRef.current + base * s * norm * rainbowHighSpeedRef.current) % 360;
       setLavaLowColor(hslToHex(rainbowLowHueRef.current, 1, 0.5));
       setLavaHighColor(hslToHex(rainbowHighHueRef.current, 1, 0.5));
       id = requestAnimationFrame(tick);
