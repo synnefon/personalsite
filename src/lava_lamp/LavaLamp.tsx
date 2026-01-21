@@ -94,6 +94,15 @@ export default function LavaLamp(): ReactElement {
   const { nowPlaying, nowPlayingExpanded, setNowPlayingExpanded } =
     useNowPlaying(hasStarted, audioSource);
 
+  // Update document title with song info
+  useEffect(() => {
+    if (nowPlaying && !nowPlaying.isAirbreak) {
+      document.title = `${nowPlaying.song} - ${nowPlaying.artist}`;
+    } else {
+      document.title = "connor.lava-lamp-radio";
+    }
+  }, [nowPlaying]);
+
   // Start lamp
   const startLamp = useCallback(async () => {
     playClick();
