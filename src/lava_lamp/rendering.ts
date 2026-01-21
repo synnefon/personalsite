@@ -4,7 +4,7 @@
 
 import type React from "react";
 import type { Particle } from "./config.ts";
-import { RENDER, computePixelSize } from "./config.ts";
+import { RENDER, computePixelSize, computeScaleFactor, computeParticleRadius } from "./config.ts";
 import { packRgba } from "./colors.ts";
 
 // Cached black value for fill (avoid recomputation)
@@ -61,7 +61,9 @@ export function drawMetaballs(
   pixelSize: number
 ): void {
   const threshold = RENDER.THRESHOLD;
-  const particleRadiusSquared = RENDER.PARTICLE_RADIUS * RENDER.PARTICLE_RADIUS;
+  const scaleFactor = computeScaleFactor(canvasWidth, canvasHeight);
+  const particleRadius = computeParticleRadius(scaleFactor);
+  const particleRadiusSquared = particleRadius * particleRadius;
   const data32 = new Uint32Array(imageData.data.buffer);
 
   // Fill the entire image with black using the cached RGBA value.

@@ -3,7 +3,20 @@
  */
 
 import type { Particle, Vec2, SpatialGrid } from "./config.ts";
-import { SIM, CLUMPS, PARTICLES_PER_PIXEL, MAX_PARTICLES, computeCoolRate, computeHeatSourceDistance } from "./config.ts";
+import {
+  SIM,
+  CLUMPS,
+  PARTICLES_PER_PIXEL,
+  MAX_PARTICLES,
+  computeBuoyancy,
+  computeHeatRate,
+  computeCoolRate,
+  computeHeatSourceDistance,
+  computeScaleFactor,
+  computeCohesionRadius,
+  computeMouseHeatRadius,
+  computeClumpRadius
+} from "./config.ts";
 import { gridIndex } from "./helpers.ts";
 
 // Math utilities
@@ -57,7 +70,10 @@ export function clampAllToBounds(
 // Particle count calculation
 export function computeParticleCount(width: number, height: number): number {
   const area = width * height;
-  const desired = Math.round(area * PARTICLES_PER_PIXEL);
+  const scaleFactor = computeScaleFactor(width, height);
+  // Compensate for particle radius scaling: divide by scaleFactor²
+  // This keeps visual density constant across screen sizes
+  const desired = Math.round((area * PARTICLES_PER_PIXEL) / (scaleFactor * scaleFactor));
   return Math.min(desired, MAX_PARTICLES);
 }
 
@@ -65,10 +81,12 @@ export function computeParticleCount(width: number, height: number): number {
 export function createParticles(
   width: number,
   height: number,
-  count: number
+  count: number,
+  scaleFactor: number
 ): Particle[] {
   const particles: Particle[] = [];
   const particlesPerClump = Math.floor(count / CLUMPS.COUNT);
+  const clumpRadius = computeClumpRadius(scaleFactor);
 
   for (let i = 0; i < CLUMPS.COUNT; i++) {
     const centerX = Math.random() * width;
@@ -79,7 +97,7 @@ export function createParticles(
 
     const clumpHeat = Math.random();
     for (let j = 0; j < particlesPerClump; j++) {
-      const offset = randInCircle(CLUMPS.RADIUS);
+      const offset = randInCircle(clumpRadius);
       particles.push({
         x: centerX + offset.x,
         y: centerY + offset.y,
@@ -104,9 +122,9 @@ export function createParticles(
 }
 
 // Physics forces
-export function applyBuoyancyAndGravity(p: Particle, dt: number): void {
-  const buoyancy = p.heat * p.heat * SIM.BUOYANCY;
-  p.vy += (SIM.GRAVITY - buoyancy) * dt;
+export function applyBuoyancyAndGravity(p: Particle, dt: number, buoyancy: number): void {
+  const buoyancyForce = p.heat * p.heat * buoyancy;
+  p.vy += (SIM.GRAVITY - buoyancyForce) * dt;
 }
 
 export function applyFriction(p: Particle, dt: number): void {
@@ -124,18 +142,20 @@ export function applyPointerHeat(
   p: Particle,
   pointerPos: Vec2,
   dt: number,
+  scaleFactor: number,
+  heatRate: number,
   cooling: boolean = false
 ): void {
   const dx = p.x - pointerPos.x;
   const dy = p.y - pointerPos.y;
   const d2 = dx * dx + dy * dy;
-  const r = SIM.MOUSE_HEAT_RADIUS;
+  const r = computeMouseHeatRadius(scaleFactor);
   const r2 = r * r;
 
   if (d2 < r2) {
     const d = Math.sqrt(d2);
     const intensity = 1 - d * (1 / r);
-    const heatChange = SIM.HEAT_RATE * 10 * intensity * dt;
+    const heatChange = heatRate * 10 * intensity * dt;
     p.heat += cooling ? -heatChange : heatChange;
   }
 }
@@ -146,9 +166,10 @@ export function applyCohesionImpulse(
   dx: number,
   dy: number,
   d: number,
-  dt: number
+  dt: number,
+  cohesionRadius: number
 ): void {
-  const force = SIM.COHESION_STRENGTH * (1 - d * (1 / SIM.COHESION_RADIUS));
+  const force = SIM.COHESION_STRENGTH * (1 - d * (1 / cohesionRadius));
   const invD = 1 / d;
   const fx = dx * invD * force * dt;
   const fy = dy * invD * force * dt;
@@ -174,14 +195,16 @@ export function applyBottomHeatOrAirCooling(
   p: Particle,
   height: number,
   neighborCount: number,
-  dt: number
+  dt: number,
+  scaleFactor: number,
+  heatRate: number
 ): void {
   const distanceFromBottom = height - p.y;
-  const heatSourceDistance = computeHeatSourceDistance(height);
+  const heatSourceDistance = computeHeatSourceDistance(scaleFactor);
 
   if (distanceFromBottom < heatSourceDistance) {
     const intensity = 1 - distanceFromBottom * (1 / heatSourceDistance);
-    p.heat += SIM.HEAT_RATE * intensity * dt;
+    p.heat += heatRate * intensity * dt;
     return;
   }
 
@@ -189,7 +212,7 @@ export function applyBottomHeatOrAirCooling(
   const neighbors = neighborCount < maxNeighbors ? neighborCount : maxNeighbors;
   const airExposure = 1 - neighbors / maxNeighbors;
 
-  const coolRate = computeCoolRate(height);
+  const coolRate = computeCoolRate(scaleFactor);
   p.heat -= coolRate * (0.2 + airExposure * 0.8) * dt;
 }
 
@@ -206,16 +229,20 @@ export function stepSimulationOnePairPass(
   pointerCooling: boolean = false
 ): void {
   const dt = Math.max(0, Math.min(4.0, timeScale));
+  const scaleFactor = computeScaleFactor(width, height);
+  const cohesionRadius = computeCohesionRadius(scaleFactor);
+  const buoyancy = computeBuoyancy(scaleFactor);
+  const heatRate = computeHeatRate(scaleFactor);
 
   // Pass 1: integrate + pointer heat + reset neighbors + bounds
   for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
 
-    applyBuoyancyAndGravity(p, dt);
+    applyBuoyancyAndGravity(p, dt, buoyancy);
     applyFriction(p, dt);
     integrate(p, dt);
 
-    if (pointerDown) applyPointerHeat(p, pointerPos, dt, pointerCooling);
+    if (pointerDown) applyPointerHeat(p, pointerPos, dt, scaleFactor, heatRate, pointerCooling);
 
     neighborCounts[i] = 0;
     bounceInBounds(p, width, height);
@@ -252,7 +279,7 @@ export function stepSimulationOnePairPass(
   }
 
   // Pass 2: local neighbor forces + conduction
-  const r = SIM.COHESION_RADIUS;
+  const r = cohesionRadius;
   const r2 = r * r;
 
   for (let i = 0; i < particles.length; i++) {
@@ -287,7 +314,7 @@ export function stepSimulationOnePairPass(
               neighborCounts[j]++;
 
               const d = Math.sqrt(d2);
-              applyCohesionImpulse(p1, p2, dx, dy, d, dt);
+              applyCohesionImpulse(p1, p2, dx, dy, d, dt, cohesionRadius);
               applyHeatConduction(p1, p2, dt);
             }
           }
@@ -300,7 +327,7 @@ export function stepSimulationOnePairPass(
   // Pass 3: bottom heat / air cooling + clamp heat + bounds
   for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
-    applyBottomHeatOrAirCooling(p, height, neighborCounts[i], dt);
+    applyBottomHeatOrAirCooling(p, height, neighborCounts[i], dt, scaleFactor, heatRate);
     p.heat = clamp01(p.heat);
   }
 

@@ -73,43 +73,86 @@ export const DEFAULT_LOW = "#ff5500";
 // Physics simulation constants
 export const SIM = {
   GRAVITY: 0.01,
-  BUOYANCY: 0.04,
+  BUOYANCY_BASE: 0.04,
   FRICTION: 0.98,
 
-  HEAT_RATE: 0.005,
+  HEAT_RATE_BASE: 0.005,
   COOL_RATE_BASE: 0.0017,
   HEAT_CONDUCTION: 0.002,
 
   HEAT_SOURCE_DISTANCE_BASE: 45,
-  REFERENCE_HEIGHT: 1000, // Reference screen height for scaling
-
-  COHESION_RADIUS: 25,
+  COHESION_RADIUS_BASE: 25,
   COHESION_STRENGTH: 0.0035,
-
-  MOUSE_HEAT_RADIUS: 100,
+  MOUSE_HEAT_RADIUS_BASE: 100,
 } as const;
 
 /**
- * Calculate cooling rate based on screen height
- * Scales cooling rate proportionally with height to maintain consistent behavior
+ * Calculate buoyancy force based on screen scale factor
+ * Scales so particles can travel longer distances on bigger screens
  */
-export function computeCoolRate(height: number): number {
-  return SIM.COOL_RATE_BASE * (height / SIM.REFERENCE_HEIGHT);
+export function computeBuoyancy(scaleFactor: number): number {
+  return SIM.BUOYANCY_BASE * scaleFactor;
 }
 
 /**
- * Calculate heat source distance (bottom heater zone) based on screen height
+ * Calculate heat rate based on screen scale factor
+ * Scales so particles heat up faster relative to distance traveled
+ */
+export function computeHeatRate(scaleFactor: number): number {
+  return SIM.HEAT_RATE_BASE * scaleFactor;
+}
+
+/**
+ * Calculate cooling rate based on screen scale factor
+ * Scales cooling rate proportionally to maintain consistent behavior
+ */
+export function computeCoolRate(scaleFactor: number): number {
+  return SIM.COOL_RATE_BASE * scaleFactor;
+}
+
+/**
+ * Calculate heat source distance (bottom heater zone) based on screen scale factor
  * Scales proportionally to maintain consistent heating behavior
  */
-export function computeHeatSourceDistance(height: number): number {
-  return SIM.HEAT_SOURCE_DISTANCE_BASE * (height / SIM.REFERENCE_HEIGHT);
+export function computeHeatSourceDistance(scaleFactor: number): number {
+  return SIM.HEAT_SOURCE_DISTANCE_BASE * scaleFactor;
+}
+
+/**
+ * Calculate cohesion radius (particle interaction distance) based on screen scale factor
+ */
+export function computeCohesionRadius(scaleFactor: number): number {
+  return SIM.COHESION_RADIUS_BASE * scaleFactor;
+}
+
+/**
+ * Calculate mouse heat radius (user interaction distance) based on screen scale factor
+ */
+export function computeMouseHeatRadius(scaleFactor: number): number {
+  return SIM.MOUSE_HEAT_RADIUS_BASE * scaleFactor;
 }
 
 // Rendering constants
 export const RENDER = {
-  PARTICLE_RADIUS: 10,
+  PARTICLE_RADIUS_BASE: 10,
   THRESHOLD: 0.8,
 } as const;
+
+/**
+ * Calculate particle radius (metaball size) based on screen scale factor
+ */
+export function computeParticleRadius(scaleFactor: number): number {
+  return RENDER.PARTICLE_RADIUS_BASE * scaleFactor;
+}
+
+/**
+ * Calculate the scale factor based on screen dimensions
+ * Used to scale both rendering and physics consistently
+ */
+export function computeScaleFactor(width: number, height: number): number {
+  const area = width * height;
+  return Math.sqrt(area / 1_288_920);
+}
 
 /**
  * Calculate adaptive pixel size based on screen dimensions
@@ -120,8 +163,7 @@ export function computePixelSize(
   height: number,
   basePixelSize: number = 8
 ): number {
-  const area = width * height;
-  const scaleFactor = Math.sqrt(area / 1_288_920);
+  const scaleFactor = computeScaleFactor(width, height);
   const adaptivePixelSize = basePixelSize * scaleFactor;
   return Math.max(4, Math.min(24, Math.round(adaptivePixelSize)));
 }
@@ -129,9 +171,16 @@ export function computePixelSize(
 // Particle clustering configuration
 export const CLUMPS = {
   COUNT: 15,
-  RADIUS: isMobile ? 30 : 50,
+  RADIUS_BASE: isMobile ? 30 : 50,
   TOP_HALF_PROB: 0.3,
 } as const;
+
+/**
+ * Calculate clump radius (initial particle clustering) based on screen scale factor
+ */
+export function computeClumpRadius(scaleFactor: number): number {
+  return CLUMPS.RADIUS_BASE * scaleFactor;
+}
 
 /**
  * The density of the lava lamp simulation (particles per pixel).

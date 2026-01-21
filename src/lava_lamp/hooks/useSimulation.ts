@@ -6,7 +6,7 @@ import {
 } from "../physics.ts";
 import { renderFrame } from "../rendering.ts";
 import { ensureGrid } from "../helpers.ts";
-import { FIXED_MS, MAX_CATCHUP_STEPS, SIM } from "../config.ts";
+import { FIXED_MS, MAX_CATCHUP_STEPS, computeScaleFactor, computeCohesionRadius } from "../config.ts";
 import type { Particle, SpatialGrid, Vec2 } from "../config.ts";
 
 interface UseSimulationParams {
@@ -58,9 +58,11 @@ export function useSimulation({
     if (particleCountRef.current === null)
       particleCountRef.current = computeParticleCount(w, h);
     const count = particleCountRef.current;
-    particlesRef.current = createParticles(w, h, count);
+    const scaleFactor = computeScaleFactor(w, h);
+    particlesRef.current = createParticles(w, h, count, scaleFactor);
     neighborCountsRef.current = new Uint16Array(count);
-    ensureGrid(gridRef, w, h, count, SIM.COHESION_RADIUS);
+    const cohesionRadius = computeCohesionRadius(scaleFactor);
+    ensureGrid(gridRef, w, h, count, cohesionRadius);
   }, []);
 
   // Update simulation one step
