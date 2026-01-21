@@ -81,8 +81,9 @@ function buildStableHeatLut256(
     while (h > 1) h -= 1;
     while (h < 0) h += 1;
 
-    const s = loHsl.s + (hiHsl.s - loHsl.s) * t;
-    const l = loHsl.l + (hiHsl.l - loHsl.l) * t;
+    // Always use full saturation and medium lightness for vibrant colors
+    const s = 1.0;
+    const l = 0.5;
 
     const { r, g, b } = hslToRgb(h, s, l);
     lut[i] = ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0;
@@ -161,6 +162,39 @@ export function useColorManagement(speedRef: React.MutableRefObject<number>) {
         (rainbowLowHueRef.current + base * s * norm * rainbowLowSpeedRef.current) % 360;
       rainbowHighHueRef.current =
         (rainbowHighHueRef.current + base * s * norm * rainbowHighSpeedRef.current) % 360;
+
+      // If within 45 degrees, ensure they're moving apart as fast as possible
+      const lowHue = rainbowLowHueRef.current;
+      const highHue = rainbowHighHueRef.current;
+      const diff = highHue - lowHue;
+      const wrappedDiff = diff > 0 ? diff - 360 : diff + 360;
+
+      // Use signed distance to determine which way is shorter
+      const signedDistance = Math.abs(diff) < Math.abs(wrappedDiff) ? diff : wrappedDiff;
+      const angularDistance = Math.abs(signedDistance);
+
+      if (angularDistance < 45) {
+        const lowSpeed = rainbowLowSpeedRef.current;
+        const highSpeed = rainbowHighSpeedRef.current;
+
+        // Determine correct directions to maximize separation
+        const lowShouldBeNegative = signedDistance > 0;
+        const highShouldBePositive = signedDistance > 0;
+
+        // Fix directions if they're wrong
+        if (lowShouldBeNegative && lowSpeed > 0) {
+          rainbowLowSpeedRef.current = -Math.abs(lowSpeed);
+        } else if (!lowShouldBeNegative && lowSpeed < 0) {
+          rainbowLowSpeedRef.current = Math.abs(lowSpeed);
+        }
+
+        if (highShouldBePositive && highSpeed < 0) {
+          rainbowHighSpeedRef.current = Math.abs(highSpeed);
+        } else if (!highShouldBePositive && highSpeed > 0) {
+          rainbowHighSpeedRef.current = -Math.abs(highSpeed);
+        }
+      }
+
       setLavaLowColor(hslToHex(rainbowLowHueRef.current, 1, 0.5));
       setLavaHighColor(hslToHex(rainbowHighHueRef.current, 1, 0.5));
       id = requestAnimationFrame(tick);

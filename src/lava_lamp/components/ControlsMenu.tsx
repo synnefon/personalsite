@@ -157,8 +157,9 @@ export default function ControlsMenu({
       while (h > 1) h -= 1;
       while (h < 0) h += 1;
 
-      const s = hiHsl.s + (loHsl.s - hiHsl.s) * t;
-      const l = hiHsl.l + (loHsl.l - hiHsl.l) * t;
+      // Always use full saturation and medium lightness for vibrant colors
+      const s = 1.0;
+      const l = 0.5;
 
       const { r, g, b } = hslToRgb(h, s, l);
       const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;

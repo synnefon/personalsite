@@ -17,7 +17,15 @@ export class AudioAmplitudeAnalyzer {
     if (this.connected) return true;
 
     try {
-      this.audioContext = new AudioContext();
+      // @ts-ignore - Some browsers use webkitAudioContext
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+      if (!AudioContextClass) {
+        console.warn('[AudioAmplitude] AudioContext not supported');
+        return false;
+      }
+
+      this.audioContext = new AudioContextClass();
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 256; // Small size for performance
       this.analyser.smoothingTimeConstant = 0.95; // Higher = smoother (0-1 range)
@@ -27,6 +35,11 @@ export class AudioAmplitudeAnalyzer {
 
       this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
       this.connected = true;
+
+      // Immediately try to resume if suspended
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume();
+      }
 
       return true;
     } catch (err) {

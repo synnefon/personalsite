@@ -136,13 +136,35 @@ export function useAudioManagement(hasStarted: boolean) {
   const initializeAmplitudeAnalyzer = useCallback(() => {
     if (!amplitudeAnalyzerRef.current) {
       const analyzer = new AudioAmplitudeAnalyzer();
-      if (analyzer.connect(gameMusic)) amplitudeAnalyzerRef.current = analyzer;
+      const connected = analyzer.connect(gameMusic);
+      if (connected) {
+        amplitudeAnalyzerRef.current = analyzer;
+      } else {
+        // Retry connection once audio starts playing
+        const onPlaying = () => {
+          if (!amplitudeAnalyzerRef.current && analyzer.connect(gameMusic)) {
+            amplitudeAnalyzerRef.current = analyzer;
+          }
+          gameMusic.removeEventListener('playing', onPlaying);
+        };
+        gameMusic.addEventListener('playing', onPlaying, { once: true });
+      }
     }
   }, [gameMusic]);
 
   const resumeAmplitudeAnalyzer = useCallback(() => {
     amplitudeAnalyzerRef.current?.resume();
   }, []);
+
+  // Ensure AudioContext resumes when audio plays (important for mobile)
+  useEffect(() => {
+    if (!hasStarted) return;
+    const handlePlay = () => {
+      amplitudeAnalyzerRef.current?.resume();
+    };
+    gameMusic.addEventListener('play', handlePlay);
+    return () => gameMusic.removeEventListener('play', handlePlay);
+  }, [hasStarted, gameMusic]);
 
   return {
     audioSource,
