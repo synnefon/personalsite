@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import { Link } from "react-router-dom";
 import { TypeAnimation } from "react-type-animation";
 
 import duckIcon from "../assets/nav_icons/duck.svg";
@@ -14,6 +13,11 @@ const MAX_VOLUME_MULTIPLIER = 3;
 const NUM_ARPEGGIO_STEPS = 5;
 const VOLUME_INCREMENT = (MAX_VOLUME_MULTIPLIER - 1) / (NUM_ARPEGGIO_STEPS - 1);
 
+// Quote animation timing constants
+const FIRST_QUOTE_DELAY_MS = 600;
+const SECOND_QUOTE_DELAY_MS = FIRST_QUOTE_DELAY_MS * 1.8;
+const SUBTITLE_DELAY_MS = FIRST_QUOTE_DELAY_MS * 11;
+
 export default function Home() {
   const [duckOrange, setDuckOrange] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -21,6 +25,7 @@ export default function Home() {
   const [quoteVisible, setQuoteVisible] = useState(false);
   const [quote2Visible, setQuote2Visible] = useState(false);
   const [subtitleVisible, setSubtitleVisible] = useState(false);
+  const [skipAnimations, setSkipAnimations] = useState(false);
   const [duckPosition, setDuckPosition] = useState({ left: null, top: null, bottom: null });
   const [volumeMultiplier, setVolumeMultiplier] = useState(1);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -96,17 +101,30 @@ export default function Home() {
       setDuckPosition(initialPosition);
     }
 
+    // Check if animation has been seen before (sessionStorage is cleared on cache clear)
+    const hasSeenAnimation = sessionStorage.getItem("hasSeenHomeAnimation") === "true";
+
+    if (hasSeenAnimation) {
+      // Skip animations, show everything immediately
+      setSkipAnimations(true);
+      setQuoteVisible(true);
+      setQuote2Visible(true);
+      setSubtitleVisible(true);
+      return;
+    }
+
     // Trigger quote animations with staggered delays
     const timer1 = setTimeout(() => {
       setQuoteVisible(true);
-    }, 1000);
+    }, FIRST_QUOTE_DELAY_MS);
     const timer2 = setTimeout(() => {
       setQuote2Visible(true);
-    }, 1800);
-    // Start subtitle animation 3 seconds after quotes finish (8 + 3 = 11 seconds)
+    }, SECOND_QUOTE_DELAY_MS);
     const timer3 = setTimeout(() => {
       setSubtitleVisible(true);
-    }, 11000);
+      // Mark animation as seen after all animations complete
+      sessionStorage.setItem("hasSeenHomeAnimation", "true");
+    }, SUBTITLE_DELAY_MS);
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
@@ -299,6 +317,11 @@ export default function Home() {
       : [descriptor, 3_000];
 
   const renderAnimatedText = (text) => {
+    // If animations should be skipped, just return plain text
+    if (skipAnimations) {
+      return <span>{text}</span>;
+    }
+
     const words = text.split(" ");
     let charIndex = 0;
 
