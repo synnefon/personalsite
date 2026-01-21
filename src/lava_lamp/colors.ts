@@ -92,6 +92,85 @@ export function lerpInt(a: number, b: number, t: number): number {
   return v <= 0 ? 0 : v >= 255 ? 255 : (0.5 + v) | 0;
 }
 
+// Clamp value to [0, 1]
+function clamp01(v: number): number {
+  return v < 0 ? 0 : v > 1 ? 1 : v;
+}
+
+// RGB to HSL conversion
+export function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+  // Normalize to [0, 1]
+  const rf = r / 255;
+  const gf = g / 255;
+  const bf = b / 255;
+
+  const max = Math.max(rf, gf, bf);
+  const min = Math.min(rf, gf, bf);
+  const delta = max - min;
+
+  // Lightness
+  const l = (max + min) / 2;
+
+  // Achromatic (gray)
+  if (delta < 0.00001) {
+    return { h: 0, s: 0, l };
+  }
+
+  // Saturation
+  const s = l > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+
+  // Hue
+  let h: number;
+  if (max === rf) {
+    h = ((gf - bf) / delta + (gf < bf ? 6 : 0)) / 6;
+  } else if (max === gf) {
+    h = ((bf - rf) / delta + 2) / 6;
+  } else {
+    h = ((rf - gf) / delta + 4) / 6;
+  }
+
+  return { h, s, l };
+}
+
+// HSL to RGB conversion
+export function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
+  let r: number, g: number, b: number;
+
+  if (s < 0.00001) {
+    // Achromatic
+    r = g = b = l;
+  } else {
+    const hue2rgb = (p: number, q: number, t: number): number => {
+      let tt = t;
+      if (tt < 0) tt += 1;
+      if (tt > 1) tt -= 1;
+      if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+      if (tt < 1 / 2) return q;
+      if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+      return p;
+    };
+
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+
+    r = hue2rgb(p, q, h + 1 / 3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1 / 3);
+  }
+
+  return {
+    r: Math.round(r * 255),
+    g: Math.round(g * 255),
+    b: Math.round(b * 255),
+  };
+}
+
+// Hex to HSL (returns h in [0,1], s and l in [0,1])
+export function hexToHsl(hex: string): { h: number; s: number; l: number } {
+  const { r, g, b } = hexToRgb(hex);
+  return rgbToHsl(r, g, b);
+}
+
 // Use unsigned right shift for fast Uint32 RGBA
 export function packRgba(r: number, g: number, b: number, a: number): number {
   // >>> 0 forces Uint32, improves perf in some engines
@@ -99,21 +178,34 @@ export function packRgba(r: number, g: number, b: number, a: number): number {
 }
 
 export function buildHeatLut256(lowHex: string, highHex: string): Uint32Array {
-  const lo = hexToRgb(lowHex);
-  const hi = hexToRgb(highHex);
+  // Convert to HSL for better color interpolation
+  const loHsl = hexToHsl(lowHex); // h, s, l in [0,1]
+  const hiHsl = hexToHsl(highHex);
 
   const lut = new Uint32Array(256);
-  // Hoist for reuse
-  const r0 = lo.r, r1 = hi.r;
-  const g0 = lo.g, g1 = hi.g;
-  const b0 = lo.b, b1 = hi.b;
 
   for (let i = 0; i < 256; ++i) {
-    // Inline t, save divisions if possible
     const t = i * 0.00392156862745098; // i / 255
-    const r = (r0 + (r1 - r0) * t + 0.5) | 0;
-    const g = (g0 + (g1 - g0) * t + 0.5) | 0;
-    const b = (b0 + (b1 - b0) * t + 0.5) | 0;
+
+    // Interpolate in HSL space
+    // Handle hue wrapping for shortest path
+    let h0 = loHsl.h;
+    let h1 = hiHsl.h;
+    if (Math.abs(h1 - h0) > 0.5) {
+      if (h1 > h0) {
+        h0 += 1;
+      } else {
+        h1 += 1;
+      }
+    }
+    let h = h0 + (h1 - h0) * t;
+    if (h > 1) h -= 1;
+
+    const s = loHsl.s + (hiHsl.s - loHsl.s) * t;
+    const l = loHsl.l + (hiHsl.l - loHsl.l) * t;
+
+    // Convert back to RGB using hslToRgb
+    const { r, g, b } = hslToRgb(h, s, l);
     lut[i] = ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0;
   }
   return lut;

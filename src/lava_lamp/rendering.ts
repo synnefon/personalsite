@@ -72,13 +72,6 @@ export function drawMetaballs(
   const width = canvasWidth;
   const height = canvasHeight;
 
-  // Pre-calculate color values for each particle (O(particles) instead of O(pixels * particles))
-  const particleColors = new Float32Array(particles.length);
-  for (let i = 0; i < particles.length; ++i) {
-    const normalizedVy = 0.5 - particles[i].vy;
-    particleColors[i] = normalizedVy < 0 ? 0 : normalizedVy > 1 ? 1 : normalizedVy;
-  }
-
   for (let y = 0; y < height; y += pixelSize) {
     for (let x = 0; x < width; x += pixelSize) {
       let influenceSum = 0;
@@ -93,7 +86,7 @@ export function drawMetaballs(
         const influence = particleRadiusSquared / (distanceSquared + 1);
 
         influenceSum += influence;
-        heatSum += influence * particleColors[i];
+        heatSum += influence * p.heat;
       }
 
       // Only render if total influence exceeds the threshold.
