@@ -30,9 +30,9 @@ export default function LavaLamp(): ReactElement {
   const [hasStarted, setHasStarted] = useState(false);
 
   // Speed control
-  const defaultSpeedIdx = useMemo(() => speedToNearestIndex(SPEED.DEFAULT), []);
+  const defaultSpeedIdx = 5;
   const [speedIdx, setSpeedIdx] = useState<number>(defaultSpeedIdx);
-  const speedRef = useRef<number>(SPEED.DEFAULT);
+  const speedRef = useRef<number>(indexToSpeed(defaultSpeedIdx));
 
   useEffect(() => {
     speedRef.current = indexToSpeed(speedIdx);

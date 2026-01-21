@@ -1,10 +1,11 @@
 import React, { ReactElement, useCallback, useEffect, useRef, useState, useMemo } from "react";
 import powerIcon from "../../assets/lavaLamp/power.svg";
 import { AUDIO_SOURCE_CONFIG } from "../audioConfig.ts";
-import { DEFAULT_HIGH, DEFAULT_LOW, SPEED } from "../config.ts";
+import { SPEED } from "../config.ts";
 import { clampInt } from "../helpers.ts";
 import { hexToHsl, hslToRgb } from "../colors.ts";
 import type { AudioSource } from "../config.ts";
+import ColorWheel from "./ColorWheel.tsx";
 
 interface ControlsMenuProps {
   speedIdx: number;
@@ -58,27 +59,87 @@ export default function ControlsMenu({
 
   const lastSpeedIdx = SPEED.STEPS - 1;
 
+  // Drag state for color wheels
+  const [draggingWheel, setDraggingWheel] = useState<'hot' | 'cool' | null>(null);
+
+  // Track gradient direction to avoid flipping
+  const gradientDirectionRef = useRef<number>(0); // +1 = forward, -1 = backward, 0 = uninitialized
+
+  const handleWheelDrag = useCallback((e: MouseEvent, wheelType: 'hot' | 'cool', wheelElement: HTMLDivElement) => {
+    const rect = wheelElement.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const x = e.clientX - centerX;
+    const y = e.clientY - centerY;
+    const angle = Math.atan2(y, x);
+    const hue = ((angle / (2 * Math.PI)) % 1 + 1) % 1;
+    const { r, g, b } = hslToRgb(hue, 1.0, 0.5);
+    const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+
+    if (wheelType === 'hot') {
+      setLavaHighColor(hex);
+    } else {
+      setLavaLowColor(hex);
+    }
+    setRainbowMode(false);
+  }, [setLavaHighColor, setLavaLowColor, setRainbowMode]);
+
+  useEffect(() => {
+    if (!draggingWheel) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const wheelElement = document.querySelector(`[data-wheel="${draggingWheel}"]`) as HTMLDivElement;
+      if (wheelElement) {
+        handleWheelDrag(e, draggingWheel, wheelElement);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setDraggingWheel(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [draggingWheel, handleWheelDrag]);
+
   // Generate gradient preview using HSL interpolation (hot to cool)
   const gradientPreview = useMemo(() => {
     const loHsl = hexToHsl(lavaLowColor);
     const hiHsl = hexToHsl(lavaHighColor);
     const stops: string[] = [];
 
+    let h0 = hiHsl.h;
+    let h1 = loHsl.h;
+
+    // Initialize or maintain direction to avoid flipping
+    if (gradientDirectionRef.current === 0) {
+      // First time: choose shorter path
+      const diff = h1 - h0;
+      const wrappedDiff = diff > 0 ? diff - 1 : diff + 1;
+      gradientDirectionRef.current = Math.abs(diff) < Math.abs(wrappedDiff) ? 1 : -1;
+    }
+
+    // Apply consistent direction
+    if (gradientDirectionRef.current === -1) {
+      // Go the "long way" around the wheel
+      if (h1 > h0) {
+        h0 += 1;
+      } else {
+        h1 += 1;
+      }
+    }
+    // else use direct path (gradientDirectionRef.current === 1)
+
     for (let i = 0; i <= 10; i++) {
       const t = i / 10;
-
-      // Interpolate from hot (hiHsl) to cool (loHsl)
-      let h0 = hiHsl.h;
-      let h1 = loHsl.h;
-      if (Math.abs(h1 - h0) > 0.5) {
-        if (h1 > h0) {
-          h0 += 1;
-        } else {
-          h1 += 1;
-        }
-      }
       let h = h0 + (h1 - h0) * t;
-      if (h > 1) h -= 1;
+      while (h > 1) h -= 1;
+      while (h < 0) h += 1;
 
       const s = hiHsl.s + (loHsl.s - hiHsl.s) * t;
       const l = hiHsl.l + (loHsl.l - hiHsl.l) * t;
@@ -194,130 +255,32 @@ export default function ControlsMenu({
               </label>
             </div>
             <div style={{ display: "flex", justifyContent: "space-around", gap: "16px", marginBottom: "8px" }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-                <div
-                  style={{
-                    position: "relative",
-                    width: "80px",
-                    height: "80px",
-                    cursor: rainbowMode ? "not-allowed" : "pointer",
-                    opacity: rainbowMode ? 0.5 : 1,
-                  }}
-                  onClick={(e) => {
-                    if (rainbowMode) return;
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    const x = e.clientX - rect.left - centerX;
-                    const y = e.clientY - rect.top - centerY;
-                    const angle = Math.atan2(y, x);
-                    const hue = ((angle / (2 * Math.PI)) % 1 + 1) % 1;
-                    const { r, g, b } = hslToRgb(hue, 1.0, 0.5);
-                    const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-                    setLavaHighColor(hex);
-                    setRainbowMode(false);
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      borderRadius: "50%",
-                      background: "conic-gradient(from 90deg, red, yellow, lime, cyan, blue, magenta, red)",
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: "50%",
-                      top: "50%",
-                      transform: "translate(-50%, -50%)",
-                      width: "50%",
-                      height: "50%",
-                      borderRadius: "50%",
-                      backgroundColor: "#1a1a1a",
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: `${50 + 37.5 * Math.cos(hexToHsl(lavaHighColor).h * 2 * Math.PI)}%`,
-                      top: `${50 + 37.5 * Math.sin(hexToHsl(lavaHighColor).h * 2 * Math.PI)}%`,
-                      width: "12px",
-                      height: "12px",
-                      borderRadius: "50%",
-                      backgroundColor: lavaHighColor,
-                      border: "2px solid white",
-                      boxShadow: "0 0 4px rgba(0,0,0,0.5)",
-                      transform: "translate(-50%, -50%)",
-                    }}
-                  />
-                </div>
-                <div style={{ fontSize: "13px" }}>hot</div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-                <div
-                  style={{
-                    position: "relative",
-                    width: "80px",
-                    height: "80px",
-                    cursor: rainbowMode ? "not-allowed" : "pointer",
-                    opacity: rainbowMode ? 0.5 : 1,
-                  }}
-                  onClick={(e) => {
-                    if (rainbowMode) return;
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    const x = e.clientX - rect.left - centerX;
-                    const y = e.clientY - rect.top - centerY;
-                    const angle = Math.atan2(y, x);
-                    const hue = ((angle / (2 * Math.PI)) % 1 + 1) % 1;
-                    const { r, g, b } = hslToRgb(hue, 1.0, 0.5);
-                    const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-                    setLavaLowColor(hex);
-                    setRainbowMode(false);
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      borderRadius: "50%",
-                      background: "conic-gradient(from 90deg, red, yellow, lime, cyan, blue, magenta, red)",
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: "50%",
-                      top: "50%",
-                      transform: "translate(-50%, -50%)",
-                      width: "50%",
-                      height: "50%",
-                      borderRadius: "50%",
-                      backgroundColor: "#1a1a1a",
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: `${50 + 37.5 * Math.cos(hexToHsl(lavaLowColor).h * 2 * Math.PI)}%`,
-                      top: `${50 + 37.5 * Math.sin(hexToHsl(lavaLowColor).h * 2 * Math.PI)}%`,
-                      width: "12px",
-                      height: "12px",
-                      borderRadius: "50%",
-                      backgroundColor: lavaLowColor,
-                      border: "2px solid white",
-                      boxShadow: "0 0 4px rgba(0,0,0,0.5)",
-                      transform: "translate(-50%, -50%)",
-                    }}
-                  />
-                </div>
-                <div style={{ fontSize: "13px" }}>cool</div>
-              </div>
+              <ColorWheel
+                wheelType="hot"
+                color={lavaHighColor}
+                onColorChange={(hex) => {
+                  setLavaHighColor(hex);
+                  setRainbowMode(false);
+                }}
+                label="hot"
+                rainbowMode={rainbowMode}
+                onMouseDown={() => setDraggingWheel('hot')}
+                draggingWheel={draggingWheel}
+              />
+              <ColorWheel
+                wheelType="cool"
+                color={lavaLowColor}
+                onColorChange={(hex) => {
+                  setLavaLowColor(hex);
+                  setRainbowMode(false);
+                }}
+                label="cool"
+                rainbowMode={rainbowMode}
+                onMouseDown={() => setDraggingWheel('cool')}
+                draggingWheel={draggingWheel}
+              />
             </div>
-            <div className="lava-lamp-color-row">
+            <div style={{ marginTop: "8px" }}>
               <div
                 style={{
                   width: "100%",
@@ -327,18 +290,6 @@ export default function ControlsMenu({
                 }}
                 title="Color gradient preview"
               />
-              <button
-                type="button"
-                className="lava-lamp-color-reset"
-                onClick={() => {
-                  setLavaLowColor(DEFAULT_LOW);
-                  setLavaHighColor(DEFAULT_HIGH);
-                  setRainbowMode(false);
-                }}
-                disabled={rainbowMode}
-              >
-                reset
-              </button>
             </div>
           </div>
           {/* Fullscreen */}
