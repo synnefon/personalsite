@@ -130,6 +130,7 @@ export default function Home() {
       clearTimeout(timer2);
       clearTimeout(timer3);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update window width on resize
