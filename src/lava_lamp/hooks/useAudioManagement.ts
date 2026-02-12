@@ -50,19 +50,15 @@ export function useAudioManagement(hasStarted: boolean) {
       isFirstRender.current = false;
       return;
     }
+
     const config = AUDIO_SOURCE_CONFIG[audioSource];
+    // preserve current play state
     const wasPlaying = gameMusic.isPlaying();
-    if (wasPlaying) gameMusic.pause();
-    gameMusic.src = config.url;
-    gameMusic.load();
-    if (wasPlaying) {
-      const onPlay = () => {
-        gameMusic.play().catch(() => {});
-        gameMusic.removeEventListener("canplaythrough", onPlay);
-      };
-      gameMusic.addEventListener("canplaythrough", onPlay, { once: true });
-    }
+
+    // one call handles mp3/aac/m3u8
+    gameMusic.setSource(config.url, { autoplay: wasPlaying }).catch(() => { });
   }, [audioSource, gameMusic]);
+
 
   // Music position saving
   const saveMusicPosition = useCallback(() => {
@@ -108,7 +104,7 @@ export function useAudioManagement(hasStarted: boolean) {
       clickSound.currentTime = 0;
       clickSound.reset();
       clickSound.play();
-    } catch {}
+    } catch { }
   }, [clickSound]);
 
   const resumeMusicFromSavedTime = useCallback(() => {
@@ -119,7 +115,7 @@ export function useAudioManagement(hasStarted: boolean) {
         typeof dur === "number" && Number.isFinite(dur) && dur > 0
           ? t % dur
           : t;
-    } catch {}
+    } catch { }
   }, [gameMusic]);
 
   const updateWaveform = useCallback(() => {

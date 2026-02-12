@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AUDIO_SOURCES } from "../config.ts";
+import { AUDIO_SOURCES, INFO_URLS } from "../config.ts";
 import type { AudioSource } from "../config.ts";
 
 interface NowPlayingInfo {
@@ -9,21 +9,23 @@ interface NowPlayingInfo {
   isAirbreak: boolean;
 }
 
-export function useNowPlaying(hasStarted: boolean, audioSource: AudioSource) {
+export function useNowPlaying(hasStarted: boolean, audioSource: AudioSource, infoUrl: string) {
   const [nowPlaying, setNowPlaying] = useState<NowPlayingInfo | null>(null);
   const [nowPlayingExpanded, setNowPlayingExpanded] = useState(true);
 
   useEffect(() => {
-    if (!hasStarted || audioSource !== AUDIO_SOURCES.KEXP) {
+    if (!hasStarted || audioSource === AUDIO_SOURCES.REDWOOD) {
       setNowPlaying(null);
       return;
     }
     let timer: number;
     const fetchNowPlaying = async () => {
+      const infoUrl = INFO_URLS[audioSource];
       try {
-        const data = await (
-          await fetch("https://api.kexp.org/v2/plays/?limit=5")
-        ).json();
+        const info = await fetch(infoUrl);
+        console.log(info)
+        const data = await info.json();
+        console.log(data)
         const play = data.results?.[0];
         if (!play) return;
         if (play.play_type === "airbreak")
@@ -40,8 +42,11 @@ export function useNowPlaying(hasStarted: boolean, audioSource: AudioSource) {
             album: (play.album || "unknown album").toLowerCase(),
             isAirbreak: false,
           });
-      } catch {}
+      } catch(e) {
+        console.error("failed to fetch track info", e);
+      }
     };
+
     fetchNowPlaying();
     timer = window.setInterval(fetchNowPlaying, 5000);
     return () => clearInterval(timer);
