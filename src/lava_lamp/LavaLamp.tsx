@@ -1,4 +1,4 @@
-import React, {
+import {
   ReactElement,
   useCallback,
   useEffect,
@@ -10,14 +10,14 @@ import powerIcon from "../assets/lavaLamp/power.svg";
 import "../styles/lavalamp.css";
 import NowPlayingWidget from "./NowPlayingWidget.tsx";
 import ControlsMenu from "./components/ControlsMenu.tsx";
+import { AudioSource, detectMobile } from "./config.ts";
+import { indexToSpeed } from "./helpers.ts";
 import { useAudioManagement } from "./hooks/useAudioManagement.ts";
 import { useColorManagement } from "./hooks/useColorManagement.ts";
 import { useFullscreen } from "./hooks/useFullscreen.ts";
 import { useNowPlaying } from "./hooks/useNowPlaying.ts";
 import { usePointerHandling } from "./hooks/usePointerHandling.ts";
 import { useSimulation } from "./hooks/useSimulation.ts";
-import { AUDIO_SOURCES, detectMobile } from "./config.ts";
-import { indexToSpeed } from "./helpers.ts";
 
 export default function LavaLamp(): ReactElement {
   const isMobile = detectMobile();
@@ -112,21 +112,21 @@ export default function LavaLamp(): ReactElement {
       initializeAmplitudeAnalyzer();
     }
     resumeAmplitudeAnalyzer();
-    if (audioSource !== AUDIO_SOURCES.KEXP) resumeMusicFromSavedTime();
+    if (audioSource !== AudioSource.kexp) resumeMusicFromSavedTime();
     gameMusic.volume = 1.0;
     if (gameMusic.readyState < 3) {
       gameMusic.load();
       const onCanPlay = async () => {
         try {
           await gameMusic.play();
-        } catch {}
+        } catch { }
         gameMusic.removeEventListener("canplaythrough", onCanPlay);
       };
       gameMusic.addEventListener("canplaythrough", onCanPlay, { once: true });
     } else {
       try {
         await gameMusic.play();
-      } catch {}
+      } catch { }
     }
   }, [
     playClick,

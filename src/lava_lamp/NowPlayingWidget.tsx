@@ -1,5 +1,5 @@
 import React, { type ReactElement, useEffect, useRef, useState } from "react";
-import { NowPlayingInfo } from "./config";
+import { NowPlayingInfo, STATION_HOMEPAGES } from "./config.ts";
 
 interface NowPlayingWidgetProps {
   nowPlaying: NowPlayingInfo | null;
@@ -90,7 +90,8 @@ export default function NowPlayingWidget({
   }
 
   const handleSongClick = () => {
-    window.open("https://www.kexp.org/playlist/", '_blank', 'noopener,noreferrer');
+    const homepageUrl = STATION_HOMEPAGES[nowPlaying.station] || "";
+    window.open(homepageUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (

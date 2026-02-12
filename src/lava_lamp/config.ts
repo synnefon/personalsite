@@ -24,14 +24,30 @@ export interface SpatialGrid {
   next: Int32Array; // next index or -1
 }
 
-export type AudioSource = "redwood" | "kexp";
+export enum AudioSource {
+  forest = "forest",
+  kexp = "kexp",
+  bbcradio6music = "bbc radio 6 music"
+}
 
 export interface NowPlayingInfo {
   song: string;
   artist: string;
   album: string;
   isAirbreak: boolean;
-  station: string;
+  station: AudioSource;
+}
+
+export const AUDIO_INFO_URLS = {
+  [AudioSource.forest]: null,
+  [AudioSource.kexp]: "https://api.kexp.org/v2/plays/?limit=5",
+  [AudioSource.bbcradio6music]: "https://bbc-now-playing.connor-j-hopkins.workers.dev/bbc/6music/now",
+}
+
+export const STATION_HOMEPAGES = {
+  [AudioSource.forest]: "https://youtu.be/t3LCXpKI9K0?si=LnBH9g-s6e1wuEhw",
+  [AudioSource.kexp]: "https://www.kexp.org/playlist/",
+  [AudioSource.bbcradio6music]: "https://www.bbc.co.uk/sounds/play/live/bbc_6music",
 }
 
 // ============================================================================
@@ -60,19 +76,6 @@ const isMobile = detectMobile();
 // ============================================================================
 // Constants
 // ============================================================================
-
-// Audio source configuration
-export const AUDIO_SOURCES = {
-  REDWOOD: "redwood",
-  KEXP: "kexp",
-  BBC6MUSIC: "bbc 6 music",
-} as const;
-
-export const INFO_URLS = {
-  [AUDIO_SOURCES.REDWOOD]: null,
-  [AUDIO_SOURCES.KEXP]: "https://api.kexp.org/v2/plays/?limit=5",
-  [AUDIO_SOURCES.BBC6MUSIC]: "https://bbc-now-playing.connor-j-hopkins.workers.dev/bbc/6music/now",
-}
 
 // Default color configuration
 export const DEFAULT_HIGH = "#ffdd00";

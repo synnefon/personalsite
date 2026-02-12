@@ -1,19 +1,24 @@
 import { useEffect, useState } from "react";
-import type { AudioSource, NowPlayingInfo } from "../config.ts";
-import { AUDIO_SOURCES, INFO_URLS } from "../config.ts";
+import { AudioSource, AUDIO_INFO_URLS, NowPlayingInfo } from "../config.ts";
 
 export function useNowPlaying(hasStarted: boolean, audioSource: AudioSource) {
   const [nowPlaying, setNowPlaying] = useState<NowPlayingInfo | null>(null);
   const [nowPlayingExpanded, setNowPlayingExpanded] = useState(true);
 
   useEffect(() => {
-    if (!hasStarted || audioSource === AUDIO_SOURCES.REDWOOD) {
-      setNowPlaying(null);
+    if (!hasStarted || audioSource === AudioSource.forest) {
+      setNowPlaying({
+        song: "redwood resonance",
+        artist: "dianna lopez",
+        album: "",
+        isAirbreak: false,
+        station: audioSource,
+      });
       return;
     }
     let timer: number;
     const fetchNowPlaying = async () => {
-      const infoUrl = INFO_URLS[audioSource];
+      const infoUrl = AUDIO_INFO_URLS[audioSource];
       try {
         const info = await fetch(infoUrl);
         const data = await info.json();
@@ -42,7 +47,7 @@ export function useNowPlaying(hasStarted: boolean, audioSource: AudioSource) {
     };
 
     fetchNowPlaying();
-    timer = window.setInterval(fetchNowPlaying, 5000);
+    timer = window.setInterval(fetchNowPlaying, 5_000);
     return () => clearInterval(timer);
   }, [hasStarted, audioSource]);
 
