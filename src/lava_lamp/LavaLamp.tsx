@@ -112,7 +112,7 @@ export default function LavaLamp(): ReactElement {
       initializeAmplitudeAnalyzer();
     }
     resumeAmplitudeAnalyzer();
-    if (audioSource !== AudioSource.kexp) resumeMusicFromSavedTime();
+    if (audioSource === AudioSource.forest) resumeMusicFromSavedTime();
     gameMusic.volume = 1.0;
     if (gameMusic.readyState < 3) {
       gameMusic.load();

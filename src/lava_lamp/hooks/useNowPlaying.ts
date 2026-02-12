@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { AudioSource, AUDIO_INFO_URLS, NowPlayingInfo } from "../config.ts";
+import { AudioSource, NowPlayingInfo } from "../config.ts";
+import { AUDIO_SOURCE_CONFIG } from "../audioConfig.ts";
 
 export function useNowPlaying(hasStarted: boolean, audioSource: AudioSource) {
   const [nowPlaying, setNowPlaying] = useState<NowPlayingInfo | null>(null);
@@ -18,7 +19,7 @@ export function useNowPlaying(hasStarted: boolean, audioSource: AudioSource) {
     }
     let timer: number;
     const fetchNowPlaying = async () => {
-      const infoUrl = AUDIO_INFO_URLS[audioSource];
+      const infoUrl = AUDIO_SOURCE_CONFIG[audioSource].info;
       try {
         const info = await fetch(infoUrl);
         const data = await info.json();

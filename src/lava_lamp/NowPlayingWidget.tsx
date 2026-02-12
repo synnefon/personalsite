@@ -1,5 +1,6 @@
 import React, { type ReactElement, useEffect, useRef, useState } from "react";
-import { NowPlayingInfo, STATION_HOMEPAGES } from "./config.ts";
+import { NowPlayingInfo } from "./config.ts";
+import { AUDIO_SOURCE_CONFIG } from "./audioConfig.ts";
 
 interface NowPlayingWidgetProps {
   nowPlaying: NowPlayingInfo | null;
@@ -90,7 +91,7 @@ export default function NowPlayingWidget({
   }
 
   const handleSongClick = () => {
-    const homepageUrl = STATION_HOMEPAGES[nowPlaying.station] || "";
+    const homepageUrl = AUDIO_SOURCE_CONFIG[nowPlaying.station].homepage || "";
     window.open(homepageUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -126,7 +127,7 @@ export default function NowPlayingWidget({
           className="lava-lamp-now-playing-song"
           onClick={handleSongClick}
           style={{ cursor: 'var(--pointer)' }}
-          title="see on kexp"
+          title="see station homepage"
         >
           <span className="scroll-wrapper">{nowPlaying.song}</span>
           {songOverflowing && (

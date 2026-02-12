@@ -27,7 +27,8 @@ export interface SpatialGrid {
 export enum AudioSource {
   forest = "forest",
   kexp = "kexp",
-  bbcradio6music = "bbc radio 6 music"
+  // wfmu = "wfmu",
+  bbcradio6music = "bbc radio 6 music",
 }
 
 export interface NowPlayingInfo {
@@ -36,18 +37,6 @@ export interface NowPlayingInfo {
   album: string;
   isAirbreak: boolean;
   station: AudioSource;
-}
-
-export const AUDIO_INFO_URLS = {
-  [AudioSource.forest]: null,
-  [AudioSource.kexp]: "https://api.kexp.org/v2/plays/?limit=5",
-  [AudioSource.bbcradio6music]: "https://bbc-now-playing.connor-j-hopkins.workers.dev/bbc/6music/now",
-}
-
-export const STATION_HOMEPAGES = {
-  [AudioSource.forest]: "https://youtu.be/t3LCXpKI9K0?si=LnBH9g-s6e1wuEhw",
-  [AudioSource.kexp]: "https://www.kexp.org/playlist/",
-  [AudioSource.bbcradio6music]: "https://www.bbc.co.uk/sounds/play/live/bbc_6music",
 }
 
 // ============================================================================
