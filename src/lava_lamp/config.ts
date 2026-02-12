@@ -31,6 +31,7 @@ export interface NowPlayingInfo {
   artist: string;
   album: string;
   isAirbreak: boolean;
+  station: string;
 }
 
 // ============================================================================
@@ -70,7 +71,7 @@ export const AUDIO_SOURCES = {
 export const INFO_URLS = {
   [AUDIO_SOURCES.REDWOOD]: null,
   [AUDIO_SOURCES.KEXP]: "https://api.kexp.org/v2/plays/?limit=5",
-  [AUDIO_SOURCES.BBC6MUSIC]: "https://rms.api.bbc.co.uk/v2/services/bbc_6music/segments/latest",
+  [AUDIO_SOURCES.BBC6MUSIC]: "https://bbc-now-playing.connor-j-hopkins.workers.dev/bbc/6music/now",
 }
 
 // Default color configuration

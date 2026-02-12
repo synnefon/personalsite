@@ -53,10 +53,10 @@ export function useAudioManagement(hasStarted: boolean) {
 
     const config = AUDIO_SOURCE_CONFIG[audioSource];
     // preserve current play state
-    const wasPlaying = gameMusic.isPlaying();
+    const shouldKeepPlaying = !gameMusic.paused;
 
     // one call handles mp3/aac/m3u8
-    gameMusic.setSource(config.url, { autoplay: wasPlaying }).catch(() => { });
+    gameMusic.setSource(config.url, { autoplay: shouldKeepPlaying }).catch(() => { });
   }, [audioSource, gameMusic]);
 
 

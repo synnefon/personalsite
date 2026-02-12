@@ -1,15 +1,8 @@
 import { useEffect, useState } from "react";
+import type { AudioSource, NowPlayingInfo } from "../config.ts";
 import { AUDIO_SOURCES, INFO_URLS } from "../config.ts";
-import type { AudioSource } from "../config.ts";
 
-interface NowPlayingInfo {
-  song: string;
-  artist: string;
-  album: string;
-  isAirbreak: boolean;
-}
-
-export function useNowPlaying(hasStarted: boolean, audioSource: AudioSource, infoUrl: string) {
+export function useNowPlaying(hasStarted: boolean, audioSource: AudioSource) {
   const [nowPlaying, setNowPlaying] = useState<NowPlayingInfo | null>(null);
   const [nowPlayingExpanded, setNowPlayingExpanded] = useState(true);
 
@@ -23,7 +16,6 @@ export function useNowPlaying(hasStarted: boolean, audioSource: AudioSource, inf
       const infoUrl = INFO_URLS[audioSource];
       try {
         const info = await fetch(infoUrl);
-        console.log(info)
         const data = await info.json();
         console.log(data)
         const play = data.results?.[0];
@@ -34,15 +26,17 @@ export function useNowPlaying(hasStarted: boolean, audioSource: AudioSource, inf
             artist: "",
             album: "",
             isAirbreak: true,
+            station: audioSource,
           });
         else if (play.play_type === "trackplay")
           setNowPlaying({
             song: (play.song || "unknown track").toLowerCase(),
             artist: (play.artist || "unknown artist").toLowerCase(),
-            album: (play.album || "unknown album").toLowerCase(),
+            album: (play.album || "").toLowerCase(),
             isAirbreak: false,
+            station: audioSource,
           });
-      } catch(e) {
+      } catch (e) {
         console.error("failed to fetch track info", e);
       }
     };

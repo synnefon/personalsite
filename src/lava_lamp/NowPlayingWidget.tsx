@@ -1,11 +1,5 @@
 import React, { type ReactElement, useEffect, useRef, useState } from "react";
-
-interface NowPlayingInfo {
-  song: string;
-  artist: string;
-  album: string;
-  isAirbreak: boolean;
-}
+import { NowPlayingInfo } from "./config";
 
 interface NowPlayingWidgetProps {
   nowPlaying: NowPlayingInfo | null;
@@ -113,7 +107,7 @@ export default function NowPlayingWidget({
       </button>
       <div className="lava-lamp-now-playing-content">
         <div className="lava-lamp-now-playing-header">
-          <div className="lava-lamp-now-playing-label">kexp</div>
+          <div className="lava-lamp-now-playing-label">{nowPlaying.station}</div>
           {!nowPlaying.isAirbreak && (
             <div className="lava-lamp-soundwave">
               {displayWaveform.map((height, i) => (
