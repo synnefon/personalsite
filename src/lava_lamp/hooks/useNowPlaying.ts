@@ -7,7 +7,12 @@ export function useNowPlaying(hasStarted: boolean, audioSource: AudioSource) {
   const [nowPlayingExpanded, setNowPlayingExpanded] = useState(true);
 
   useEffect(() => {
-    if (!hasStarted || audioSource === AudioSource.forest) {
+    if (!hasStarted) {
+      setNowPlaying(null);
+      return;
+    }
+
+    if (audioSource === AudioSource.forest) {
       setNowPlaying({
         song: "redwood resonance",
         artist: "dianna lopez",
@@ -17,6 +22,17 @@ export function useNowPlaying(hasStarted: boolean, audioSource: AudioSource) {
       });
       return;
     }
+    // if (audioSource === AudioSource.xray) {
+    //   setNowPlaying({
+    //     song: "",
+    //     artist: "",
+    //     album: "",
+    //     isAirbreak: false,
+    //     station: audioSource,
+    //   });
+    //   return;
+    // }
+
     let timer: number;
     const fetchNowPlaying = async () => {
       const infoUrl = AUDIO_SOURCE_CONFIG[audioSource].info;

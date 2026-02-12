@@ -29,6 +29,10 @@ export enum AudioSource {
   kexp = "kexp",
   // wfmu = "wfmu",
   bbcradio6music = "bbc radio 6 music",
+  // xrayfm = "xray.fm",
+  nts1 = "nts 1",
+  nts2 = "nts 2",
+  kcrw = "kcrw",
 }
 
 export interface NowPlayingInfo {

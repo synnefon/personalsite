@@ -9,7 +9,6 @@ export class PersonalAudio extends Audio {
     this._hls = null;
     this._logicalSrc = null;
 
-    // --- Fix 2: sequence guard to avoid races ---
     this._setSourceSeq = 0;
 
     if (src) this.setSource(src, { autoplay: false, loop });
@@ -20,7 +19,6 @@ export class PersonalAudio extends Audio {
   }
 
   async setSource(src, { autoplay = false, loop = this.loop } = {}) {
-    // --- Fix 2: bump seq; any previous in-flight setSource becomes stale ---
     const seq = ++this._setSourceSeq;
 
     this.loop = loop;
@@ -100,11 +98,12 @@ export class PersonalAudio extends Audio {
   }
 
   async _safePlayWhenReady() {
-    if (this.readyState >= 3) return this._safePlay();
+    // Try immediately first (best for live streams)
+    await this._safePlay();
+    if (!this.paused) return;
 
     await new Promise((resolve) => {
-      const onCanPlay = () => resolve();
-      this.addEventListener("canplay", onCanPlay, { once: true });
+      this.addEventListener("canplay", () => resolve(), { once: true });
       this.addEventListener("error", () => resolve(), { once: true });
     });
 
@@ -112,11 +111,8 @@ export class PersonalAudio extends Audio {
   }
 
   async _safePlay() {
-    try {
-      await this.play();
-    } catch {
-      // autoplay blocked etc.
-    }
+    try { await this.play(); }
+    catch (e) { console.log("play() failed:", e); }
   }
 
   isPlayingSrc = (audioSrc) => {
@@ -133,7 +129,7 @@ export class PersonalAudio extends Audio {
     this.pause();
     try {
       this.currentTime = 0;
-    } catch {}
+    } catch { }
   };
 
   destroy = () => {
