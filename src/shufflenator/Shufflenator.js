@@ -118,38 +118,13 @@ export default function Shufflenator() {
     );
   };
 
-  // const ShuffleStrategy = () => {
-  //   return (
-  //     <Dropdown
-  //       title="shuffle strategy"
-  //       options={SHUFFLE_STRAT}
-  //       value={shuffleStrat}
-  //       defaultValue={"PILE"}
-  //       onChange={setShuffleStrat}
-  //     />
-  //   );
-  // }
-
-  // const ScoreType = () => {
-  //   return (
-  //     <Dropdown
-  //       title="score strategy"
-  //       options={SCORE_TYPE}
-  //       value={scoreType}
-  //       defaultValue={"SHANNON_ENTROPY"}
-  //       onChange={setScoreType}
-  //     />
-  //   );
-  // };
-
   const shuffle = () => {
     workerRef.current?.terminate();
     clearTimeout(progressTimerRef.current);
     setResults(null);
     setLoading(true);
     setShowProgress(false);
-    const numRounds = maxShuffles.value;
-    setRounds(Array.from({ length: numRounds }, () => ({ completed: 0, total: 1 })));
+    setRounds([{ completed: 0, total: 1 }]);
     progressTimerRef.current = setTimeout(() => setShowProgress(true), 1000);
 
     const worker = new Worker(new URL("./shuffleWorker.js", import.meta.url));
@@ -157,7 +132,7 @@ export default function Shufflenator() {
     worker.postMessage({
       shuffleStrat: shuffleStrat.value,
       scoreType: scoreType.value,
-      maxShuffles: numRounds,
+      maxShuffles: maxShuffles.value,
       deckSize: Number(cardsInDeck.current.value),
       minNumPiles: pileMin,
       maxNumPiles: pileMax,
@@ -278,7 +253,6 @@ export default function Shufflenator() {
         <div className="shufflenator-rounds">
           {rounds.map((round, i) => (
             <div key={i} className="shufflenator-round">
-              <span className="shufflenator-round-label">round {i + 1}</span>
               <div className="shufflenator-progress">
                 <div className="shufflenator-progress-bar" style={{ width: `${(round.completed / round.total) * 100}%` }} />
               </div>

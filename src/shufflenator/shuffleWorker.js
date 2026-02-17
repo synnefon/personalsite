@@ -51,7 +51,6 @@ function makeShuffledDeck(cardList, permutation, scoreType) {
         cardList,
         permutation,
         score: SCORE_FUNCTION_MAP[scoreType](cardList),
-        key: permutation.join(','),
     };
 }
 
@@ -106,52 +105,58 @@ workerScope.onmessage = (e) => {
     const { shuffleStrat, scoreType, maxShuffles, deckSize, minNumPiles, maxNumPiles } = e.data;
     const pileDivisions = Array.from({ length: maxNumPiles - minNumPiles + 1 }, (_, i) => i + minNumPiles);
     const shuffleFunction = SHUFFLE_FUNCTION_MAP[shuffleStrat];
+    const numOptions = pileDivisions.length;
 
-    const seen = new Set();
     const baseCardList = Array.from({ length: deckSize }, (_, i) => i);
     const baseDeck = makeShuffledDeck(baseCardList, [], scoreType);
-    seen.add(baseDeck.key);
-    let frontier = [baseDeck];
+
+    let totalNodes = 0;
+    for (let d = 1; d <= maxShuffles; d++) totalNodes += Math.pow(numOptions, d);
+
+    let nodesVisited = 0;
     let best = null;
 
-    for (let round = 0; round < maxShuffles; round++) {
-        const roundTotal = frontier.length * pileDivisions.length;
-        const nextFrontier = [];
+    // Iterative DFS — stack stays at O(maxShuffles * numOptions) entries max,
+    // vs BFS frontier which grows as O(numOptions^round).
+    const stack = [{ deck: baseDeck, depth: 0 }];
 
-        for (let j = 0; j < frontier.length; j++) {
-            const deck = frontier[j];
-            for (const numPiles of pileDivisions) {
-                const newDeck = shuffleFunction(deck, numPiles, scoreType);
-                if (!seen.has(newDeck.key)) {
-                    seen.add(newDeck.key);
-                    nextFrontier.push(newDeck);
-                    if (!best || newDeck.score > best.score) best = newDeck;
+    function processChunk() {
+        const start = performance.now();
+
+        while (stack.length > 0) {
+            const { deck, depth } = stack.pop();
+
+            if (depth > 0) {
+                nodesVisited++;
+                if (!best || deck.score > best.score) {
+                    best = { permutation: [...deck.permutation], score: deck.score };
                 }
             }
-            if (j % 50 === 0) {
+
+            if (depth < maxShuffles) {
+                for (let i = numOptions - 1; i >= 0; i--) {
+                    const child = shuffleFunction(deck, pileDivisions[i], scoreType);
+                    stack.push({ deck: child, depth: depth + 1 });
+                }
+            }
+
+            if (performance.now() - start > 200) {
                 workerScope.postMessage({
                     type: 'progress',
-                    completed: (j + 1) * pileDivisions.length,
-                    total: roundTotal,
-                    round: round + 1,
+                    completed: nodesVisited,
+                    total: totalNodes,
+                    round: 1,
                 });
+                setTimeout(processChunk, 0);
+                return;
             }
         }
 
-        // free old frontier keys from deck objects
-        for (const deck of frontier) { delete deck.key; }
-        frontier = nextFrontier;
-
         workerScope.postMessage({
-            type: 'progress',
-            completed: roundTotal,
-            total: roundTotal,
-            round: round + 1,
+            type: 'result',
+            data: best ? { permutation: best.permutation, score: best.score } : null,
         });
     }
 
-    workerScope.postMessage({
-        type: 'result',
-        data: best ? { permutation: best.permutation, score: best.score } : null,
-    });
+    processChunk();
 };
