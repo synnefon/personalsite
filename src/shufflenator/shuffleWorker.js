@@ -59,7 +59,34 @@ function shuffle(pileSelector, deck, numPiles, scoreType) {
 }
 
 function pileShuffle(deck, numPiles, scoreType) {
-    return shuffle((idx) => idx % numPiles, deck, numPiles, scoreType);
+    const cards = deck.cardList;
+    const len = cards.length;
+    const result = new Array(len);
+    // compute how many cards land in each pile
+    const full = Math.floor(len / numPiles);
+    const remainder = len % numPiles;
+    // pile i has (full + 1) cards if i < remainder, else full cards
+    // cards are dealt cyclically and unshifted, so within each pile they're reversed
+    // compute the starting write index for each pile
+    let offset = 0;
+    const pileStart = new Array(numPiles);
+    const pileSize = new Array(numPiles);
+    for (let p = 0; p < numPiles; p++) {
+        pileStart[p] = offset;
+        pileSize[p] = p < remainder ? full + 1 : full;
+        offset += pileSize[p];
+    }
+    // write position tracks next write slot per pile (fill from end to simulate unshift)
+    const writePos = new Array(numPiles);
+    for (let p = 0; p < numPiles; p++) {
+        writePos[p] = pileStart[p] + pileSize[p] - 1;
+    }
+    for (let idx = 0; idx < len; idx++) {
+        const p = idx % numPiles;
+        result[writePos[p]] = cards[idx];
+        writePos[p]--;
+    }
+    return makeShuffledDeck(result, [...deck.permutation, numPiles], scoreType);
 }
 
 function randomPileShuffle(deck, numPiles, scoreType) {
@@ -88,14 +115,23 @@ function shuffleDecks({ shuffleStrat, scoreType, maxShuffles, deckSize, minNumPi
     const baseCardList = Array.from({ length: deckSize }, (_, i) => i);
     const shuffleFunction = SHUFFLE_FUNCTION_MAP[shuffleStrat];
 
-    let shuffledDecks = [makeShuffledDeck(baseCardList, [], scoreType)];
+    const seen = new Set();
+    const baseDeck = makeShuffledDeck(baseCardList, [], scoreType);
+    seen.add(baseDeck.cardList.join(','));
+    let shuffledDecks = [baseDeck];
     let best = null;
 
     for (let i = 0; i < maxShuffles; i++) {
         const newDecks = runPerm(shuffledDecks, pileDivisions, shuffleFunction, scoreType);
-        shuffledDecks = [...new Set([...shuffledDecks, ...newDecks])];
-        shuffledDecks.sort((a, b) => b.score - a.score);
-        best = shuffledDecks[0];
+        for (const deck of newDecks) {
+            const key = deck.cardList.join(',');
+            if (seen.has(key)) continue;
+            seen.add(key);
+            shuffledDecks.push(deck);
+        }
+        for (const deck of shuffledDecks) {
+            if (!best || deck.score > best.score) best = deck;
+        }
     }
 
     return best;
