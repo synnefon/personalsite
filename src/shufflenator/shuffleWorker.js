@@ -67,6 +67,9 @@ const SCORE_FUNCTION_MAP = {
 // --- Profiling ---
 let tShuffle = 0, tScore = 0, tSpread = 0, tStackOps = 0, tTimeCheck = 0;
 
+// --- Precomputed maps (populated per run) ---
+let permMaps = {};
+
 // --- Shuffler ---
 
 function makeShuffledDeck(cardList, permutation, scoreType) {
@@ -89,28 +92,13 @@ function pileShuffle(deck, numPiles, scoreType) {
     const t0 = performance.now();
     const cards = deck.cardList;
     const len = cards.length;
+    const map = permMaps[numPiles];
     const result = new Array(len);
-    const full = Math.floor(len / numPiles);
-    const remainder = len % numPiles;
-    let offset = 0;
-    const pileStart = new Array(numPiles);
-    const pileSize = new Array(numPiles);
-    for (let p = 0; p < numPiles; p++) {
-        pileStart[p] = offset;
-        pileSize[p] = p < remainder ? full + 1 : full;
-        offset += pileSize[p];
-    }
-    const writePos = new Array(numPiles);
-    for (let p = 0; p < numPiles; p++) {
-        writePos[p] = pileStart[p] + pileSize[p] - 1;
-    }
-    for (let idx = 0; idx < len; idx++) {
-        const p = idx % numPiles;
-        result[writePos[p]] = cards[idx];
-        writePos[p]--;
+    for (let i = 0; i < len; i++) {
+        result[map[i]] = cards[i];
     }
     const t1 = performance.now();
-    tShuffle += t1 - t0;  // just the card rearrangement
+    tShuffle += t1 - t0;
 
     const t2 = performance.now();
     const perm = deck.permutation.concat(numPiles);
@@ -138,6 +126,31 @@ workerScope.onmessage = (e) => {
     const pileDivisions = Array.from({ length: maxNumPiles - minNumPiles + 1 }, (_, i) => i + minNumPiles);
     const shuffleFunction = SHUFFLE_FUNCTION_MAP[shuffleStrat];
     const numOptions = pileDivisions.length;
+
+    // Precompute permutation index maps for each pile count
+    permMaps = {};
+    for (const numPiles of pileDivisions) {
+        const map = new Int32Array(deckSize);
+        const full = Math.floor(deckSize / numPiles);
+        const remainder = deckSize % numPiles;
+        let offset = 0;
+        const pileStart = new Array(numPiles);
+        const pileSz = new Array(numPiles);
+        for (let p = 0; p < numPiles; p++) {
+            pileStart[p] = offset;
+            pileSz[p] = p < remainder ? full + 1 : full;
+            offset += pileSz[p];
+        }
+        const writePos = new Array(numPiles);
+        for (let p = 0; p < numPiles; p++) {
+            writePos[p] = pileStart[p] + pileSz[p] - 1;
+        }
+        for (let idx = 0; idx < deckSize; idx++) {
+            map[idx] = writePos[idx % numPiles];
+            writePos[idx % numPiles]--;
+        }
+        permMaps[numPiles] = map;
+    }
 
     const baseCardList = Array.from({ length: deckSize }, (_, i) => i);
     const baseDeck = makeShuffledDeck(baseCardList, [], scoreType);
