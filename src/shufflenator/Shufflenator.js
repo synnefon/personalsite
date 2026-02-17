@@ -172,7 +172,14 @@ export default function Shufflenator() {
   const Results = () => {
     return (
       <div className="shufflenator-results">
-        <div>{`( ${results.permutation.join(",")} )`}</div>
+        <span className="shufflenator-results-number">optimal sequence:</span>
+        {results.permutation.map((n, i) => (
+          <div key={i}>
+            &nbsp;&nbsp;{i + 1}. cyclically deal into <span className="shufflenator-results-number">{n}</span> piles.
+          </div>
+        ))}
+        <br/>
+        <div className="shufflenator-results-note">* after each step, reassemble piles in order.</div>
       </div>
     );
   }

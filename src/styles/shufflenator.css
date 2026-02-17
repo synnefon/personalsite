@@ -326,11 +326,22 @@ input[type="number"]::-webkit-outer-spin-button {
 .shufflenator-results {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5em;
   margin-bottom: 2em;
-  text-align: center;
-  font-size: var(--medium-font);
+  font-size: var(--small-font);
 }
 
+.shufflenator-results-number {
+  color: var(--tertiary);
+}
+
+.shufflenator-results-note {
+  margin-top: 1em;
+  font-size: var(--tiny-font);
+  color: var(--text-color);
+  font-style: italic;
+}
 
 /* ============================================
    RESPONSIVE DESIGN
