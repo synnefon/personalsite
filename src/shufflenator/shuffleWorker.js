@@ -24,25 +24,35 @@ function calcLocationDelta(cards) {
 
 let entropyCounts = null;
 let entropySlots = null;
+let entropyLookup = null;
 
 function calcShannonEntropy(cards) {
     const deckLen = cards.length;
     if (!entropyCounts || entropyCounts.length < deckLen) {
         entropyCounts = new Uint32Array(deckLen);
         entropySlots = new Uint16Array(deckLen);
+        entropyLookup = new Float64Array(deckLen + 1);
+        for (let k = 1; k <= deckLen; k++) {
+            const p = k / deckLen;
+            entropyLookup[k] = -Math.log(p) * p;
+        }
     }
     let usedCount = 0;
-    for (let idx = 0; idx < deckLen; idx++) {
-        let diff = cards[(idx + 1) % deckLen] - cards[idx];
+    for (let idx = 0; idx < deckLen - 1; idx++) {
+        let diff = cards[idx + 1] - cards[idx];
         if (diff < 0) diff += deckLen;
         if (entropyCounts[diff] === 0) entropySlots[usedCount++] = diff;
         entropyCounts[diff]++;
     }
+    let diff = cards[0] - cards[deckLen - 1];
+    if (diff < 0) diff += deckLen;
+    if (entropyCounts[diff] === 0) entropySlots[usedCount++] = diff;
+    entropyCounts[diff]++;
+
     let entropy = 0;
     for (let i = 0; i < usedCount; i++) {
         const slot = entropySlots[i];
-        const p = entropyCounts[slot] / deckLen;
-        entropy -= Math.log(p) * p;
+        entropy += entropyLookup[entropyCounts[slot]];
         entropyCounts[slot] = 0;
     }
     return entropy;
