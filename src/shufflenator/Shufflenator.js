@@ -38,9 +38,10 @@ export default function Shufflenator() {
   const [pileMin, setPileMin] = useState(5);
   const [pileMax, setPileMax] = useState(10);
   const [maxShuffles, setMaxShuffles] = useState({value: 3, label: 3});
-  const [shuffleStrat, setShuffleStrat] = useState({value: "PILE", label: "PILE"});
+  const [shuffleStrat] = useState({value: "PILE", label: "PILE"});
   const [scoreType, setScoreType] = useState({value: "SHANNON_ENTROPY", label: "SHANNON_ENTROPY"});
   const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [showExplainer, setShowExplainer] = useState(false);
 
   const CardsInDeck = () => {
@@ -62,7 +63,7 @@ export default function Shufflenator() {
   const cardsInDeckInput = useRef(<CardsInDeck/>);
 
   const PileSizeRange = () => {
-    const MAX_DIF = 10;
+    const MAX_DIF = 15;
 
     const onChange = e => {
       const goingDown = e.minValue !== pileMin;
@@ -152,8 +153,11 @@ export default function Shufflenator() {
   };
   
   const shuffle = async () => {
+    setResults(null);
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 0));
     const ret = await shuffleDecks({
-      shuffleStrat: shuffleStrat.value, 
+      shuffleStrat: shuffleStrat.value,
       scoreType: scoreType.value,
       maxShuffles: maxShuffles.value,
       deckSize: cardsInDeck.current.value,
@@ -161,9 +165,11 @@ export default function Shufflenator() {
       maxNumPiles: pileMax
     })
     setResults(ret);
+    setLoading(false);
   };
 
   const SubmitButton = () => {
+    if (loading) return <div className="shufflenator-spinner" />;
     return <div onClick={shuffle} className="shufflenator-submit-button">
       <div className="shufflenator-submit-button-text">submit</div>
     </div>;
