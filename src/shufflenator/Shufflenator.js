@@ -62,39 +62,18 @@ export default function Shufflenator() {
   };
   const cardsInDeckInput = useRef(<CardsInDeck/>);
 
-  const PileSizeRange = () => {
-    const MAX_DIF = 15;
+  const MAX_PILE_DIF = 15;
 
-    const onChange = e => {
-      const goingDown = e.minValue !== pileMin;
-      const newMin = goingDown 
-        ? e.minValue 
-        : Math.max(e.minValue, e.maxValue - MAX_DIF);
-      const newMax = goingDown 
-        ? Math.min(e.maxValue, e.minValue + MAX_DIF) 
-        : e.maxValue;
-      setPileMin(newMin);
-      setPileMax(newMax);
-    };
-
-    return (
-      <div className='shufflenator-selector-row'>
-        <div className='shufflenator-selector-row-title'>pile size range:</div>
-        <MultiRangeSlider
-          className='shufflenator-selector-row-slider'
-          min={2}
-          max={20}
-          step={1}
-          minValue={pileMin}
-          maxValue={pileMax}
-          onChange={onChange}
-          preventWheel={true}
-          stepOnly={false}
-          ruler={false}
-          label={false}
-        />
-      </div>
-    );
+  const onPileRangeChange = e => {
+    const goingDown = e.minValue !== pileMin;
+    const newMin = goingDown
+      ? e.minValue
+      : Math.max(e.minValue, e.maxValue - MAX_PILE_DIF);
+    const newMax = goingDown
+      ? Math.min(e.maxValue, e.minValue + MAX_PILE_DIF)
+      : e.maxValue;
+    setPileMin(newMin);
+    setPileMax(newMax);
   };
 
   const Dropdown = ({title, options, value, defaultValue, onChange}) => {
@@ -223,7 +202,22 @@ export default function Shufflenator() {
 
       <div className='shufflenator-selector'>
         {cardsInDeckInput.current}
-        <PileSizeRange/>
+        <div className='shufflenator-selector-row'>
+          <div className='shufflenator-selector-row-title'>pile size range:</div>
+          <MultiRangeSlider
+            className='shufflenator-selector-row-slider'
+            min={2}
+            max={20}
+            step={1}
+            minValue={pileMin}
+            maxValue={pileMax}
+            onChange={onPileRangeChange}
+            preventWheel={true}
+            stepOnly={false}
+            ruler={false}
+            label={false}
+          />
+        </div>
         <MaxShuffles/>
         {/* <ShuffleStrategy/> */}
         {/* <ScoreType/> */}
