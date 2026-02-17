@@ -127,17 +127,17 @@ export default function Shufflenator() {
     );
   };
 
-  const ShuffleStrategy = () => {
-    return (
-      <Dropdown
-        title="shuffle strategy"
-        options={SHUFFLE_STRAT}
-        value={shuffleStrat}
-        defaultValue={"PILE"}
-        onChange={setShuffleStrat}
-      />
-    );
-  }
+  // const ShuffleStrategy = () => {
+  //   return (
+  //     <Dropdown
+  //       title="shuffle strategy"
+  //       options={SHUFFLE_STRAT}
+  //       value={shuffleStrat}
+  //       defaultValue={"PILE"}
+  //       onChange={setShuffleStrat}
+  //     />
+  //   );
+  // }
 
   const ScoreType = () => {
     return (
@@ -227,8 +227,8 @@ export default function Shufflenator() {
         {cardsInDeckInput.current}
         <PileSizeRange/>
         <MaxShuffles/>
-        <ShuffleStrategy/>
-        <ScoreType/>
+        {/* <ShuffleStrategy/> */}
+        {/* <ScoreType/> */}
       </div>
       <SubmitButton/>
       {results && <Results/>}

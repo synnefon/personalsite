@@ -56,9 +56,13 @@ function randomPileShuffle(deck, numPiles) {
 //     return shuffle(pileSelector, deck, deck.cardList.length);
 // }
 
-export const SHUFFLE_STRAT = ['PILE', 'RANDOM_PILE']
+export const SHUFFLE_STRAT = [
+    'PILE',
+    // 'RANDOM_PILE',
+    // 'CUT_DECK'
+]
 
 export const SHUFFLE_FUNCTION_MAP = {
     "PILE": pileShuffle,
-    "RANDOM_PILE": randomPileShuffle
+    // "RANDOM_PILE": randomPileShuffle
 };
