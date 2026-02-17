@@ -148,7 +148,8 @@ export default function Shufflenator() {
     setResults(null);
     setLoading(true);
     setShowProgress(false);
-    setRounds([]);
+    const numRounds = maxShuffles.value;
+    setRounds(Array.from({ length: numRounds }, () => ({ completed: 0, total: 1 })));
     progressTimerRef.current = setTimeout(() => setShowProgress(true), 1000);
     const worker = new Worker(new URL("./shuffleWorker.js", import.meta.url));
     workerRef.current = worker;
