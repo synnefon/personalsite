@@ -1,8 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import MultiRangeSlider from "multi-range-slider-react";
 import Select from 'react-select'
 
-import { shuffleDecks } from './ShuffleSimulator';
 import { SHUFFLE_STRAT } from './Shuffler';
 import { SCORE_TYPE } from './ShuffleScorers';
 
@@ -35,6 +34,12 @@ const selectStyles = {
 
 export default function Shufflenator() {
   const cardsInDeck = useRef();
+  const workerRef = useRef(null);
+
+  useEffect(() => {
+    return () => { workerRef.current?.terminate(); };
+  }, []);
+
   const [pileMin, setPileMin] = useState(5);
   const [pileMax, setPileMax] = useState(10);
   const [maxShuffles, setMaxShuffles] = useState({value: 3, label: 3});
@@ -62,18 +67,9 @@ export default function Shufflenator() {
   };
   const cardsInDeckInput = useRef(<CardsInDeck/>);
 
-  const MAX_PILE_DIF = 15;
-
   const onPileRangeChange = e => {
-    const goingDown = e.minValue !== pileMin;
-    const newMin = goingDown
-      ? e.minValue
-      : Math.max(e.minValue, e.maxValue - MAX_PILE_DIF);
-    const newMax = goingDown
-      ? Math.min(e.maxValue, e.minValue + MAX_PILE_DIF)
-      : e.maxValue;
-    setPileMin(newMin);
-    setPileMax(newMax);
+    setPileMin(e.minValue);
+    setPileMax(e.maxValue);
   };
 
   const Dropdown = ({title, options, value, defaultValue, onChange}) => {
@@ -131,20 +127,25 @@ export default function Shufflenator() {
     );
   };
   
-  const shuffle = async () => {
+  const shuffle = () => {
+    workerRef.current?.terminate();
     setResults(null);
     setLoading(true);
-    await new Promise(r => setTimeout(r, 0));
-    const ret = await shuffleDecks({
+    const worker = new Worker(new URL('./shuffleWorker.js', import.meta.url));
+    workerRef.current = worker;
+    worker.postMessage({
       shuffleStrat: shuffleStrat.value,
       scoreType: scoreType.value,
       maxShuffles: maxShuffles.value,
       deckSize: cardsInDeck.current.value,
       minNumPiles: pileMin,
       maxNumPiles: pileMax
-    })
-    setResults(ret);
-    setLoading(false);
+    });
+    worker.onmessage = (e) => {
+      setResults(e.data);
+      setLoading(false);
+      workerRef.current = null;
+    };
   };
 
   const SubmitButton = () => {
