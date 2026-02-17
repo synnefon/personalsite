@@ -64,20 +64,17 @@ const SCORE_FUNCTION_MAP = {
     "LOCATION_DELTA": calcLocationDelta,
 };
 
-// --- Profiling ---
-let tShuffle = 0, tScore = 0, tSpread = 0, tStackOps = 0, tTimeCheck = 0;
-
 // --- Precomputed maps (populated per run) ---
 let permMaps = {};
 
 // --- Shuffler ---
 
 function makeShuffledDeck(cardList, permutation, scoreType) {
-    const t0 = performance.now();
-    const score = SCORE_FUNCTION_MAP[scoreType](cardList);
-    tScore += performance.now() - t0;
-
-    return { cardList, permutation, score };
+    return {
+        cardList,
+        permutation,
+        score: SCORE_FUNCTION_MAP[scoreType](cardList),
+    };
 }
 
 function shuffle(pileSelector, deck, numPiles, scoreType) {
@@ -89,7 +86,6 @@ function shuffle(pileSelector, deck, numPiles, scoreType) {
 }
 
 function pileShuffle(deck, numPiles, scoreType) {
-    const t0 = performance.now();
     const cards = deck.cardList;
     const len = cards.length;
     const map = permMaps[numPiles];
@@ -97,14 +93,7 @@ function pileShuffle(deck, numPiles, scoreType) {
     for (let i = 0; i < len; i++) {
         result[map[i]] = cards[i];
     }
-    const t1 = performance.now();
-    tShuffle += t1 - t0;
-
-    const t2 = performance.now();
-    const perm = deck.permutation.concat(numPiles);
-    tSpread += performance.now() - t2;
-
-    return makeShuffledDeck(result, perm, scoreType);
+    return makeShuffledDeck(result, deck.permutation.concat(numPiles), scoreType);
 }
 
 function randomPileShuffle(deck, numPiles, scoreType) {
@@ -122,7 +111,6 @@ const workerScope = self;
 
 workerScope.onmessage = (e) => {
     const { shuffleStrat, scoreType, maxShuffles, deckSize, minNumPiles, maxNumPiles } = e.data;
-    console.log(`[params] deck=${deckSize} piles=${minNumPiles}-${maxNumPiles} rounds=${maxShuffles} strat=${shuffleStrat} score=${scoreType}`);
     const pileDivisions = Array.from({ length: maxNumPiles - minNumPiles + 1 }, (_, i) => i + minNumPiles);
     const shuffleFunction = SHUFFLE_FUNCTION_MAP[shuffleStrat];
     const numOptions = pileDivisions.length;
@@ -165,18 +153,11 @@ workerScope.onmessage = (e) => {
     // vs BFS frontier which grows as O(numOptions^round).
     const stack = [{ deck: baseDeck, depth: 0 }];
 
-    tShuffle = 0; tScore = 0; tSpread = 0; tStackOps = 0; tTimeCheck = 0;
-
     function processChunk() {
         const start = performance.now();
 
         while (stack.length > 0) {
-            let t0, t1;
-
-            t0 = performance.now();
             const { deck, depth } = stack.pop();
-            t1 = performance.now();
-            tStackOps += t1 - t0;
 
             if (depth > 0) {
                 nodesVisited++;
@@ -188,35 +169,22 @@ workerScope.onmessage = (e) => {
             if (depth < maxShuffles) {
                 for (let i = numOptions - 1; i >= 0; i--) {
                     const child = shuffleFunction(deck, pileDivisions[i], scoreType);
-
-                    t0 = performance.now();
                     stack.push({ deck: child, depth: depth + 1 });
-                    tStackOps += performance.now() - t0;
                 }
             }
 
-            t0 = performance.now();
-            const elapsed = t0 - start;
-            tTimeCheck += performance.now() - t0;
-
-            if (elapsed > 200) {
+            if (performance.now() - start > 200) {
                 workerScope.postMessage({
                     type: 'progress',
                     completed: nodesVisited,
                     total: totalNodes,
                     round: 1,
                 });
-                console.log(
-                    `[profile] nodes=${nodesVisited} | shuffle=${tShuffle.toFixed(0)}ms score=${tScore.toFixed(0)}ms spread=${tSpread.toFixed(0)}ms | stackOps=${tStackOps.toFixed(0)}ms timeCheck=${tTimeCheck.toFixed(0)}ms`
-                );
                 setTimeout(processChunk, 0);
                 return;
             }
         }
 
-        console.log(
-            `[profile FINAL] nodes=${nodesVisited} | shuffle=${tShuffle.toFixed(0)}ms score=${tScore.toFixed(0)}ms spread=${tSpread.toFixed(0)}ms | stackOps=${tStackOps.toFixed(0)}ms timeCheck=${tTimeCheck.toFixed(0)}ms`
-        );
         workerScope.postMessage({
             type: 'result',
             data: best ? { permutation: best.permutation, score: best.score } : null,
