@@ -45,6 +45,7 @@ export default function Shufflenator() {
   useEffect(() => {
     return () => {
       workerRef.current?.terminate();
+      clearTimeout(progressTimerRef.current);
     };
   }, []);
 
@@ -58,6 +59,9 @@ export default function Shufflenator() {
   });
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
+  const [rounds, setRounds] = useState([]);
+  const progressTimerRef = useRef(null);
   const [showExplainer, setShowExplainer] = useState(false);
 
   const CardsInDeck = () => {
@@ -68,7 +72,7 @@ export default function Shufflenator() {
           className="shufflenator-selector-row-number"
           type="number"
           ref={cardsInDeck}
-          defaultValue={52}
+          defaultValue={100}
           step={10}
           min={10}
           max={1_000}
@@ -105,8 +109,8 @@ export default function Shufflenator() {
   const MaxShuffles = () => {
     return (
       <Dropdown
-        title="max shuffles"
-        options={[1, 2, 3, 4, 5]}
+        title="max rounds"
+        options={[1, 2, 3, 4, 5, 6, 7]}
         value={maxShuffles}
         defaultValue={3}
         onChange={setMaxShuffles}
@@ -140,8 +144,12 @@ export default function Shufflenator() {
 
   const shuffle = () => {
     workerRef.current?.terminate();
+    clearTimeout(progressTimerRef.current);
     setResults(null);
     setLoading(true);
+    setShowProgress(false);
+    setRounds([]);
+    progressTimerRef.current = setTimeout(() => setShowProgress(true), 1000);
     const worker = new Worker(new URL("./shuffleWorker.js", import.meta.url));
     workerRef.current = worker;
     worker.postMessage({
@@ -153,20 +161,24 @@ export default function Shufflenator() {
       maxNumPiles: pileMax,
     });
     worker.onmessage = (e) => {
-      setResults(e.data);
-      setLoading(false);
-      workerRef.current = null;
+      const msg = e.data;
+      if (msg.type === 'progress') {
+        setRounds((prev) => {
+          const next = [...prev];
+          next[msg.iteration - 1] = { completed: msg.completed, total: msg.total };
+          return next;
+        });
+      } else {
+        clearTimeout(progressTimerRef.current);
+        setResults(msg.data);
+        setLoading(false);
+        setShowProgress(false);
+        setRounds([]);
+        workerRef.current = null;
+      }
     };
   };
 
-  const SubmitButton = () => {
-    if (loading) return <div className="shufflenator-spinner" />;
-    return (
-      <div onClick={shuffle} className="shufflenator-submit-button">
-        <div className="shufflenator-submit-button-text">submit</div>
-      </div>
-    );
-  };
 
   const Results = () => {
     return (
@@ -257,7 +269,21 @@ export default function Shufflenator() {
         {/* <ShuffleStrategy/> */}
         {/* <ScoreType/> */}
       </div>
-      <SubmitButton />
+      <div onClick={loading ? undefined : shuffle} className={`shufflenator-submit-button${loading ? ' disabled' : ''}`}>
+        <div className="shufflenator-submit-button-text">submit</div>
+      </div>
+      {showProgress && (
+        <div className="shufflenator-rounds">
+          {rounds.map((round, i) => (
+            <div key={i} className="shufflenator-round">
+              <span className="shufflenator-round-label">round {i + 1}</span>
+              <div className="shufflenator-progress">
+                <div className="shufflenator-progress-bar" style={{ width: `${(round.completed / round.total) * 100}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       {results && <Results />}
     </div>
   );

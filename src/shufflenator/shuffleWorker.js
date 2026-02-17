@@ -100,18 +100,10 @@ const SHUFFLE_FUNCTION_MAP = {
 
 // --- Simulator ---
 
-function runPerm(shuffledDecks, pileDivisions, shuffleFunction, scoreType) {
-    const newDecks = [];
-    for (const deck of shuffledDecks) {
-        for (const numPiles of pileDivisions) {
-            newDecks.push(shuffleFunction(deck, numPiles, scoreType));
-        }
-    }
-    return newDecks;
-}
-
-function shuffleDecks({ shuffleStrat, scoreType, maxShuffles, deckSize, minNumPiles, maxNumPiles }) {
+async function shuffleDecks({ shuffleStrat, scoreType, maxShuffles, deckSize, minNumPiles, maxNumPiles }) {
     const pileDivisions = Array.from({ length: maxNumPiles - minNumPiles + 1 }, (_, i) => i + minNumPiles);
+    const d = pileDivisions.length;
+
     const baseCardList = Array.from({ length: deckSize }, (_, i) => i);
     const shuffleFunction = SHUFFLE_FUNCTION_MAP[shuffleStrat];
 
@@ -120,18 +112,40 @@ function shuffleDecks({ shuffleStrat, scoreType, maxShuffles, deckSize, minNumPi
     seen.add(baseDeck.cardList.join(','));
     let shuffledDecks = [baseDeck];
     let best = null;
-
     for (let i = 0; i < maxShuffles; i++) {
-        const newDecks = runPerm(shuffledDecks, pileDivisions, shuffleFunction, scoreType);
-        for (const deck of newDecks) {
-            const key = deck.cardList.join(',');
-            if (seen.has(key)) continue;
-            seen.add(key);
-            shuffledDecks.push(deck);
+        const prevCount = shuffledDecks.length;
+        const iterationTotal = prevCount * d;
+        let iterationCompleted = 0;
+        for (let j = 0; j < prevCount; j++) {
+            const deck = shuffledDecks[j];
+            for (const numPiles of pileDivisions) {
+                const newDeck = shuffleFunction(deck, numPiles, scoreType);
+                iterationCompleted++;
+                const key = newDeck.cardList.join(',');
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    shuffledDecks.push(newDeck);
+                    if (!best || newDeck.score > best.score) best = newDeck;
+                }
+            }
+            if (j % 50 === 0) {
+                workerScope.postMessage({
+                    type: 'progress',
+                    completed: iterationCompleted,
+                    total: iterationTotal,
+                    iteration: i + 1,
+                });
+                await new Promise(r => setTimeout(r, 0));
+            }
         }
-        for (const deck of shuffledDecks) {
-            if (!best || deck.score > best.score) best = deck;
-        }
+        // send final 100% for this round
+        workerScope.postMessage({
+            type: 'progress',
+            completed: iterationTotal,
+            total: iterationTotal,
+            iteration: i + 1,
+        });
+        await new Promise(r => setTimeout(r, 0));
     }
 
     return best;
@@ -141,7 +155,7 @@ function shuffleDecks({ shuffleStrat, scoreType, maxShuffles, deckSize, minNumPi
 // eslint-disable-next-line no-restricted-globals
 const workerScope = self;
 
-workerScope.onmessage = (e) => {
-    const result = shuffleDecks(e.data);
-    workerScope.postMessage(result);
+workerScope.onmessage = async (e) => {
+    const result = await shuffleDecks(e.data);
+    workerScope.postMessage({ type: 'result', data: result });
 };
