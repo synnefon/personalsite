@@ -151,13 +151,14 @@ export default function Shufflenator() {
     const numRounds = maxShuffles.value;
     setRounds(Array.from({ length: numRounds }, () => ({ completed: 0, total: 1 })));
     progressTimerRef.current = setTimeout(() => setShowProgress(true), 1000);
+
     const worker = new Worker(new URL("./shuffleWorker.js", import.meta.url));
     workerRef.current = worker;
     worker.postMessage({
       shuffleStrat: shuffleStrat.value,
       scoreType: scoreType.value,
-      maxShuffles: maxShuffles.value,
-      deckSize: cardsInDeck.current.value,
+      maxShuffles: numRounds,
+      deckSize: Number(cardsInDeck.current.value),
       minNumPiles: pileMin,
       maxNumPiles: pileMax,
     });
@@ -166,7 +167,7 @@ export default function Shufflenator() {
       if (msg.type === 'progress') {
         setRounds((prev) => {
           const next = [...prev];
-          next[msg.iteration - 1] = { completed: msg.completed, total: msg.total };
+          next[msg.round - 1] = { completed: msg.completed, total: msg.total };
           return next;
         });
       } else {

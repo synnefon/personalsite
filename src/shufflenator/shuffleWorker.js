@@ -47,6 +47,7 @@ function makeShuffledDeck(cardList, permutation, scoreType) {
         cardList,
         permutation,
         score: SCORE_FUNCTION_MAP[scoreType](cardList),
+        key: cardList.join(','),
     };
 }
 
@@ -62,12 +63,8 @@ function pileShuffle(deck, numPiles, scoreType) {
     const cards = deck.cardList;
     const len = cards.length;
     const result = new Array(len);
-    // compute how many cards land in each pile
     const full = Math.floor(len / numPiles);
     const remainder = len % numPiles;
-    // pile i has (full + 1) cards if i < remainder, else full cards
-    // cards are dealt cyclically and unshifted, so within each pile they're reversed
-    // compute the starting write index for each pile
     let offset = 0;
     const pileStart = new Array(numPiles);
     const pileSize = new Array(numPiles);
@@ -76,7 +73,6 @@ function pileShuffle(deck, numPiles, scoreType) {
         pileSize[p] = p < remainder ? full + 1 : full;
         offset += pileSize[p];
     }
-    // write position tracks next write slot per pile (fill from end to simulate unshift)
     const writePos = new Array(numPiles);
     for (let p = 0; p < numPiles; p++) {
         writePos[p] = pileStart[p] + pileSize[p] - 1;
@@ -99,63 +95,59 @@ const SHUFFLE_FUNCTION_MAP = {
 };
 
 // --- Simulator ---
+// eslint-disable-next-line no-restricted-globals
+const workerScope = self;
 
-async function shuffleDecks({ shuffleStrat, scoreType, maxShuffles, deckSize, minNumPiles, maxNumPiles }) {
+workerScope.onmessage = (e) => {
+    const { shuffleStrat, scoreType, maxShuffles, deckSize, minNumPiles, maxNumPiles } = e.data;
     const pileDivisions = Array.from({ length: maxNumPiles - minNumPiles + 1 }, (_, i) => i + minNumPiles);
-    const d = pileDivisions.length;
-
-    const baseCardList = Array.from({ length: deckSize }, (_, i) => i);
     const shuffleFunction = SHUFFLE_FUNCTION_MAP[shuffleStrat];
 
     const seen = new Set();
+    const baseCardList = Array.from({ length: deckSize }, (_, i) => i);
     const baseDeck = makeShuffledDeck(baseCardList, [], scoreType);
-    seen.add(baseDeck.cardList.join(','));
-    let shuffledDecks = [baseDeck];
+    seen.add(baseDeck.key);
+    let frontier = [baseDeck];
     let best = null;
-    for (let i = 0; i < maxShuffles; i++) {
-        const prevCount = shuffledDecks.length;
-        const iterationTotal = prevCount * d;
-        let iterationCompleted = 0;
-        for (let j = 0; j < prevCount; j++) {
-            const deck = shuffledDecks[j];
+
+    for (let round = 0; round < maxShuffles; round++) {
+        const roundTotal = frontier.length * pileDivisions.length;
+        const nextFrontier = [];
+
+        for (let j = 0; j < frontier.length; j++) {
+            const deck = frontier[j];
             for (const numPiles of pileDivisions) {
                 const newDeck = shuffleFunction(deck, numPiles, scoreType);
-                iterationCompleted++;
-                const key = newDeck.cardList.join(',');
-                if (!seen.has(key)) {
-                    seen.add(key);
-                    shuffledDecks.push(newDeck);
+                if (!seen.has(newDeck.key)) {
+                    seen.add(newDeck.key);
+                    nextFrontier.push(newDeck);
                     if (!best || newDeck.score > best.score) best = newDeck;
                 }
             }
             if (j % 50 === 0) {
                 workerScope.postMessage({
                     type: 'progress',
-                    completed: iterationCompleted,
-                    total: iterationTotal,
-                    iteration: i + 1,
+                    completed: (j + 1) * pileDivisions.length,
+                    total: roundTotal,
+                    round: round + 1,
                 });
-                await new Promise(r => setTimeout(r, 0));
             }
         }
-        // send final 100% for this round
+
+        // free old frontier keys from deck objects
+        for (const deck of frontier) { delete deck.key; }
+        frontier = nextFrontier;
+
         workerScope.postMessage({
             type: 'progress',
-            completed: iterationTotal,
-            total: iterationTotal,
-            iteration: i + 1,
+            completed: roundTotal,
+            total: roundTotal,
+            round: round + 1,
         });
-        await new Promise(r => setTimeout(r, 0));
     }
 
-    return best;
-}
-
-// --- Worker message handler ---
-// eslint-disable-next-line no-restricted-globals
-const workerScope = self;
-
-workerScope.onmessage = async (e) => {
-    const result = await shuffleDecks(e.data);
-    workerScope.postMessage({ type: 'result', data: result });
+    workerScope.postMessage({
+        type: 'result',
+        data: best ? { permutation: best.permutation, score: best.score } : null,
+    });
 };
