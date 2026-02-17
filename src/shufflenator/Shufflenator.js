@@ -208,15 +208,7 @@ export default function Shufflenator() {
               </p>
               <p>
                 configure your deck size, pile size range, and how many shuffles you want to perform.
-                the calculator will find the permutation that maximizes entropy (randomness) given your constraints.
-              </p>
-              <h2>understanding the output</h2>
-              <p>
-                the output shows the optimal number of piles to use for each shuffle. for example, if the output is <code>(8,8,10)</code>,
-                it means: do a pile shuffle into 8 piles, collect and shuffle into 8 piles again, then collect and shuffle into 10 piles.
-              </p>
-              <p>
-                this sequence spreads your cards maximally throughout the deck before you finish with your riffle shuffles.
+                the calculator will find the permutation that maximizes shannon entropy (randomness) given your constraints.
               </p>
             </div>
           </div>
