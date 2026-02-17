@@ -3,19 +3,15 @@
 
 // --- Scorers ---
 
-function calcAdjacentTermDifferences(cards) {
+function calcAverageNeighborDist(cards) {
     const deckLen = cards.length;
-    const diffs = [];
+    let total = 0;
     for (let idx = 0; idx < deckLen; idx++) {
         let diff = cards[(idx + 1) % deckLen] - cards[idx];
         if (diff < 0) diff += deckLen;
-        diffs.push(diff);
+        total += diff;
     }
-    return diffs;
-}
-
-function calcAverageNeighborDist(cards) {
-    return calcAdjacentTermDifferences(cards).reduce((a, b) => a + b, 0) / cards.length;
+    return total / deckLen;
 }
 
 function calcLocationDelta(cards) {
@@ -27,11 +23,19 @@ function calcLocationDelta(cards) {
 }
 
 function calcShannonEntropy(cards) {
-    const diffs = calcAdjacentTermDifferences(cards);
+    const deckLen = cards.length;
     const counts = {};
-    for (const d of diffs) counts[d] = (counts[d] || 0) + 1;
-    const pCounts = Object.values(counts).map(c => c / cards.length);
-    return pCounts.map(p => Math.abs(Math.log(p) * p)).filter(p => p > 0).reduce((a, b) => a + b, 0);
+    for (let idx = 0; idx < deckLen; idx++) {
+        let diff = cards[(idx + 1) % deckLen] - cards[idx];
+        if (diff < 0) diff += deckLen;
+        counts[diff] = (counts[diff] || 0) + 1;
+    }
+    let entropy = 0;
+    for (const key in counts) {
+        const p = counts[key] / deckLen;
+        entropy += Math.abs(Math.log(p) * p);
+    }
+    return entropy;
 }
 
 const SCORE_FUNCTION_MAP = {
@@ -47,7 +51,7 @@ function makeShuffledDeck(cardList, permutation, scoreType) {
         cardList,
         permutation,
         score: SCORE_FUNCTION_MAP[scoreType](cardList),
-        key: cardList.join(','),
+        key: permutation.join(','),
     };
 }
 
