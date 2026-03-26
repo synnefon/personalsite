@@ -1,0 +1,262 @@
+.mm-colors {
+  --bg-color: black !important;
+}
+
+/* ── Intro screen ──────────────────────────────────── */
+
+.mm-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: left;
+  gap: 1.5em;
+  padding: 2em;
+  padding-top: 20vh;
+}
+
+.mm-title {
+  font-size: 2.5rem;
+  margin: 0;
+  color: var(--text-color);
+}
+
+.mm-description {
+  font-size: 0.95rem;
+  line-height: 1.8;
+  opacity: 0.7;
+  margin: 0;
+  max-width: 320px;
+}
+
+.mm-controls {
+  display: flex;
+  gap: 1.5em;
+  align-items: flex-end;
+  margin-top: 1em;
+}
+
+.mm-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+
+.mm-play-btn {
+  background: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--text-color);
+  border-radius: 6px;
+  padding: 0.6em 1.5em;
+  font-family: inherit;
+  font-size: 1.1rem;
+  cursor: var(--pointer);
+  transition: background 0.2s, color 0.2s;
+}
+
+.mm-play-btn:hover {
+  background: var(--text-color);
+  color: black;
+}
+
+.mm-play-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.mm-credit {
+  position: absolute;
+  bottom: 1.5em;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  opacity: 0.35;
+  margin: 0;
+}
+
+.mm-credit a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* ── Fullscreen playback ───────────────────────────── */
+
+.mm-fullscreen {
+  position: relative;
+  overflow: hidden;
+  background: black;
+}
+
+.mm-overlay-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1em 1.5em;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.mm-overlay-top > * {
+  pointer-events: auto;
+}
+
+.mm-date {
+  margin: 0;
+  font-size: 1.1rem;
+  opacity: 0.7;
+}
+
+.mm-overlay-buttons {
+  display: flex;
+  gap: 0.3em;
+}
+
+.mm-map-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 3.5em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mm-map-bg {
+  width: 90%;
+  max-width: 900px;
+  height: auto;
+}
+
+.mm-map-bg path {
+  fill: rgba(255, 255, 255, 0.08) !important;
+  stroke: none !important;
+}
+
+.mm-map-dots {
+  position: absolute;
+  width: 90%;
+  max-width: 900px;
+  height: auto;
+  pointer-events: none;
+}
+
+/* ── Shared controls ───────────────────────────────── */
+
+.mm-btn {
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  color: var(--text-color);
+  font-size: 1.5rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  cursor: var(--pointer);
+  transition: color 0.2s, opacity 0.2s;
+}
+
+.mm-btn:hover {
+  opacity: 0.7;
+}
+
+.mm-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.mm-select {
+  background: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--text-color);
+  border-radius: 4px;
+  padding: 0.3em 0.5em;
+  padding-right: 1.4em;
+  font-family: inherit;
+  font-size: 1rem;
+  cursor: var(--pointer);
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23eaeaf7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.4em center;
+}
+
+.mm-select:hover {
+  border-color: orange;
+}
+
+.mm-select option {
+  background: #111;
+  color: var(--text-color);
+}
+
+/* ── Timeline ──────────────────────────────────────── */
+
+.mm-timeline {
+  position: absolute;
+  bottom: 1.5em;
+  left: 0;
+  right: 0;
+  padding: 0 2em;
+  z-index: 10;
+}
+
+.mm-timeline-track {
+  position: relative;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 1px;
+}
+
+.mm-timeline-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: orange;
+  border-radius: 1px;
+  transition: width 1s linear;
+}
+
+.mm-timeline-indicator {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background: orange;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: left 1s linear;
+}
+
+.mm-timeline-tick {
+  position: absolute;
+  top: -4px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.mm-timeline-tick::before {
+  content: "";
+  width: 1px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.mm-timeline-label {
+  font-size: 0.65rem;
+  opacity: 0.4;
+  margin-top: 4px;
+}

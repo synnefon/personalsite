@@ -64,6 +64,7 @@
   --color-purple-slate: #443c68;
   --color-purple-medium: rgb(95, 93, 156);
   --color-purple-mauve: rgb(161, 101, 137);
+  --color-purple-primary-light: rgba(93, 53, 243, 1);
 
   --color-teal: #57a6a1;
 
@@ -104,6 +105,7 @@
 
   /* Cursors */
   --pointer: url("../assets/cursors/Dark/Hands/Hand3.png"), auto;
+  --grab: url("../assets/cursors/Dark/Hands/Hand2.png") 12 12, grab;
   --grabbing: url("../assets/cursors/Dark/Hands/Hand_Drag2.png"), grabbing;
   --not-allowed: url("../assets/cursors/Dark/Not Allowed/Not_Allowed_Thick.png"), not-allowed;
   --arrow: url("../assets/cursors/Dark/Arrows/Arrow2.png"), auto;

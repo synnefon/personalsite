@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import CustomScrollbar from "../components/CustomScrollbar";
 import fanIcon from "../assets/projects/fan.svg";
 import PaperPlaneAnimation from "./PaperPlaneAnimation";
 
@@ -21,6 +22,7 @@ export default function Projects() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [pressActive, setPressActive] = useState(false);
   const fanPositionRef = useRef({ x: null, y: null });
+  const linksRef = useRef(null);
   const fanElementRef = useRef(null);
   const longPressTimeoutRef = useRef(null);
   const longPressMetRef = useRef(false);
@@ -201,7 +203,8 @@ export default function Projects() {
         <div className="header-line">
           <h2 className="title proj-colors">projects</h2>
         </div>
-        <div className="links proj-colors">
+        <div className="links-wrapper" style={{ position: "relative" }}>
+        <div className="links proj-colors" ref={linksRef}>
           <a
             className="link proj-colors"
             href="https://synnefon.github.io/mapinator"
@@ -257,6 +260,16 @@ export default function Projects() {
               optimal shuffle pattern calculator
             </p>
           </Link>
+          <Link
+            className="link proj-colors"
+            to="/monarch-music"
+            rel="noreferrer"
+          >
+            <p className="link-text proj-colors">the migration</p>
+            <p className="tooltip-text proj-colors">
+              monarch sightings sonified
+            </p>
+          </Link>
           {/* <Link className="link proj-colors" to="/matchgame" rel="noreferrer">
             <p className="link-text proj-colors">sea match</p>
             <p className="tooltip-text proj-colors">a sea-themed memory game</p>
@@ -307,6 +320,8 @@ export default function Projects() {
             <p className="link-text proj-colors">infinite terrain</p>
             <p className="tooltip-text proj-colors">a godot module that generates infinite terrains</p>
           </Link> */}
+        </div>
+          <CustomScrollbar containerRef={linksRef} width={9} />
         </div>
         {/* <Raincloud showLightning={showLightning} setShowLightning={setShowLightning}/> */}
       </div>

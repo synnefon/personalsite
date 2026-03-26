@@ -16,6 +16,7 @@ const Shavianator = lazy(() => import("./shavianator/Shavianator"));
 const Shufflenator = lazy(() => import("./shufflenator/Shufflenator"));
 const Snek = lazy(() => import("./snek/Snek"));
 const Sudoku = lazy(() => import("./sudoku/Sudoku"));
+const MonarchMusic = lazy(() => import("./monarch_music/MonarchMusic"));
 const Toolbox = lazy(() => import("./toolbox/Toolbox.js"));
 
 function TitleUpdater() {
@@ -56,6 +57,7 @@ function App() {
             <Route path="/game-of-life" element={<GameOfLife />} />
             <Route path="/lava-lamp-radio" element={<LavaLamp />} />
             <Route path="/4096" element={<Game4096 />} />
+            <Route path="/monarch-music" element={<MonarchMusic />} />
             <Route path="toolbox" element={<Toolbox />} />
           </Routes>
         </Suspense>
