@@ -115,9 +115,7 @@ export default function MonarchMusic() {
 
   useEffect(() => {
     if (!playing) return;
-    const trailMs = (TRAIL_DAYS / DAYS_PER_SECOND) * 1000;
     const interval = setInterval(() => {
-      const now = Date.now();
       setActiveDots((prev) => [...prev]);
     }, 100);
     return () => clearInterval(interval);
