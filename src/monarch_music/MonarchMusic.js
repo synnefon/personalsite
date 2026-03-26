@@ -86,7 +86,6 @@ export default function MonarchMusic() {
       if (!playingRef.current || index >= days.length) {
         releaseAll(ctx, drones, streaks);
         stop();
-        setStarted(false);
         return;
       }
       setCurrentDayIndex(index);
