@@ -14,7 +14,7 @@ export default function MonarchMusic() {
   const [windowWidth] = useState(window.innerWidth);
   const isMobile = windowWidth <= 768;
 
-  const [year, setYear] = useState(new Date().getFullYear() - 1);
+  const [year, setYear] = useState(2021);
   const [days, setDays] = useState([]);
   const [loading, setLoading] = useState(false);
   const [started, setStarted] = useState(false);
