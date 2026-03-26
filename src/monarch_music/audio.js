@@ -46,7 +46,7 @@ export function createAudioContext() {
   compressor.release.value = 0.15;
 
   const master = ctx.createGain();
-  master.gain.value = 0.7;
+  master.gain.value = 1.0;
 
   compressor.connect(master);
   master.connect(ctx.destination);

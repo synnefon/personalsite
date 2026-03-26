@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import "../styles/app.css";
 import "../styles/monarchmusic.css";
 import { ReactComponent as NorthAmericaMap } from "../assets/monarch/north-america.svg";
+import Wip from "../projects/Wip";
 import { SCALES } from "./scales";
 import { createAudioContext, playDay, releaseAll, latToNote, DAYS_PER_SECOND } from "./audio";
 import { fetchSightings, formatDate } from "./data";
@@ -10,6 +11,9 @@ import { SVG_W, SVG_H, TRAIL_DAYS, toMapX, toMapY } from "./map";
 const SCALE = SCALES.bhairav;
 
 export default function MonarchMusic() {
+  const [windowWidth] = useState(window.innerWidth);
+  const isMobile = windowWidth <= 768;
+
   const [year, setYear] = useState(new Date().getFullYear() - 1);
   const [days, setDays] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -156,6 +160,8 @@ export default function MonarchMusic() {
   }, []);
 
   // ── Render ────────────────────────────────────────────
+
+  if (isMobile) return <Wip />;
 
   const currentDay = days[currentDayIndex];
 
