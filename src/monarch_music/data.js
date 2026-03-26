@@ -1,18 +1,3 @@
-// ── API ─────────────────────────────────────────────────
-
-function sightingUrl(season, year) {
-  return `/journeynorth/sightings_json.php?map=monarch-adult-${season}&year=${year}`;
-}
-
-function parseSightings(data) {
-  const featureCollection = data.map[2];
-  return featureCollection.features.map((f) => ({
-    lat: f.geometry.coordinates[1],
-    lon: f.geometry.coordinates[0],
-    date: f.properties.date,
-  }));
-}
-
 // ── Grouping ────────────────────────────────────────────
 
 function groupByDay(sightings, year) {
@@ -34,24 +19,16 @@ function groupByDay(sightings, year) {
   return result;
 }
 
-// ── Fetch with localStorage cache ───────────────────────
+// ── Fetch from pre-baked static data ────────────────────
 
 export async function fetchSightings(year) {
   const cacheKey = `monarch-sightings-${year}`;
   const cached = localStorage.getItem(cacheKey);
   if (cached) return JSON.parse(cached);
 
-  const [springRes, fallRes] = await Promise.all([
-    fetch(sightingUrl("spring", year)).then((r) => r.json()),
-    fetch(sightingUrl("fall", year)).then((r) => r.json()),
-  ]);
-
-  const allSightings = [
-    ...parseSightings(springRes),
-    ...parseSightings(fallRes),
-  ];
-
-  const grouped = groupByDay(allSightings, year);
+  const res = await fetch(`${process.env.PUBLIC_URL}/data/monarch/${year}.json`);
+  const sightings = await res.json();
+  const grouped = groupByDay(sightings, year);
 
   try {
     localStorage.setItem(cacheKey, JSON.stringify(grouped));
