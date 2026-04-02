@@ -123,32 +123,37 @@ div#app-base {
 .spin-letter {
   display: inline-block;
   opacity: 0;
-  animation: spinIn 5s ease forwards;
 }
 
-@keyframes spinIn {
+.spin-letter.fluttering {
+  animation:
+    fadeIn 0s var(--flutter-delay) forwards,
+    flutter var(--flutter-duration) linear var(--flutter-delay) var(--flutter-count);
+}
+
+.spin-letter.settled {
+  opacity: 1;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+@keyframes flutter {
   0% {
-    opacity: 0;
-    transform: rotateY(-3600deg) scale(0);
+    transform: rotateY(0deg) scale(1);
   }
-  15% {
-    opacity: 1;
-  }
-  30% {
-    transform: rotateY(-2700deg) scale(1.2);
+  25% {
+    transform: rotateY(-90deg) scale(1.1);
   }
   50% {
-    transform: rotateY(-1800deg) scale(0.9);
+    transform: rotateY(-180deg) scale(0.9);
   }
-  70% {
-    transform: rotateY(-900deg) scale(1.1);
-  }
-  85% {
-    transform: rotateY(-360deg) scale(0.95);
+  75% {
+    transform: rotateY(-270deg) scale(1.05);
   }
   100% {
-    opacity: 1;
-    transform: rotateY(0deg) scale(1);
+    transform: rotateY(-360deg) scale(1);
   }
 }
 

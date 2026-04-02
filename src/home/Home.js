@@ -13,10 +13,27 @@ const MAX_VOLUME_MULTIPLIER = 3;
 const NUM_ARPEGGIO_STEPS = 5;
 const VOLUME_INCREMENT = (MAX_VOLUME_MULTIPLIER - 1) / (NUM_ARPEGGIO_STEPS - 1);
 
-// Quote animation timing constants
+// Flutter timing
+const FLUTTER_STAGGER_S = 1.5; // total time over which letters are staggered in
+const FLUTTER_PERIOD_BASE_S = 0.35; // min duration of one flutter
+const FLUTTER_PERIOD_JITTER_S = 0.3; // additional random duration per flutter
+const FLUTTER_MIN = 2; // min flutter count
+const FLUTTER_MAX = 8; // max flutter count
+const FLUTTER_MODE = 4; // most likely flutter count
+const POST_FLUTTER_DELAY_MS = 5000; // pause after last letter settles before cycling
+
+// Quote timing
 const FIRST_QUOTE_DELAY_MS = 600;
 const SECOND_QUOTE_DELAY_MS = FIRST_QUOTE_DELAY_MS * 1.8;
-const SUBTITLE_DELAY_MS = FIRST_QUOTE_DELAY_MS * 11;
+
+// Triangular distribution: returns value in [min, max] biased toward mode
+const triangular = (min, max, mode) => {
+  const u = Math.random();
+  const threshold = (mode - min) / (max - min);
+  return u < threshold
+    ? min + Math.sqrt(u * (max - min) * (mode - min))
+    : max - Math.sqrt((1 - u) * (max - min) * (max - mode));
+};
 
 export default function Home() {
   const [duckOrange, setDuckOrange] = useState(false);
@@ -33,6 +50,9 @@ export default function Home() {
   const soundParamsRef = useRef(null);
   const contentWrapperRef = useRef(null);
   const timeoutRef = useRef(null);
+  const [allFluttersDone, setAllFluttersDone] = useState(false);
+  const fluttersDoneRef = useRef(0);
+  const totalFluttersRef = useRef(0);
 
   const isMobile = windowWidth <= 768;
 
@@ -105,12 +125,12 @@ export default function Home() {
     const hasSeenAnimation = sessionStorage.getItem("hasSeenHomeAnimation") === "true";
 
     if (hasSeenAnimation) {
-      // Skip animations, show everything immediately
+      // Skip flutter, show text immediately, but still wait 5s before cycling descriptors
       setSkipAnimations(true);
       setQuoteVisible(true);
       setQuote2Visible(true);
-      setSubtitleVisible(true);
-      return;
+      const timer = setTimeout(() => setSubtitleVisible(true), POST_FLUTTER_DELAY_MS);
+      return () => clearTimeout(timer);
     }
 
     // Trigger quote animations with staggered delays
@@ -120,15 +140,9 @@ export default function Home() {
     const timer2 = setTimeout(() => {
       setQuote2Visible(true);
     }, SECOND_QUOTE_DELAY_MS);
-    const timer3 = setTimeout(() => {
-      setSubtitleVisible(true);
-      // Mark animation as seen after all animations complete
-      sessionStorage.setItem("hasSeenHomeAnimation", "true");
-    }, SUBTITLE_DELAY_MS);
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
-      clearTimeout(timer3);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -142,6 +156,16 @@ export default function Home() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Once every letter has finished fluttering, wait POST_FLUTTER_DELAY_MS then cycle subtitles
+  useEffect(() => {
+    if (skipAnimations || !allFluttersDone) return;
+    const timer = setTimeout(() => {
+      setSubtitleVisible(true);
+      sessionStorage.setItem("hasSeenHomeAnimation", "true");
+    }, POST_FLUTTER_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [allFluttersDone, skipAnimations]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -318,10 +342,22 @@ export default function Home() {
       : [descriptor, 3_000];
 
   const renderAnimatedText = (text) => {
-    // If animations should be skipped, just return plain text
     if (skipAnimations) {
       return <span>{text}</span>;
     }
+
+    const letters = text.replace(/ /g, "");
+    const letterCount = letters.length;
+    totalFluttersRef.current += letterCount;
+
+    const onLetterDone = (e) => {
+      if (e.animationName === "flutter") {
+        fluttersDoneRef.current += 1;
+        if (fluttersDoneRef.current >= totalFluttersRef.current) {
+          setAllFluttersDone(true);
+        }
+      }
+    };
 
     const words = text.split(" ");
     let charIndex = 0;
@@ -330,17 +366,20 @@ export default function Home() {
       <span className="spinning-text-container">
         {words.map((word, wordIndex) => (
           <span key={wordIndex} className="word-container">
-            {word.split("").map((char, index) => {
-              const randomDelay = Math.random() * 2; // Random delay between 0-2 seconds
-              const randomDuration = 4 + Math.random() * 2; // Random duration between 4-6s
+            {word.split("").map((char) => {
+              const delay = Math.random() * FLUTTER_STAGGER_S;
+              const flutterCount = Math.round(triangular(FLUTTER_MIN, FLUTTER_MAX, FLUTTER_MODE));
+              const duration = FLUTTER_PERIOD_BASE_S + Math.random() * FLUTTER_PERIOD_JITTER_S;
               charIndex++;
               return (
                 <span
                   key={charIndex}
-                  className="spin-letter"
+                  className="spin-letter fluttering"
+                  onAnimationEnd={onLetterDone}
                   style={{
-                    animationDelay: `${randomDelay}s`,
-                    animationDuration: `${randomDuration}s`,
+                    "--flutter-delay": `${delay}s`,
+                    "--flutter-duration": `${duration}s`,
+                    "--flutter-count": flutterCount,
                   }}
                 >
                   {char}
@@ -348,7 +387,7 @@ export default function Home() {
               );
             })}
             {wordIndex < words.length - 1 && (
-              <span className="spin-letter">{"\u00A0"}</span>
+              <span className="spin-letter settled">{"\u00A0"}</span>
             )}
           </span>
         ))}
@@ -373,12 +412,12 @@ export default function Home() {
             <TypeAnimation
               key={subtitleVisible ? "animated" : "static"}
               className="description-text home-colors"
+              preRenderFirstString={subtitleVisible}
               sequence={
                 subtitleVisible
                   ? [
                       "software engineer",
-                      100,
-                      "",
+                      0,
                       ...descriptors.slice(1).flatMap((d) => extractDescription(d))
                     ]
                   : ["software engineer", 999999999]
