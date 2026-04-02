@@ -12,6 +12,7 @@
 
 div#app-base {
   transition: none !important;
+  overscroll-behavior: none;
 }
 
 /* ============================================

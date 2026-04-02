@@ -86,6 +86,7 @@ export default function About() {
     if (shouldShowSkip) toggleSkipButton(true);
   }, [shouldShowSkip]);
 
+
   const TypeIt = ({ idx, desc, audioSrc }) => {
     const onFinishedTyping = () => {
       setTimeout(() => {
@@ -140,9 +141,10 @@ export default function About() {
 
     const applyPlayingEffects = () => {
       resetPlayingEffects();
-      document.getElementById(`me-fact-wrapper${idx}`).style.color = "orange";
-      document.getElementById(`me-fact-wrapper${idx}`).style.fontWeight =
-        "bold";
+      const wrapper = document.getElementById(`me-fact-wrapper${idx}`);
+      wrapper.style.color = "orange";
+      wrapper.style.fontWeight = "bold";
+      wrapper.classList.add("playing");
     };
 
     const resetPlayingEffects = () => {
@@ -150,6 +152,7 @@ export default function About() {
         (element) => {
           element.style.fontWeight = "normal";
           element.style.color = "inherit";
+          element.classList.remove("playing");
         }
       );
     };
@@ -165,6 +168,7 @@ export default function About() {
       sfx.current.src = voice0Pre;
       sfx.current.play();
       sfx.current.onended = () => {
+        sfx.current.onpause = null;
         const utterance = new SpeechSynthesisUtterance(yearsString);
         if (ttsVoice.current) utterance.voice = ttsVoice.current;
         utterance.onend = () => {
@@ -176,6 +180,7 @@ export default function About() {
         window.speechSynthesis.speak(utterance);
       };
       sfx.current.onpause = () => {
+        if (sfx.current.ended) return;
         window.speechSynthesis.cancel();
         resetPlayingEffects();
       };
@@ -213,9 +218,9 @@ export default function About() {
       <SocialIcons />
       <div className="about-text-wrapper">
         <div className="about-text">
-          <h1 className="about-title">
+          <h2 className="title about-title">
             <span>hello, i'm connor</span>
-          </h1>
+          </h2>
           <div id="about-description" className="about-description">
             {descriptions.map((desc, idx) => {
               return <MeFact key={desc.text} idx={idx} desc={desc.text} />;
