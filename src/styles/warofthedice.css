@@ -1,0 +1,70 @@
+.wotd-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100vh;
+  padding: 1.5rem 1rem 2rem;
+  background-color: #120045;
+  box-sizing: border-box;
+}
+
+.wotd-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.wotd-title {
+  color: #f5f4ff;
+  font-size: 2rem;
+  margin: 0;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+
+.wotd-regen {
+  background: none;
+  border: 1px solid rgba(245, 244, 255, 0.4);
+  color: #f5f4ff;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  padding: 0;
+}
+
+.wotd-regen:hover {
+  border-color: #f5f4ff;
+  transform: rotate(90deg);
+}
+
+.wotd-map-wrapper {
+  width: min(95vw, 1200px);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wotd-map {
+  width: 100%;
+  height: auto;
+  max-height: 85vh;
+  display: block;
+}
+
+.wotd-territory {
+  cursor: pointer;
+  transition: filter 0.12s ease;
+}
+
+.wotd-territory:hover {
+  filter: brightness(1.18);
+}

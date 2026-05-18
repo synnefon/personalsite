@@ -18,6 +18,7 @@ const Snek = lazy(() => import("./snek/Snek"));
 const Sudoku = lazy(() => import("./sudoku/Sudoku"));
 const MonarchMusic = lazy(() => import("./monarch_music/MonarchMusic"));
 const Toolbox = lazy(() => import("./toolbox/Toolbox.js"));
+const WarOfTheDice = lazy(() => import("./war_of_the_dice/WarOfTheDice.tsx"));
 
 function TitleUpdater() {
   const location = useLocation();
@@ -58,6 +59,7 @@ function App() {
             <Route path="/lava-lamp-radio" element={<LavaLamp />} />
             <Route path="/4096" element={<Game4096 />} />
             <Route path="/monarch-music" element={<MonarchMusic />} />
+            <Route path="/war-of-the-dice" element={<WarOfTheDice />} />
             <Route path="toolbox" element={<Toolbox />} />
           </Routes>
         </Suspense>

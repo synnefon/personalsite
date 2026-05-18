@@ -270,6 +270,16 @@ export default function Projects() {
               monarch sightings sonified
             </p>
           </Link>
+          <Link
+            className="link proj-colors"
+            to="/war-of-the-dice"
+            rel="noreferrer"
+          >
+            <p className="link-text proj-colors">war of the dice</p>
+            <p className="tooltip-text proj-colors">
+              dice-rolling territory conquest
+            </p>
+          </Link>
           {/* <Link className="link proj-colors" to="/matchgame" rel="noreferrer">
             <p className="link-text proj-colors">sea match</p>
             <p className="tooltip-text proj-colors">a sea-themed memory game</p>
