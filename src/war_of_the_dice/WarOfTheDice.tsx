@@ -355,6 +355,9 @@ export default function WarOfTheDice(): ReactElement {
                       }}
                     />
                     <span className="wotd-score-dice">{s.largest}</span>
+                    <span className="wotd-score-bank">
+                      ({bankedDice[s.playerId]})
+                    </span>
                   </div>
                 );
               })}

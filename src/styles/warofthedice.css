@@ -102,6 +102,12 @@
   flex-shrink: 0;
 }
 
+.wotd-score-bank {
+  margin-left: -0.25rem;
+  opacity: 0.55;
+  font-size: 0.85em;
+}
+
 .wotd-end-turn {
   background: rgba(245, 244, 255, 0.08);
   border: 1px solid rgba(245, 244, 255, 0.4);
