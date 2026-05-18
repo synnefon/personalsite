@@ -188,7 +188,7 @@ export default function MapView({
       hexesByTerritory[h.territoryId].push(h);
     }
     return territories.map((territory) => {
-      const color = PLAYER_COLORS[territory.ownerId];
+      const color = PLAYER_COLORS[territory.ownerId].hex;
       const tHexes = hexesByTerritory[territory.id];
       const loops = traceTerritoryPerimeter(tHexes, hexes, positions);
       const label = pickLabelPosition(tHexes, positions);

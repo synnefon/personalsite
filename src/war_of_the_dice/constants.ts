@@ -33,14 +33,19 @@ export const MIN_SEED_DISTANCE = 3;
 export const LAKE_COUNT_MIN = 4;
 export const LAKE_COUNT_MAX = 10;
 
-export const PLAYER_COLORS: ReadonlyArray<string> = [
-  "#e6194b", // Red
-  "#3cb44b", // Green
-  "#ffe119", // Yellow
-  "#4363d8", // Blue
-  "#f58231", // Orange
-  "#911eb4", // Purple
-  "#42d4f4", // Cyan
+export type PlayerColor = {
+  hex: string;
+  name: string;
+};
+
+export const PLAYER_COLORS: ReadonlyArray<PlayerColor> = [
+  { hex: "#e6194b", name: "red" },
+  { hex: "#3cb44b", name: "green" },
+  { hex: "#ffe119", name: "yellow" },
+  { hex: "#4363d8", name: "blue" },
+  { hex: "#f58231", name: "orange" },
+  { hex: "#911eb4", name: "purple" },
+  { hex: "#42d4f4", name: "cyan" },
 ];
 
 export const BORDER_COLOR = "#1b1726";

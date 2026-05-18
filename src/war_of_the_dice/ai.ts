@@ -85,41 +85,74 @@ function totalEnemyDiceAdjacent(
   return total;
 }
 
-// Hard-mode evaluator weights. Tuned empirically; the component-size terms
-// dominate because they drive reinforcement income.
+// Hard-mode evaluator. Each AI gets its own personality — five knobs in
+// [-1, 1] that shape how it ranks candidate attacks:
+//   confidence — trusts the true P(attack succeeds) heavily
+//   expansion  — values growing its own connected cluster
+//   disruption — loves carving up opponents
+//   caution    — avoids ending up exposed
+//   pickiness  — passes on marginal attacks
+// The knobs are stored normalized; selectBestAttack lerps each one against
+// PERSONALITY_RANGE around its base weight when computing scores.
 export type AIPersonality = {
-  weightWin: number;
-  weightMyComponent: number;
-  weightTheirComponent: number;
-  weightExposure: number;
-  scoreThreshold: number;
+  confidence: number;
+  expansion: number;
+  disruption: number;
+  caution: number;
+  pickiness: number;
 };
 
-const BASE_PERSONALITY: AIPersonality = {
-  weightWin: 1.0,
-  weightMyComponent: 0.6,
-  weightTheirComponent: 0.35,
-  weightExposure: 0.04,
-  scoreThreshold: 0.45,
+const BASE_WEIGHTS = {
+  confidence: 1.0,
+  expansion: 0.6,
+  disruption: 0.35,
+  caution: 0.04,
+  pickiness: 0.45,
+} as const;
+
+// At knob = ±1 the effective weight is base * (1 ± PERSONALITY_RANGE).
+export const PERSONALITY_RANGE = 0.3;
+
+export const NEUTRAL_PERSONALITY: AIPersonality = {
+  confidence: 0,
+  expansion: 0,
+  disruption: 0,
+  caution: 0,
+  pickiness: 0,
 };
 
-export const PERSONALITY_JITTER = 0.15;
-
-// Each AI gets its weights nudged independently by ±`amount` (uniform), so
-// no two opponents play exactly the same way across a single game.
+// Each AI gets every knob drawn uniformly from [-1, 1].
 export function makePersonality(
-  rng: () => number = Math.random,
-  amount: number = PERSONALITY_JITTER
+  rng: () => number = Math.random
 ): AIPersonality {
-  const jitter = (base: number): number =>
-    base * (1 + (rng() * 2 - 1) * amount);
+  const draw = (): number => rng() * 2 - 1;
   return {
-    weightWin: jitter(BASE_PERSONALITY.weightWin),
-    weightMyComponent: jitter(BASE_PERSONALITY.weightMyComponent),
-    weightTheirComponent: jitter(BASE_PERSONALITY.weightTheirComponent),
-    weightExposure: jitter(BASE_PERSONALITY.weightExposure),
-    scoreThreshold: jitter(BASE_PERSONALITY.scoreThreshold),
+    confidence: draw(),
+    expansion: draw(),
+    disruption: draw(),
+    caution: draw(),
+    pickiness: draw(),
   };
+}
+
+function effective(base: number, knob: number): number {
+  return base * (1 + knob * PERSONALITY_RANGE);
+}
+
+export type PersonalityBucket =
+  | "VERY LOW"
+  | "LOW"
+  | "NEUTRAL"
+  | "HIGH"
+  | "VERY HIGH";
+
+// Five evenly-spaced buckets across [-1, 1]. Display-only.
+export function bucketKnob(v: number): PersonalityBucket {
+  if (v < -0.6) return "VERY LOW";
+  if (v < -0.2) return "LOW";
+  if (v < 0.2) return "NEUTRAL";
+  if (v < 0.6) return "HIGH";
+  return "VERY HIGH";
 }
 
 export type AIMove = { sourceId: number; targetId: number };
@@ -127,9 +160,15 @@ export type AIMove = { sourceId: number; targetId: number };
 export function selectBestAttack(
   map: GameMap,
   playerId: number,
-  personality: AIPersonality = BASE_PERSONALITY
+  personality: AIPersonality = NEUTRAL_PERSONALITY
 ): AIMove | null {
   const myBefore = largestComponent(map, playerId);
+  const wConfidence = effective(BASE_WEIGHTS.confidence, personality.confidence);
+  const wExpansion = effective(BASE_WEIGHTS.expansion, personality.expansion);
+  const wDisruption = effective(BASE_WEIGHTS.disruption, personality.disruption);
+  const wCaution = effective(BASE_WEIGHTS.caution, personality.caution);
+  const threshold = effective(BASE_WEIGHTS.pickiness, personality.pickiness);
+
   let bestMove: AIMove | null = null;
   let bestScore = -Infinity;
 
@@ -150,10 +189,10 @@ export function selectBestAttack(
       const exposure = totalEnemyDiceAdjacent(sim, t, playerId);
 
       const score =
-        winProb * personality.weightWin +
-        (myAfter - myBefore) * personality.weightMyComponent +
-        (theirBefore - theirAfter) * personality.weightTheirComponent -
-        exposure * personality.weightExposure;
+        winProb * wConfidence +
+        (myAfter - myBefore) * wExpansion +
+        (theirBefore - theirAfter) * wDisruption -
+        exposure * wCaution;
 
       if (score > bestScore) {
         bestScore = score;
@@ -162,6 +201,6 @@ export function selectBestAttack(
     }
   }
 
-  if (!bestMove || bestScore < personality.scoreThreshold) return null;
+  if (!bestMove || bestScore < threshold) return null;
   return bestMove;
 }

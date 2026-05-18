@@ -7,12 +7,17 @@ import React, {
 } from "react";
 import MapView from "./MapView.tsx";
 import {
+  bucketKnob,
   makePersonality,
   selectBestAttack,
   type AIPersonality,
 } from "./ai.ts";
 import { canAttack, resolveAttack } from "./combat.ts";
-import { NUM_PLAYERS, PLAYER_COLORS, USER_PLAYER_ID } from "./constants.ts";
+import {
+  NUM_PLAYERS,
+  PLAYER_COLORS,
+  USER_PLAYER_ID,
+} from "./constants.ts";
 import {
   largestComponent,
   playerIsEliminated,
@@ -119,6 +124,35 @@ export default function WarOfTheDice(): ReactElement {
   useEffect(() => {
     mapRef.current = map;
   }, [map]);
+
+  // Log each game's AI personalities so the player can see what they're up
+  // against. A field-description table comes first as a legend, then the
+  // per-AI values keyed by color name. Fires on initial mount and every new
+  // game.
+  useEffect(() => {
+    const fieldDescriptions: Record<string, string> = {
+      confidence: "trusts its dice-odds heavily",
+      expansion: "values growing its own cluster",
+      disruption: "loves carving up opponents",
+      caution: "avoids ending up exposed",
+      pickiness: "passes on marginal attacks",
+    };
+    const rows: Record<string, Record<string, string>> = {};
+    personalities.forEach((p, i) => {
+      if (i === USER_PLAYER_ID) return;
+      rows[PLAYER_COLORS[i].name] = {
+        confidence: bucketKnob(p.confidence),
+        expansion: bucketKnob(p.expansion),
+        disruption: bucketKnob(p.disruption),
+        caution: bucketKnob(p.caution),
+        pickiness: bucketKnob(p.pickiness),
+      };
+    });
+    /* eslint-disable no-console */
+    console.table(fieldDescriptions);
+    console.table(rows);
+    /* eslint-enable no-console */
+  }, [personalities]);
 
   // End the current actor's turn: reinforce them (one die per territory in
   // their largest connected cluster, scattered across ALL their territories)
@@ -276,7 +310,9 @@ export default function WarOfTheDice(): ReactElement {
     }
     if (isAITurn) {
       return (
-        <span style={{ color: PLAYER_COLORS[currentActor] }}>thinking…</span>
+        <span style={{ color: PLAYER_COLORS[currentActor].hex }}>
+          thinking…
+        </span>
       );
     }
     return "your move";
@@ -312,7 +348,9 @@ export default function WarOfTheDice(): ReactElement {
                   <div key={s.playerId} className={classes}>
                     <span
                       className="wotd-swatch"
-                      style={{ backgroundColor: PLAYER_COLORS[s.playerId] }}
+                      style={{
+                        backgroundColor: PLAYER_COLORS[s.playerId].hex,
+                      }}
                     />
                     <span className="wotd-score-dice">{s.largest}</span>
                   </div>
