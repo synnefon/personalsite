@@ -1,3 +1,4 @@
+import { shuffle } from "../util/Random";
 import { canAttack } from "./combat.ts";
 import { MAX_DICE_PER_TERRITORY } from "./constants.ts";
 import { largestComponent } from "./gameLogic.ts";
@@ -57,11 +58,18 @@ const WIN_PROB: number[][] = (() => {
   return table;
 })();
 
-export function winProbability(attackerDice: number, defenderDice: number): number {
+export function winProbability(
+  attackerDice: number,
+  defenderDice: number,
+): number {
   return WIN_PROB[attackerDice]?.[defenderDice] ?? 0;
 }
 
-function simulateCapture(map: GameMap, sourceId: number, targetId: number): GameMap {
+function simulateCapture(
+  map: GameMap,
+  sourceId: number,
+  targetId: number,
+): GameMap {
   const newTerritories = map.territories.map((t) => ({ ...t }));
   const sourceDice = newTerritories[sourceId].dice;
   newTerritories[targetId].ownerId = newTerritories[sourceId].ownerId;
@@ -73,7 +81,7 @@ function simulateCapture(map: GameMap, sourceId: number, targetId: number): Game
 function totalEnemyDiceAdjacent(
   map: GameMap,
   territoryId: number,
-  ownerId: number
+  ownerId: number,
 ): number {
   const neighbors = map.adjacency.get(territoryId);
   if (!neighbors) return 0;
@@ -111,7 +119,7 @@ const BASE_WEIGHTS = {
 } as const;
 
 // At knob = ±1 the effective weight is base * (1 ± PERSONALITY_RANGE).
-export const PERSONALITY_RANGE = 0.3;
+export const PERSONALITY_RANGE = 0.4;
 
 export const NEUTRAL_PERSONALITY: AIPersonality = {
   confidence: 0,
@@ -123,7 +131,7 @@ export const NEUTRAL_PERSONALITY: AIPersonality = {
 
 // Each AI gets every knob drawn uniformly from [-1, 1].
 export function makePersonality(
-  rng: () => number = Math.random
+  rng: () => number = Math.random,
 ): AIPersonality {
   const draw = (): number => rng() * 2 - 1;
   return {
@@ -160,12 +168,18 @@ export type AIMove = { sourceId: number; targetId: number };
 export function selectBestAttack(
   map: GameMap,
   playerId: number,
-  personality: AIPersonality = NEUTRAL_PERSONALITY
+  personality: AIPersonality = NEUTRAL_PERSONALITY,
 ): AIMove | null {
   const myBefore = largestComponent(map, playerId);
-  const wConfidence = effective(BASE_WEIGHTS.confidence, personality.confidence);
+  const wConfidence = effective(
+    BASE_WEIGHTS.confidence,
+    personality.confidence,
+  );
   const wExpansion = effective(BASE_WEIGHTS.expansion, personality.expansion);
-  const wDisruption = effective(BASE_WEIGHTS.disruption, personality.disruption);
+  const wDisruption = effective(
+    BASE_WEIGHTS.disruption,
+    personality.disruption,
+  );
   const wCaution = effective(BASE_WEIGHTS.caution, personality.caution);
   const threshold = effective(BASE_WEIGHTS.pickiness, personality.pickiness);
 
@@ -178,7 +192,8 @@ export function selectBestAttack(
     if (source.dice < 2) continue;
     const neighbors = map.adjacency.get(s);
     if (!neighbors) continue;
-    for (const t of neighbors) {
+    const aNeighbors = shuffle(Array.from(neighbors));
+    for (const t of aNeighbors) {
       if (!canAttack(map, s, t)) continue;
       const target = map.territories[t];
       const winProb = winProbability(source.dice, target.dice);
