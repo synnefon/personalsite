@@ -136,6 +136,7 @@ export default function WarOfTheDice(): ReactElement {
       disruption: "loves carving up opponents",
       caution: "avoids ending up exposed",
       pickiness: "passes on marginal attacks",
+      predation: "HIGH preys on the weak; LOW targets the strong",
     };
     const rows: Record<string, Record<string, string>> = {};
     personalities.forEach((p, i) => {
@@ -146,6 +147,7 @@ export default function WarOfTheDice(): ReactElement {
         disruption: bucketKnob(p.disruption),
         caution: bucketKnob(p.caution),
         pickiness: bucketKnob(p.pickiness),
+        predation: bucketKnob(p.predation),
       };
     });
     /* eslint-disable no-console */

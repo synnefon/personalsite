@@ -1,6 +1,6 @@
 import { shuffle } from "../util/Random";
 import { canAttack } from "./combat.ts";
-import { MAX_DICE_PER_TERRITORY } from "./constants.ts";
+import { MAX_DICE_PER_TERRITORY, NUM_PLAYERS } from "./constants.ts";
 import { largestComponent } from "./gameLogic.ts";
 import type { GameMap } from "./types.ts";
 
@@ -93,21 +93,25 @@ function totalEnemyDiceAdjacent(
   return total;
 }
 
-// Hard-mode evaluator. Each AI gets its own personality — five knobs in
+// Hard-mode evaluator. Each AI gets its own personality — six knobs in
 // [-1, 1] that shape how it ranks candidate attacks:
 //   confidence — trusts the true P(attack succeeds) heavily
 //   expansion  — values growing its own connected cluster
 //   disruption — loves carving up opponents
 //   caution    — avoids ending up exposed
 //   pickiness  — passes on marginal attacks
-// The knobs are stored normalized; selectBestAttack lerps each one against
-// PERSONALITY_RANGE around its base weight when computing scores.
+//   predation  — preys on weak players (positive) vs targets the strongest
+//                (negative). Signed, used directly — not lerped around a
+//                positive base — because the direction is the trait.
+// All other knobs are stored normalized; selectBestAttack lerps each one
+// against PERSONALITY_RANGE around its base weight when computing scores.
 export type AIPersonality = {
   confidence: number;
   expansion: number;
   disruption: number;
   caution: number;
   pickiness: number;
+  predation: number;
 };
 
 const BASE_WEIGHTS = {
@@ -121,12 +125,19 @@ const BASE_WEIGHTS = {
 // At knob = ±1 the effective weight is base * (1 ± PERSONALITY_RANGE).
 export const PERSONALITY_RANGE = 0.4;
 
+// How strongly predation can push the score around. The effective predation
+// contribution per candidate is `personality.predation * strengthBias *
+// PREDATION_INFLUENCE`, where strengthBias is the defender's total-dice
+// deviation from the average enemy.
+export const PREDATION_INFLUENCE = 0.5;
+
 export const NEUTRAL_PERSONALITY: AIPersonality = {
   confidence: 0,
   expansion: 0,
   disruption: 0,
   caution: 0,
   pickiness: 0,
+  predation: 0,
 };
 
 // Each AI gets every knob drawn uniformly from [-1, 1].
@@ -140,6 +151,7 @@ export function makePersonality(
     disruption: draw(),
     caution: draw(),
     pickiness: draw(),
+    predation: draw(),
   };
 }
 
@@ -182,6 +194,23 @@ export function selectBestAttack(
   );
   const wCaution = effective(BASE_WEIGHTS.caution, personality.caution);
   const threshold = effective(BASE_WEIGHTS.pickiness, personality.pickiness);
+  const wPredation = personality.predation * PREDATION_INFLUENCE;
+
+  // Per-enemy largest connected cluster — the actual reinforcement income.
+  // Used by the predation term to compare each target's player against the
+  // typical opponent.
+  const enemyComponent = new Array<number>(NUM_PLAYERS).fill(0);
+  let sumEnemyComp = 0;
+  let enemyCount = 0;
+  for (let i = 0; i < NUM_PLAYERS; i++) {
+    if (i === playerId) continue;
+    const c = largestComponent(map, i);
+    enemyComponent[i] = c;
+    if (c === 0) continue;
+    sumEnemyComp += c;
+    enemyCount++;
+  }
+  const avgEnemyComp = enemyCount > 0 ? sumEnemyComp / enemyCount : 0;
 
   let bestMove: AIMove | null = null;
   let bestScore = -Infinity;
@@ -202,12 +231,19 @@ export function selectBestAttack(
       const theirBefore = largestComponent(map, target.ownerId);
       const theirAfter = largestComponent(sim, target.ownerId);
       const exposure = totalEnemyDiceAdjacent(sim, t, playerId);
+      const defenderComp = enemyComponent[target.ownerId];
+      // Positive when defender's largest cluster is smaller than the
+      // typical enemy's, negative when bigger. Scaled so the term is
+      // roughly in [-1, +1].
+      const strengthBias =
+        avgEnemyComp > 0 ? (avgEnemyComp - defenderComp) / avgEnemyComp : 0;
 
       const score =
         winProb * wConfidence +
         (myAfter - myBefore) * wExpansion +
         (theirBefore - theirAfter) * wDisruption -
-        exposure * wCaution;
+        exposure * wCaution +
+        strengthBias * wPredation;
 
       if (score > bestScore) {
         bestScore = score;
