@@ -18,7 +18,7 @@ type Point = { x: number; y: number };
 
 type Props = {
   map: GameMap;
-  selectedTerritoryId: number | null;
+  highlightedTerritoryIds: ReadonlyArray<number>;
   onTerritoryClick: (territoryId: number) => void;
   onBackgroundClick: () => void;
 };
@@ -101,6 +101,42 @@ function traceTerritoryPerimeter(
   return loops;
 }
 
+// Place the dice label at the hex whose center is closest to the territory's
+// centroid. Using a real hex center (not the raw average) keeps the label
+// inside the territory even for L-shaped or concave blobs.
+function pickLabelPosition(
+  territoryHexes: ReadonlyArray<Hex>,
+  positions: Map<string, Point>
+): Point {
+  let sx = 0;
+  let sy = 0;
+  let count = 0;
+  for (const h of territoryHexes) {
+    const p = positions.get(hexKey(h.q, h.r));
+    if (!p) continue;
+    sx += p.x;
+    sy += p.y;
+    count++;
+  }
+  if (count === 0) return { x: 0, y: 0 };
+  const cx = sx / count;
+  const cy = sy / count;
+  let best: Point = { x: cx, y: cy };
+  let bestDist = Infinity;
+  for (const h of territoryHexes) {
+    const p = positions.get(hexKey(h.q, h.r));
+    if (!p) continue;
+    const dx = p.x - cx;
+    const dy = p.y - cy;
+    const d = dx * dx + dy * dy;
+    if (d < bestDist) {
+      bestDist = d;
+      best = p;
+    }
+  }
+  return best;
+}
+
 function pathDFromLoops(loops: ReadonlyArray<ReadonlyArray<Point>>): string {
   return loops
     .map((loop) => {
@@ -117,7 +153,7 @@ function pathDFromLoops(loops: ReadonlyArray<ReadonlyArray<Point>>): string {
 
 export default function MapView({
   map,
-  selectedTerritoryId,
+  highlightedTerritoryIds,
   onTerritoryClick,
   onBackgroundClick,
 }: Props): ReactElement {
@@ -155,17 +191,21 @@ export default function MapView({
       const color = PLAYER_COLORS[territory.ownerId];
       const tHexes = hexesByTerritory[territory.id];
       const loops = traceTerritoryPerimeter(tHexes, hexes, positions);
+      const label = pickLabelPosition(tHexes, positions);
       return {
         territoryId: territory.id,
         color,
         hexes: tHexes,
         pathD: pathDFromLoops(loops),
+        label,
+        dice: territory.dice,
       };
     });
   }, [territories, hexes, positions]);
 
-  const selectedRender =
-    selectedTerritoryId !== null ? renders[selectedTerritoryId] : null;
+  const highlightRenders = highlightedTerritoryIds
+    .map((id) => renders[id])
+    .filter((r): r is (typeof renders)[number] => r !== undefined);
 
   return (
     <svg
@@ -174,43 +214,61 @@ export default function MapView({
       preserveAspectRatio="xMidYMid meet"
       onClick={onBackgroundClick}
     >
-      {renders.map(({ territoryId, color, hexes: tHexes, pathD }) => (
-        <g
-          key={territoryId}
-          className="wotd-territory"
-          onClick={(e) => {
-            e.stopPropagation();
-            onTerritoryClick(territoryId);
-          }}
-        >
-          {tHexes.map((h) => {
-            const k = hexKey(h.q, h.r);
-            const p = positions.get(k);
-            if (!p) return null;
-            return (
-              <polygon
-                key={k}
-                points={hexPolygonPoints(p.x, p.y)}
-                fill={color}
-                stroke={color}
-                strokeWidth={0.5}
-              />
-            );
-          })}
-          <path
-            d={pathD}
-            fill="none"
-            stroke={BORDER_COLOR}
-            strokeWidth={BORDER_STROKE_WIDTH}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            pointerEvents="none"
-          />
-        </g>
-      ))}
-      {selectedRender && (
+      {renders.map(
+        ({ territoryId, color, hexes: tHexes, pathD, label, dice }) => (
+          <g
+            key={territoryId}
+            className="wotd-territory"
+            onClick={(e) => {
+              e.stopPropagation();
+              onTerritoryClick(territoryId);
+            }}
+          >
+            {tHexes.map((h) => {
+              const k = hexKey(h.q, h.r);
+              const p = positions.get(k);
+              if (!p) return null;
+              return (
+                <polygon
+                  key={k}
+                  points={hexPolygonPoints(p.x, p.y)}
+                  fill={color}
+                  stroke={color}
+                  strokeWidth={0.5}
+                />
+              );
+            })}
+            <path
+              d={pathD}
+              fill="none"
+              stroke={BORDER_COLOR}
+              strokeWidth={BORDER_STROKE_WIDTH}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              pointerEvents="none"
+            />
+            <text
+              x={label.x}
+              y={label.y}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize={HEX_SIZE * 0.95}
+              fontWeight={700}
+              fill="#ffffff"
+              stroke={BORDER_COLOR}
+              strokeWidth={2}
+              paintOrder="stroke fill"
+              pointerEvents="none"
+            >
+              {dice}
+            </text>
+          </g>
+        )
+      )}
+      {highlightRenders.map((r) => (
         <path
-          d={selectedRender.pathD}
+          key={`hl-${r.territoryId}`}
+          d={r.pathD}
           fill="none"
           stroke={SELECTION_STROKE}
           strokeWidth={SELECTION_STROKE_WIDTH}
@@ -218,7 +276,7 @@ export default function MapView({
           strokeLinecap="round"
           pointerEvents="none"
         />
-      )}
+      ))}
     </svg>
   );
 }

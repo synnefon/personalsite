@@ -45,9 +45,98 @@
   transform: rotate(90deg);
 }
 
-.wotd-map-wrapper {
-  width: min(95vw, 1200px);
+.wotd-body {
+  display: flex;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1340px;
   flex: 1;
+  align-items: flex-start;
+}
+
+.wotd-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 160px;
+  padding-top: 0.25rem;
+  flex-shrink: 0;
+}
+
+.wotd-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.wotd-score {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: rgba(245, 244, 255, 0.78);
+  font-family: monospace;
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0.3rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.wotd-score.you {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.wotd-score.active {
+  background: rgba(245, 244, 255, 0.14);
+  border-color: rgba(245, 244, 255, 0.45);
+}
+
+.wotd-swatch {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  flex-shrink: 0;
+}
+
+.wotd-end-turn {
+  background: rgba(245, 244, 255, 0.08);
+  border: 1px solid rgba(245, 244, 255, 0.4);
+  color: #f5f4ff;
+  padding: 0.9rem 1.2rem;
+  font-family: monospace;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.wotd-end-turn:hover:not(:disabled) {
+  background: rgba(245, 244, 255, 0.2);
+  border-color: #f5f4ff;
+}
+
+.wotd-end-turn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.wotd-status {
+  color: rgba(245, 244, 255, 0.7);
+  font-family: monospace;
+  font-size: 0.95rem;
+  font-style: italic;
+  min-height: 1.3em;
+}
+
+.wotd-map-wrapper {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;

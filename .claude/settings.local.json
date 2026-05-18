@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm info:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(npx source-map-explorer:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm run build:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s \"https://maps.journeynorth.org/sightings_json.php?map=monarch-adult-spring&year=2025&month=1&day=1&range=365\")",
+      "Bash(curl -s \"https://maps.journeynorth.org/sightings_json.php?map=monarch-adult-spring&year=2025&month=3&day=1&range=30\")",
+      "Bash(curl -s \"https://maps.journeynorth.org/sightings_json.php?map=monarch-adult-spring&year=2025&month=6&day=1&range=0\")",
+      "Bash(curl -s \"https://maps.journeynorth.org/*\")"
+    ]
+  }
+}

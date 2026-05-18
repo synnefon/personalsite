@@ -8,6 +8,7 @@ export type Territory = {
   id: number;
   ownerId: number;
   hexKeys: string[];
+  dice: number;
 };
 
 export type GameMap = {

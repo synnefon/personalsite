@@ -2,6 +2,7 @@ import {
   COLS,
   LAKE_COUNT_MAX,
   LAKE_COUNT_MIN,
+  MAX_DICE_PER_TERRITORY,
   MAX_GENERATION_ATTEMPTS,
   MAX_LAKE_HEXES,
   MAX_TERRITORY_HEXES,
@@ -12,6 +13,7 @@ import {
   NUM_PLAYERS,
   NUM_TERRITORIES,
   ROWS,
+  STARTING_DICE_PER_PLAYER,
   VOID_PROB_BY_DISTANCE,
 } from "./constants.ts";
 import { hexAllNeighbors, hexDistance, hexKey } from "./hexGeometry.ts";
@@ -218,10 +220,34 @@ function assignTerritories(hexes: Map<string, Hex>, rng: Rng): boolean {
   return claimed === total;
 }
 
+// Every player starts with exactly STARTING_DICE_PER_PLAYER dice. Each of
+// the player's territories receives 1 die, then the remainder is scattered
+// randomly across them (respecting MAX_DICE_PER_TERRITORY).
+function assignDice(territories: Territory[], rng: Rng): void {
+  for (const t of territories) t.dice = 1;
+
+  const byOwner: number[][] = Array.from({ length: NUM_PLAYERS }, () => []);
+  for (const t of territories) byOwner[t.ownerId].push(t.id);
+
+  for (let p = 0; p < NUM_PLAYERS; p++) {
+    const owned = byOwner[p];
+    if (owned.length === 0) continue;
+    let remaining = STARTING_DICE_PER_PLAYER - owned.length;
+    if (remaining <= 0) continue;
+    let safety = remaining * 8 + owned.length;
+    while (remaining > 0 && safety-- > 0) {
+      const tid = owned[Math.floor(rng() * owned.length)];
+      if (territories[tid].dice >= MAX_DICE_PER_TERRITORY) continue;
+      territories[tid].dice++;
+      remaining--;
+    }
+  }
+}
+
 function buildMap(hexes: Map<string, Hex>, rng: Rng): GameMap {
   const territories: Territory[] = Array.from(
     { length: NUM_TERRITORIES },
-    (_, i) => ({ id: i, ownerId: 0, hexKeys: [] })
+    (_, i) => ({ id: i, ownerId: 0, hexKeys: [], dice: 1 })
   );
   for (const [k, h] of hexes) {
     territories[h.territoryId].hexKeys.push(k);
@@ -234,6 +260,8 @@ function buildMap(hexes: Map<string, Hex>, rng: Rng): GameMap {
   ownerOrder.forEach((tid, idx) => {
     territories[tid].ownerId = idx % NUM_PLAYERS;
   });
+
+  assignDice(territories, rng);
 
   const adjacency = new Map<number, Set<number>>();
   for (let i = 0; i < NUM_TERRITORIES; i++) adjacency.set(i, new Set<number>());
