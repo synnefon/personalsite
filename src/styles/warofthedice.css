@@ -36,13 +36,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: border-color 0.2s ease;
   padding: 0;
 }
 
 .wotd-regen:hover {
   border-color: #f5f4ff;
-  transform: rotate(90deg);
+}
+
+.wotd-regen.spinning {
+  animation: wotd-regen-spin 0.55s cubic-bezier(0.5, 0, 0.3, 1);
+}
+
+@keyframes wotd-regen-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .wotd-body {
@@ -140,6 +152,118 @@
   min-height: 1.3em;
 }
 
+.wotd-map-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.wotd-battle-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0 0.5rem;
+  min-height: 4rem;
+  box-sizing: border-box;
+}
+
+.wotd-battle-pane {
+  display: flex;
+  align-items: center;
+  font-family: monospace;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.wotd-battle-pane.left {
+  justify-content: flex-end;
+  padding-right: 3rem;
+}
+
+.wotd-battle-pane.right {
+  justify-content: flex-start;
+  padding-left: 3rem;
+}
+
+.wotd-battle-side {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.wotd-battle-side.right {
+  flex-direction: row-reverse;
+}
+
+.wotd-battle-rolls {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.wotd-battle-side.right .wotd-battle-rolls {
+  flex-direction: row-reverse;
+}
+
+.wotd-battle-die {
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
+  animation: wotd-die-slide-l 0.36s ease-out backwards;
+}
+
+.wotd-battle-total {
+  padding-left: 0.5rem;
+  border-left: 2px solid currentColor;
+  font-weight: 800;
+  font-size: 2.8rem;
+  line-height: 1;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
+  animation: wotd-die-slide-l 0.36s ease-out backwards;
+}
+
+.wotd-battle-side.right .wotd-battle-total {
+  padding-left: 0;
+  padding-right: 0.5rem;
+  border-left: none;
+  border-right: 2px solid currentColor;
+}
+
+.wotd-battle-side.right .wotd-battle-die,
+.wotd-battle-side.right .wotd-battle-total {
+  animation-name: wotd-die-slide-r;
+}
+
+.wotd-battle-total.loss {
+  opacity: 0.55;
+}
+
+@keyframes wotd-die-slide-l {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes wotd-die-slide-r {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .wotd-map-wrapper {
   flex: 1;
   min-width: 0;
@@ -151,7 +275,7 @@
 .wotd-map {
   width: 100%;
   height: auto;
-  max-height: 85vh;
+  max-height: 72vh;
   display: block;
 }
 

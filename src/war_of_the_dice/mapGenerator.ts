@@ -415,6 +415,10 @@ function tryGenerate(rng: Rng): GameMap | null {
   keepLargestComponent(hexes);
   seedLakes(hexes, rng);
   cleanupLakes(hexes);
+  // Lake-walks can chew through a narrow neck and split the playable land.
+  // cleanupLakes only filters by size, not connectivity, so re-prune to the
+  // largest component.
+  keepLargestComponent(hexes);
   if (hexes.size < MIN_PLAYABLE_HEXES) return null;
   if (!assignTerritories(hexes, rng)) return null;
   if (violatesTerritoryConstraints(hexes)) return null;

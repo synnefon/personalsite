@@ -12,7 +12,7 @@ import {
   selectBestAttack,
   type AIPersonality,
 } from "./ai.ts";
-import { canAttack, resolveAttack } from "./combat.ts";
+import { canAttack, resolveAttack, type AttackOutcome } from "./combat.ts";
 import {
   NUM_PLAYERS,
   PLAYER_COLORS,
@@ -29,20 +29,38 @@ import type { GameMap } from "./types.ts";
 
 import "../styles/warofthedice.css";
 
-// AI attack visualization timing. Each move walks through three phases so
-// the user can follow what the AI is doing:
-//   1. source highlighted only
-//   2. source + target highlighted
-//   3. captured cell highlighted on win — or just a pause on loss, same
-//      duration either way
-const AI_DECIDE_MS = 220;
-const PHASE_1_MS = 380;
-const PHASE_2_MS = 480;
-const PHASE_3_MS = 380;
+// Attack visualization timing. Both AI moves and player attacks walk the
+// same four-phase sequence so the user can follow each step:
+//   1. source highlighted only (AI-only; player already did this manually
+//      by selecting the source)
+//   2. source + target highlighted, no numbers yet
+//   3. dice numbers stack into view, source + target still highlighted
+//   4. result applied: captured cell highlighted on win, blank on loss
+const AI_DECIDE_MS = 286;
+const PHASE_1_MS = 494;
+const PHASE_2_MS = 624;
+const PHASE_4_MS = 494;
+
+// Dice-stack timings live here too so the AI scheduler can hold phase 3 open
+// until the stack animation finishes (see playOneMove). Keep these in sync
+// with the .wotd-battle-die / .wotd-battle-total CSS animation duration.
+const STACK_STAGGER_MS = 120;
+const DIE_ANIM_MS = 360;
 
 type AIAction = {
   sourceId: number;
   targetId: number | null;
+};
+
+type BattleDisplay = {
+  attackerId: number;
+  defenderId: number;
+  attackerRolls: number[];
+  defenderRolls: number[];
+  attackerSum: number;
+  defenderSum: number;
+  attackerWon: boolean;
+  key: number;
 };
 
 type PlayerStat = {
@@ -80,6 +98,50 @@ function computeStats(map: GameMap): PlayerStat[] {
   return stats;
 }
 
+function stackDurationMs(rollCount: number): number {
+  // Total time for a stack to fully resolve: last item is the sum, which
+  // starts at rollCount * STACK_STAGGER_MS and runs DIE_ANIM_MS long.
+  return rollCount * STACK_STAGGER_MS + DIE_ANIM_MS;
+}
+
+function BattleSide({
+  color,
+  rolls,
+  sum,
+  won,
+  side,
+  totalDelayMs,
+}: {
+  color: string;
+  rolls: ReadonlyArray<number>;
+  sum: number;
+  won: boolean;
+  side: "left" | "right";
+  totalDelayMs: number;
+}): ReactElement {
+  return (
+    <div className={`wotd-battle-side ${side}`} style={{ color }}>
+      <div className="wotd-battle-rolls">
+        {rolls.map((r, i) => (
+          <span
+            key={i}
+            className="wotd-battle-die"
+            style={{ animationDelay: `${i * STACK_STAGGER_MS}ms` }}
+          >
+            {r}
+          </span>
+        ))}
+      </div>
+      <div
+        className={`wotd-battle-total ${won ? "win" : "loss"}`}
+        style={{ animationDelay: `${totalDelayMs}ms` }}
+      >
+        {sum}
+      </div>
+    </div>
+  );
+}
+
 export default function WarOfTheDice(): ReactElement {
   const [map, setMap] = useState<GameMap>(() => generateMap());
   const [turnOrder, setTurnOrder] = useState<number[]>(() =>
@@ -96,6 +158,44 @@ export default function WarOfTheDice(): ReactElement {
     Array.from({ length: NUM_PLAYERS }, () => makePersonality(Math.random))
   );
   const [aiAction, setAiAction] = useState<AIAction | null>(null);
+  const [lastBattle, setLastBattle] = useState<BattleDisplay | null>(null);
+  const [isRegenSpinning, setIsRegenSpinning] = useState<boolean>(false);
+  const [attackInProgress, setAttackInProgress] = useState<boolean>(false);
+  const battleKeyRef = useRef(0);
+  const playerTimeoutsRef = useRef<number[]>([]);
+
+  const cancelPlayerAttack = (): void => {
+    for (const t of playerTimeoutsRef.current) window.clearTimeout(t);
+    playerTimeoutsRef.current = [];
+  };
+
+  const schedulePlayerWait = (ms: number, fn: () => void): void => {
+    const id = window.setTimeout(() => {
+      playerTimeoutsRef.current = playerTimeoutsRef.current.filter(
+        (x) => x !== id
+      );
+      fn();
+    }, ms);
+    playerTimeoutsRef.current.push(id);
+  };
+
+  const recordBattle = (
+    attackerId: number,
+    defenderId: number,
+    outcome: AttackOutcome
+  ): void => {
+    battleKeyRef.current += 1;
+    setLastBattle({
+      attackerId,
+      defenderId,
+      attackerRolls: outcome.attackerRolls,
+      defenderRolls: outcome.defenderRolls,
+      attackerSum: outcome.attackerSum,
+      defenderSum: outcome.defenderSum,
+      attackerWon: outcome.attackerWon,
+      key: battleKeyRef.current,
+    });
+  };
 
   const stats = useMemo(() => computeStats(map), [map]);
   const winnerId = useMemo(() => soleSurvivor(map), [map]);
@@ -186,12 +286,46 @@ export default function WarOfTheDice(): ReactElement {
     setCurrentTurnIdx(nextIdx);
   };
 
+  // Run phases 2-4 of an attack. Phase 1 (source-only highlight) is the
+  // caller's responsibility — for the player it's the manual selection
+  // step, for the AI it's an explicit setAiAction in the scheduler before
+  // calling this. Reads mapRef so the AI chain can keep firing without
+  // mid-chain renders tearing down the closure.
+  const runAttackFromPhase2 = (
+    actorId: number,
+    sourceId: number,
+    targetId: number,
+    scheduleWait: (ms: number, fn: () => void) => void,
+    onDone: () => void
+  ): void => {
+    setAiAction({ sourceId, targetId });
+    scheduleWait(PHASE_2_MS, () => {
+      const defenderId = mapRef.current.territories[targetId].ownerId;
+      const result = resolveAttack(mapRef.current, sourceId, targetId);
+      recordBattle(actorId, defenderId, result.outcome);
+      const maxRolls = Math.max(
+        result.outcome.attackerRolls.length,
+        result.outcome.defenderRolls.length
+      );
+      scheduleWait(stackDurationMs(maxRolls), () => {
+        setMap(result.map);
+        if (result.outcome.attackerWon) {
+          setAiAction({ sourceId: targetId, targetId: null });
+        } else {
+          setAiAction(null);
+        }
+        scheduleWait(PHASE_4_MS, () => {
+          setAiAction(null);
+          onDone();
+        });
+      });
+    });
+  };
+
   // AI scheduler. Runs once when the active actor becomes an AI; chains its
   // moves via timeouts (map is read from a ref, not from deps, so a
-  // mid-attack setMap doesn't tear the chain down). Each move plays four
-  // beats: source-only highlight → both highlighted → resolve + show result
-  // (captured cell on win, blank pause on loss) → loop into the next move.
-  // The effect re-runs when the actor changes (advanceTurn was called).
+  // mid-attack setMap doesn't tear the chain down). Each move walks the
+  // four phases described above and then loops into the next move.
   useEffect(() => {
     if (!isAITurn) {
       setAiAction(null);
@@ -220,27 +354,13 @@ export default function WarOfTheDice(): ReactElement {
       // Phase 1: source only.
       setAiAction({ sourceId: move.sourceId, targetId: null });
       wait(PHASE_1_MS, () => {
-        // Phase 2: source + target.
-        setAiAction({ sourceId: move.sourceId, targetId: move.targetId });
-        wait(PHASE_2_MS, () => {
-          const result = resolveAttack(
-            mapRef.current,
-            move.sourceId,
-            move.targetId
-          );
-          setMap(result.map);
-          // Phase 3: captured cell only if the attacker won, blank
-          // otherwise — durations match so loss and win take the same time.
-          if (result.outcome.attackerWon) {
-            setAiAction({ sourceId: move.targetId, targetId: null });
-          } else {
-            setAiAction(null);
-          }
-          wait(PHASE_3_MS, () => {
-            setAiAction(null);
-            playOneMove();
-          });
-        });
+        runAttackFromPhase2(
+          currentActor,
+          move.sourceId,
+          move.targetId,
+          wait,
+          playOneMove
+        );
       });
     };
 
@@ -254,6 +374,8 @@ export default function WarOfTheDice(): ReactElement {
   }, [isAITurn, currentActor, currentTurnIdx]);
 
   const regenerate = (): void => {
+    cancelPlayerAttack();
+    setAttackInProgress(false);
     setMap(generateMap());
     setTurnOrder(makeTurnOrder(Math.random));
     setCurrentTurnIdx(0);
@@ -263,16 +385,18 @@ export default function WarOfTheDice(): ReactElement {
       Array.from({ length: NUM_PLAYERS }, () => makePersonality(Math.random))
     );
     setAiAction(null);
+    setLastBattle(null);
   };
 
   const endTurn = (): void => {
-    if (!isPlayerTurn) return;
+    if (!isPlayerTurn || attackInProgress) return;
     setSelectedTerritoryId(null);
     advanceTurn(map, currentTurnIdx);
   };
 
   const handleTerritoryClick = (territoryId: number): void => {
     if (!isPlayerTurn) return;
+    if (attackInProgress) return;
     const clicked = map.territories[territoryId];
     if (!clicked) return;
 
@@ -294,12 +418,17 @@ export default function WarOfTheDice(): ReactElement {
     }
 
     if (canAttack(map, selectedTerritoryId, territoryId)) {
-      const { map: nextMap } = resolveAttack(
-        map,
-        selectedTerritoryId,
-        territoryId
+      const source = selectedTerritoryId;
+      setSelectedTerritoryId(null);
+      setAttackInProgress(true);
+      runAttackFromPhase2(
+        USER_PLAYER_ID,
+        source,
+        territoryId,
+        schedulePlayerWait,
+        () => setAttackInProgress(false)
       );
-      setMap(nextMap);
+      return;
     }
     setSelectedTerritoryId(null);
   };
@@ -325,8 +454,12 @@ export default function WarOfTheDice(): ReactElement {
       <div className="wotd-header">
         <h2 className="wotd-title">war of the dice</h2>
         <button
-          className="wotd-regen"
-          onClick={regenerate}
+          className={`wotd-regen${isRegenSpinning ? " spinning" : ""}`}
+          onClick={() => {
+            setIsRegenSpinning(true);
+            regenerate();
+          }}
+          onAnimationEnd={() => setIsRegenSpinning(false)}
           title="new game"
         >
           ↻
@@ -364,20 +497,62 @@ export default function WarOfTheDice(): ReactElement {
           </div>
           <button
             className="wotd-end-turn"
-            disabled={!isPlayerTurn}
+            disabled={!isPlayerTurn || attackInProgress}
             onClick={endTurn}
           >
             end turn
           </button>
           <div className="wotd-status">{statusText}</div>
         </aside>
-        <div className="wotd-map-wrapper">
-          <MapView
-            map={map}
-            highlightedTerritoryIds={highlightedIds}
-            onTerritoryClick={handleTerritoryClick}
-            onBackgroundClick={() => setSelectedTerritoryId(null)}
-          />
+        <div className="wotd-map-column">
+          <div className="wotd-map-wrapper">
+            <MapView
+              map={map}
+              highlightedTerritoryIds={highlightedIds}
+              onTerritoryClick={handleTerritoryClick}
+              onBackgroundClick={() => setSelectedTerritoryId(null)}
+            />
+          </div>
+          <div className="wotd-battle-row">
+            <div className="wotd-battle-pane left">
+              {lastBattle && (
+                <div key={`l-${lastBattle.key}`}>
+                  <BattleSide
+                    color={PLAYER_COLORS[lastBattle.attackerId].hex}
+                    rolls={lastBattle.attackerRolls}
+                    sum={lastBattle.attackerSum}
+                    won={lastBattle.attackerWon}
+                    side="left"
+                    totalDelayMs={
+                      Math.max(
+                        lastBattle.attackerRolls.length,
+                        lastBattle.defenderRolls.length
+                      ) * STACK_STAGGER_MS
+                    }
+                  />
+                </div>
+              )}
+            </div>
+            <div className="wotd-battle-pane right">
+              {lastBattle && (
+                <div key={`r-${lastBattle.key}`}>
+                  <BattleSide
+                    color={PLAYER_COLORS[lastBattle.defenderId].hex}
+                    rolls={lastBattle.defenderRolls}
+                    sum={lastBattle.defenderSum}
+                    won={!lastBattle.attackerWon}
+                    side="right"
+                    totalDelayMs={
+                      Math.max(
+                        lastBattle.attackerRolls.length,
+                        lastBattle.defenderRolls.length
+                      ) * STACK_STAGGER_MS
+                    }
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
