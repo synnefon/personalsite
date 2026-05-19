@@ -56,5 +56,5 @@ export const USER_PLAYER_ID = 1;
 // Dice setup. Every player starts with exactly this many dice, distributed
 // randomly across their territories with each territory holding at least 1
 // and at most MAX_DICE_PER_TERRITORY (classic Dicewars cap).
-export const STARTING_DICE_PER_PLAYER = 12;
+export const STARTING_DICE_PER_PLAYER = 10;
 export const MAX_DICE_PER_TERRITORY = 8;
