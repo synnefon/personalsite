@@ -21,16 +21,19 @@ import type { GameMap, Hex, HexCoord, Territory } from "./types.ts";
 
 type Rng = () => number;
 
+/** Leftmost axial q for row `r` in the offset rectangular grid. */
 function rectQStart(r: number): number {
   return -Math.floor(r / 2);
 }
 
+/** True iff (q, r) is inside the COLS × ROWS rectangular grid. */
 function isInRectangle(q: number, r: number): boolean {
   if (r < 0 || r >= ROWS) return false;
   const qStart = rectQStart(r);
   return q >= qStart && q < qStart + COLS;
 }
 
+/** True iff (q, r) lies on the perimeter of the COLS × ROWS rectangle. */
 function isOnRectangleBoundary(q: number, r: number): boolean {
   if (!isInRectangle(q, r)) return false;
   if (r === 0 || r === ROWS - 1) return true;
@@ -38,6 +41,7 @@ function isOnRectangleBoundary(q: number, r: number): boolean {
   return q === qStart || q === qStart + COLS - 1;
 }
 
+/** Build the full COLS × ROWS rectangular hex grid with no territories assigned. */
 function buildEmptyGrid(): Map<string, Hex> {
   const hexes = new Map<string, Hex>();
   for (let r = 0; r < ROWS; r++) {
@@ -49,6 +53,7 @@ function buildEmptyGrid(): Map<string, Hex> {
   return hexes;
 }
 
+/** Return a Fisher–Yates shuffle of `arr`; input is not mutated. */
 function shuffle<T>(arr: ReadonlyArray<T>, rng: Rng): T[] {
   const out = arr.slice();
   for (let i = out.length - 1; i > 0; i--) {
@@ -60,6 +65,7 @@ function shuffle<T>(arr: ReadonlyArray<T>, rng: Rng): T[] {
   return out;
 }
 
+/** Neighbors of `hex` that actually exist in `hexes` (off-grid / voided ones omitted). */
 function existingNeighbors(hex: HexCoord, hexes: Map<string, Hex>): Hex[] {
   const out: Hex[] = [];
   for (const n of hexAllNeighbors(hex)) {
@@ -69,7 +75,7 @@ function existingNeighbors(hex: HexCoord, hexes: Map<string, Hex>): Hex[] {
   return out;
 }
 
-// Distance (in hex steps) from each hex to the nearest grid boundary.
+/** Distance (in hex steps) from each hex to the nearest grid boundary. */
 function distanceFromBoundary(hexes: Map<string, Hex>): Map<string, number> {
   const dist = new Map<string, number>();
   const queue: string[] = [];
@@ -104,6 +110,11 @@ function distanceFromBoundary(hexes: Map<string, Hex>): Map<string, number> {
   return dist;
 }
 
+/**
+ * Randomly delete hexes with probability that depends on distance from the
+ * boundary, chewing the outer rectangle into an irregular blob (see
+ * VOID_PROB_BY_DISTANCE).
+ */
 function punchVoids(hexes: Map<string, Hex>, rng: Rng): void {
   const dist = distanceFromBoundary(hexes);
   const lastIdx = VOID_PROB_BY_DISTANCE.length - 1;
@@ -116,6 +127,7 @@ function punchVoids(hexes: Map<string, Hex>, rng: Rng): void {
   for (const k of toDelete) hexes.delete(k);
 }
 
+/** Prune `hexes` down to its largest connected component (in place). */
 function keepLargestComponent(hexes: Map<string, Hex>): void {
   const visited = new Set<string>();
   let best = new Set<string>();
@@ -145,10 +157,12 @@ function keepLargestComponent(hexes: Map<string, Hex>): void {
   }
 }
 
-// Greedy min-distance seed placement: shuffle candidates, take the first hex
-// that's at least MIN_SEED_DISTANCE from every previously-placed seed. May
-// return fewer than `count` if the playable area is too cramped (caller
-// retries the whole generation).
+/**
+ * Greedy min-distance seed placement: shuffle candidates, take the first hex
+ * that's at least MIN_SEED_DISTANCE from every previously-placed seed. May
+ * return fewer than `count` if the playable area is too cramped (caller
+ * retries the whole generation).
+ */
 function placeSeeds(
   hexes: Map<string, Hex>,
   count: number,
@@ -172,6 +186,12 @@ function placeSeeds(
   return placed;
 }
 
+/**
+ * Place NUM_TERRITORIES seed hexes (min-distance apart), then flood-fill
+ * the territory ID outward in strict round-robin order so no territory
+ * gets a permanent first-pick advantage on contested hexes. Returns false
+ * if seed placement fails or any hex stays unclaimed.
+ */
 function assignTerritories(hexes: Map<string, Hex>, rng: Rng): boolean {
   if (hexes.size < NUM_TERRITORIES) return false;
   const seeds = placeSeeds(hexes, NUM_TERRITORIES, rng);
@@ -220,9 +240,11 @@ function assignTerritories(hexes: Map<string, Hex>, rng: Rng): boolean {
   return claimed === total;
 }
 
-// Every player starts with exactly STARTING_DICE_PER_PLAYER dice. Each of
-// the player's territories receives 1 die, then the remainder is scattered
-// randomly across them (respecting MAX_DICE_PER_TERRITORY).
+/**
+ * Every player starts with exactly STARTING_DICE_PER_PLAYER dice. Each of
+ * the player's territories receives 1 die, then the remainder is scattered
+ * randomly across them (respecting MAX_DICE_PER_TERRITORY).
+ */
 function assignDice(territories: Territory[], rng: Rng): void {
   for (const t of territories) t.dice = 1;
 
@@ -244,6 +266,10 @@ function assignDice(territories: Territory[], rng: Rng): void {
   }
 }
 
+/**
+ * Final assembly: bind hex → territory, shuffle owners across territories,
+ * assign starting dice, and compute the territory adjacency graph.
+ */
 function buildMap(hexes: Map<string, Hex>, rng: Rng): GameMap {
   const territories: Territory[] = Array.from(
     { length: NUM_TERRITORIES },
@@ -276,10 +302,12 @@ function buildMap(hexes: Map<string, Hex>, rng: Rng): GameMap {
   return { hexes, territories, adjacency };
 }
 
-// Interior void components (lakes). A void component is "exterior" if it
-// touches the rectangular grid boundary — that's the chewed-up coastline
-// around the playable area. Everything else is a lake fully enclosed by
-// playable hexes.
+/**
+ * Interior void components (lakes). A void component is "exterior" if it
+ * touches the rectangular grid boundary — that's the chewed-up coastline
+ * around the playable area. Everything else is a lake fully enclosed by
+ * playable hexes.
+ */
 function findInteriorLakes(playable: Map<string, Hex>): string[][] {
   const visited = new Set<string>();
 
@@ -335,9 +363,11 @@ function findInteriorLakes(playable: Map<string, Hex>): string[][] {
   return lakes;
 }
 
-// Plant a few explicit interior lakes by carving random-walk blobs out of
-// the deep interior. Target sizes are drawn from [MIN_LAKE_HEXES,
-// MAX_LAKE_HEXES], the same range cleanupLakes enforces.
+/**
+ * Plant a few explicit interior lakes by carving random-walk blobs out of
+ * the deep interior. Target sizes are drawn from [MIN_LAKE_HEXES,
+ * MAX_LAKE_HEXES], the same range cleanupLakes enforces.
+ */
 function seedLakes(hexes: Map<string, Hex>, rng: Rng): void {
   const dist = distanceFromBoundary(hexes);
   const candidates: Hex[] = [];
@@ -380,9 +410,11 @@ function seedLakes(hexes: Map<string, Hex>, rng: Rng): void {
   }
 }
 
-// Fill any lake outside [MIN_LAKE_HEXES, MAX_LAKE_HEXES] back into the
-// playable map. Deterministic — guarantees compliance in one pass instead of
-// burning retries.
+/**
+ * Fill any lake outside [MIN_LAKE_HEXES, MAX_LAKE_HEXES] back into the
+ * playable map. Deterministic — guarantees compliance in one pass instead
+ * of burning retries.
+ */
 function cleanupLakes(hexes: Map<string, Hex>): void {
   const lakes = findInteriorLakes(hexes);
   for (const lake of lakes) {
@@ -396,6 +428,7 @@ function cleanupLakes(hexes: Map<string, Hex>): void {
   }
 }
 
+/** True iff any territory's hex count falls outside [MIN, MAX]_TERRITORY_HEXES. */
 function violatesTerritoryConstraints(hexes: Map<string, Hex>): boolean {
   const sizes = new Array<number>(NUM_TERRITORIES).fill(0);
   for (const h of hexes.values()) sizes[h.territoryId]++;
@@ -406,9 +439,11 @@ function violatesTerritoryConstraints(hexes: Map<string, Hex>): boolean {
   return false;
 }
 
-// One full attempt: punch voids, prune to the largest connected island, then
-// flood-fill territories. Returns null if any chunk-size constraint or the
-// minimum playable area is violated; caller retries.
+/**
+ * One full attempt: punch voids, prune to the largest connected island,
+ * seed lakes, flood-fill territories. Returns null if any chunk-size
+ * constraint or the minimum playable area is violated; caller retries.
+ */
 function tryGenerate(rng: Rng): GameMap | null {
   const hexes = buildEmptyGrid();
   punchVoids(hexes, rng);
@@ -425,6 +460,10 @@ function tryGenerate(rng: Rng): GameMap | null {
   return buildMap(hexes, rng);
 }
 
+/**
+ * Generate a valid GameMap via repeated tryGenerate attempts. Throws after
+ * MAX_GENERATION_ATTEMPTS unsuccessful tries.
+ */
 export function generateMap(rng: Rng = Math.random): GameMap {
   for (let i = 0; i < MAX_GENERATION_ATTEMPTS; i++) {
     const map = tryGenerate(rng);

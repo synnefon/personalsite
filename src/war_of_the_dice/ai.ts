@@ -4,8 +4,10 @@ import { MAX_DICE_PER_TERRITORY, NUM_PLAYERS } from "./constants.ts";
 import { largestComponent } from "./gameLogic.ts";
 import type { GameMap } from "./types.ts";
 
-// Probability mass function for the sum of `n` six-sided dice.
-// pmf[i] = P(sum = i + n), so the array is offset by n.
+/**
+ * Probability mass function for the sum of `n` six-sided dice.
+ * pmf[i] = P(sum = i + n), so the array is offset by n.
+ */
 function pmf(n: number): number[] {
   if (n === 0) return [1];
   if (n === 1) return [1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6];
@@ -58,6 +60,10 @@ const WIN_PROB: number[][] = (() => {
   return table;
 })();
 
+/**
+ * Precomputed lookup for P(`attackerDice` six-sided sum >= `defenderDice`
+ * six-sided sum). Returns 0 for out-of-range inputs.
+ */
 export function winProbability(
   attackerDice: number,
   defenderDice: number,
@@ -65,6 +71,11 @@ export function winProbability(
   return WIN_PROB[attackerDice]?.[defenderDice] ?? 0;
 }
 
+/**
+ * Hypothetical post-attack map used when scoring candidate moves: target's
+ * owner becomes source's owner, target's dice = source.dice − 1, source's
+ * dice = 1. Pure — no actual game-state mutation.
+ */
 function simulateCapture(
   map: GameMap,
   sourceId: number,
@@ -78,6 +89,10 @@ function simulateCapture(
   return { ...map, territories: newTerritories };
 }
 
+/**
+ * Sum of dice on every enemy-owned cell adjacent to `territoryId`. Used by
+ * the linear scorer's `caution` term as a proxy for post-attack exposure.
+ */
 function totalEnemyDiceAdjacent(
   map: GameMap,
   territoryId: number,
@@ -140,7 +155,7 @@ export const NEUTRAL_PERSONALITY: AIPersonality = {
   predation: 0,
 };
 
-// Each AI gets every knob drawn uniformly from [-1, 1].
+/** Draw a fresh personality with each knob sampled uniformly from [-1, 1]. */
 export function makePersonality(
   rng: () => number = Math.random,
 ): AIPersonality {
@@ -155,6 +170,7 @@ export function makePersonality(
   };
 }
 
+/** Lerp a base weight by ±PERSONALITY_RANGE according to a knob in [-1, 1]. */
 function effective(base: number, knob: number): number {
   return base * (1 + knob * PERSONALITY_RANGE);
 }
@@ -166,7 +182,7 @@ export type PersonalityBucket =
   | "HIGH"
   | "VERY HIGH";
 
-// Five evenly-spaced buckets across [-1, 1]. Display-only.
+/** Five evenly-spaced buckets across [-1, 1]. Display-only. */
 export function bucketKnob(v: number): PersonalityBucket {
   if (v < -0.6) return "VERY LOW";
   if (v < -0.2) return "LOW";
@@ -177,6 +193,11 @@ export function bucketKnob(v: number): PersonalityBucket {
 
 export type AIMove = { sourceId: number; targetId: number };
 
+/**
+ * Score every legal attack via the linear evaluator (confidence + expansion
+ * + disruption − caution + predation) and pick the highest. Returns null
+ * when no attack scores above the pickiness threshold (end-of-turn signal).
+ */
 export function selectBestAttack(
   map: GameMap,
   playerId: number,

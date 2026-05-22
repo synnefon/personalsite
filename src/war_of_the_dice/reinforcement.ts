@@ -7,11 +7,13 @@ export type ReinforcementResult = {
   bank: number;
 };
 
-// Per-turn reinforcement: the player who just finished their turn gets one
-// die for each territory in their largest connected cluster, scattered
-// randomly across ALL their territories (capped at MAX_DICE_PER_TERRITORY).
-// Any dice that don't fit because every territory is already at the cap are
-// rolled forward into the bank and added to next turn's reinforcement.
+/**
+ * Per-turn reinforcement: the player who just finished their turn gets one
+ * die for each territory in their largest connected cluster, scattered
+ * randomly across ALL their territories (capped at MAX_DICE_PER_TERRITORY).
+ * Dice that don't fit (every territory at cap) roll forward into the bank
+ * and are added to next turn's reinforcement.
+ */
 export function reinforcePlayer(
   map: GameMap,
   playerId: number,

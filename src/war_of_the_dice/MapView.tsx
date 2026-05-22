@@ -23,11 +23,12 @@ type Props = {
   onBackgroundClick: () => void;
 };
 
-// Trace the outline of a territory as a list of closed loops. Each loop is
-// an ordered list of vertex pixel coords. One outer loop, plus one inner
-// loop per fully-enclosed lake. Uses hex-relative vertex keys for matching
-// (no floating-point comparisons), so adjacent hexes always agree on which
-// vertex they share.
+/**
+ * Trace the outline of a territory as a list of closed loops. One outer
+ * loop, plus one inner loop per fully-enclosed lake. Uses hex-relative
+ * vertex keys (no floating-point matching) so adjacent hexes always agree
+ * on which vertex they share.
+ */
 function traceTerritoryPerimeter(
   territoryHexes: ReadonlyArray<Hex>,
   hexes: Map<string, Hex>,
@@ -101,9 +102,11 @@ function traceTerritoryPerimeter(
   return loops;
 }
 
-// Place the dice label at the hex whose center is closest to the territory's
-// centroid. Using a real hex center (not the raw average) keeps the label
-// inside the territory even for L-shaped or concave blobs.
+/**
+ * Place the dice label at the hex whose center is closest to the territory's
+ * centroid. Using a real hex center (not the raw average) keeps the label
+ * inside the territory even for L-shaped or concave blobs.
+ */
 function pickLabelPosition(
   territoryHexes: ReadonlyArray<Hex>,
   positions: Map<string, Point>
@@ -137,6 +140,7 @@ function pickLabelPosition(
   return best;
 }
 
+/** Compile a list of closed polygon loops into a single SVG path `d` attribute. */
 function pathDFromLoops(loops: ReadonlyArray<ReadonlyArray<Point>>): string {
   return loops
     .map((loop) => {
@@ -151,6 +155,11 @@ function pathDFromLoops(loops: ReadonlyArray<ReadonlyArray<Point>>): string {
     .join(" ");
 }
 
+/**
+ * Renders the war-of-the-dice map: each territory's hexes filled with the
+ * owner color, a thick path tracing the territory border, a dice count
+ * label, and a white outline on every territory in `highlightedTerritoryIds`.
+ */
 export default function MapView({
   map,
   highlightedTerritoryIds,

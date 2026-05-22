@@ -25,7 +25,11 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "wotd:warmstart": "ts-node --transpile-only src/war_of_the_dice/training/warmStart.ts",
+    "wotd:train": "ts-node --transpile-only src/war_of_the_dice/training/train.ts",
+    "wotd:evaluate": "ts-node --transpile-only src/war_of_the_dice/training/evaluate.ts",
+    "wotd:bake": "ts-node --transpile-only src/war_of_the_dice/training/bake.ts"
   },
   "eslintConfig": {
     "extends": [
@@ -47,9 +51,11 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@tensorflow/tfjs": "^4.22.0",
     "gh-pages": "^6.3.0",
     "husky": "^9.1.7",
     "rc-joystick": "^1.0.5",
+    "ts-node": "^10.9.2",
     "web-vitals": "^4.2.4"
   }
 }

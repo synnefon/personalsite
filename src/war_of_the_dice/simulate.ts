@@ -32,9 +32,11 @@ type Trait = (typeof TRAITS)[number];
 const MAX_MOVES_PER_TURN = 250;
 const DEFAULT_MAX_ROUNDS = 250;
 
-// Run one full headless game: random map, fresh personalities, random turn
-// order, every player driven by selectBestAttack. Returns the winner and
-// the personality each player had this game.
+/**
+ * Run one full headless game: random map, fresh personalities, random turn
+ * order, every player driven by selectBestAttack. Returns the winner and
+ * the personality each player had this game.
+ */
 export function runOneGame(maxRounds: number = DEFAULT_MAX_ROUNDS): GameResult {
   let map = generateMap();
   const personalities = Array.from({ length: NUM_PLAYERS }, () =>
@@ -114,6 +116,7 @@ export type Analysis = {
   perTrait: Record<Trait, TraitStat>;
 };
 
+/** Arithmetic mean of an array; returns 0 for an empty array. */
 function mean(arr: ReadonlyArray<number>): number {
   if (arr.length === 0) return 0;
   let s = 0;
@@ -121,6 +124,11 @@ function mean(arr: ReadonlyArray<number>): number {
   return s / arr.length;
 }
 
+/**
+ * Roll up a batch of GameResults into per-trait statistics: mean values
+ * across all players vs. winners, win-rate broken out by personality bucket.
+ * Used to surface which personality traits correlate with winning.
+ */
 export function analyzeResults(results: ReadonlyArray<GameResult>): Analysis {
   const allValues: Record<Trait, number[]> = {} as Record<Trait, number[]>;
   const winnerValues: Record<Trait, number[]> = {} as Record<Trait, number[]>;
@@ -196,6 +204,7 @@ export function analyzeResults(results: ReadonlyArray<GameResult>): Analysis {
   };
 }
 
+/** Run `n` headless games and return both the per-game results and the rolled-up analysis. */
 export function simulateMany(n: number): {
   results: GameResult[];
   analysis: Analysis;

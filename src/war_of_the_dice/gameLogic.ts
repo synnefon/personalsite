@@ -1,8 +1,10 @@
 import type { GameMap } from "./types.ts";
 
-// Size of the player's largest territory cluster (BFS over the territory
-// adjacency graph). This is the reinforcement currency in Dicewars — also
-// the central term the AI evaluator cares about.
+/**
+ * Size of the player's largest territory cluster (BFS over the territory
+ * adjacency graph). This is the reinforcement currency in Dicewars — also
+ * the central term the AI evaluator cares about.
+ */
 export function largestComponent(map: GameMap, playerId: number): number {
   const visited = new Set<number>();
   let best = 0;
@@ -30,6 +32,7 @@ export function largestComponent(map: GameMap, playerId: number): number {
   return best;
 }
 
+/** True iff the player owns no territories. */
 export function playerIsEliminated(map: GameMap, playerId: number): boolean {
   for (const t of map.territories) {
     if (t.ownerId === playerId) return false;
@@ -37,6 +40,10 @@ export function playerIsEliminated(map: GameMap, playerId: number): boolean {
   return true;
 }
 
+/**
+ * The ID of the only remaining player if exactly one player still owns
+ * territory; null otherwise.
+ */
 export function soleSurvivor(map: GameMap): number | null {
   const owners = new Set<number>();
   for (const t of map.territories) owners.add(t.ownerId);

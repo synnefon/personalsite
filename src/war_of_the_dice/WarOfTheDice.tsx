@@ -24,10 +24,14 @@ import {
   soleSurvivor,
 } from "./gameLogic.ts";
 import { generateMap } from "./mapGenerator.ts";
+import { selectBestAttackBaked } from "./model/bakedAI.ts";
 import { reinforcePlayer } from "./reinforcement.ts";
 import type { GameMap } from "./types.ts";
 
 import "../styles/warofthedice.css";
+
+// Flip to `false` to fall back to the linear personality-driven AI.
+const USE_NN_AI = true;
 
 // Attack visualization timing. Both AI moves and player attacks walk the
 // same four-phase sequence so the user can follow each step:
@@ -69,9 +73,11 @@ type PlayerStat = {
   territories: number;
 };
 
-// Turn order is a Fisher–Yates shuffle of the player/color list. Nothing
-// else — the user might end up anywhere in the sequence. Each turn advances
-// one slot; once we wrap past the end we loop back to index 0.
+/**
+ * Turn order is a Fisher–Yates shuffle of the player list. The user might
+ * land anywhere in the sequence; each turn advances one slot, wrapping at
+ * the end.
+ */
 function makeTurnOrder(rng: () => number): number[] {
   const order: number[] = [];
   for (let i = 0; i < NUM_PLAYERS; i++) order.push(i);
@@ -84,6 +90,7 @@ function makeTurnOrder(rng: () => number): number[] {
   return order;
 }
 
+/** Per-player sidebar stats: largest connected component and total territories owned. */
 function computeStats(map: GameMap): PlayerStat[] {
   const territoryCounts = new Array<number>(NUM_PLAYERS).fill(0);
   for (const t of map.territories) territoryCounts[t.ownerId]++;
@@ -98,12 +105,15 @@ function computeStats(map: GameMap): PlayerStat[] {
   return stats;
 }
 
+/**
+ * Total time for a battle dice stack to fully resolve: the sum (last item)
+ * starts at rollCount * STACK_STAGGER_MS and runs DIE_ANIM_MS long.
+ */
 function stackDurationMs(rollCount: number): number {
-  // Total time for a stack to fully resolve: last item is the sum, which
-  // starts at rollCount * STACK_STAGGER_MS and runs DIE_ANIM_MS long.
   return rollCount * STACK_STAGGER_MS + DIE_ANIM_MS;
 }
 
+/** One side of the battle pane: animated dice stack and animated total. */
 function BattleSide({
   color,
   rolls,
@@ -142,6 +152,11 @@ function BattleSide({
   );
 }
 
+/**
+ * Top-level component for the war-of-the-dice game: owns all game state
+ * (map, turn order, banks, personalities), runs the AI scheduler, handles
+ * player input, and renders the map, sidebar, and battle pane.
+ */
 export default function WarOfTheDice(): ReactElement {
   const [map, setMap] = useState<GameMap>(() => generateMap());
   const [turnOrder, setTurnOrder] = useState<number[]>(() =>
@@ -161,14 +176,21 @@ export default function WarOfTheDice(): ReactElement {
   const [lastBattle, setLastBattle] = useState<BattleDisplay | null>(null);
   const [isRegenSpinning, setIsRegenSpinning] = useState<boolean>(false);
   const [attackInProgress, setAttackInProgress] = useState<boolean>(false);
+  const [round, setRound] = useState<number>(0);
   const battleKeyRef = useRef(0);
   const playerTimeoutsRef = useRef<number[]>([]);
+  const roundRef = useRef<number>(0);
+  useEffect(() => {
+    roundRef.current = round;
+  }, [round]);
 
+  /** Cancel any scheduled timeouts from the player's in-progress attack chain. */
   const cancelPlayerAttack = (): void => {
     for (const t of playerTimeoutsRef.current) window.clearTimeout(t);
     playerTimeoutsRef.current = [];
   };
 
+  /** Schedule a timeout for the player attack chain so it can be cleared on reset. */
   const schedulePlayerWait = (ms: number, fn: () => void): void => {
     const id = window.setTimeout(() => {
       playerTimeoutsRef.current = playerTimeoutsRef.current.filter(
@@ -179,6 +201,7 @@ export default function WarOfTheDice(): ReactElement {
     playerTimeoutsRef.current.push(id);
   };
 
+  /** Stash the most-recent attack outcome so the battle pane can animate it. */
   const recordBattle = (
     attackerId: number,
     defenderId: number,
@@ -256,10 +279,12 @@ export default function WarOfTheDice(): ReactElement {
     /* eslint-enable no-console */
   }, [personalities]);
 
-  // End the current actor's turn: reinforce them (one die per territory in
-  // their largest connected cluster, scattered across ALL their territories)
-  // and advance to the next non-eliminated player. Overflow dice (when every
-  // territory is at the cap) carry forward in the per-player bank.
+  /**
+   * End the current actor's turn: reinforce them (one die per territory in
+   * their largest connected cluster, scattered across ALL their territories)
+   * and advance to the next non-eliminated player. Overflow dice (every
+   * territory at cap) carry forward in the per-player bank.
+   */
   const advanceTurn = (currentMap: GameMap, fromIdx: number): void => {
     const actor = turnOrder[fromIdx];
     const { map: reinforced, bank: newBank } = reinforcePlayer(
@@ -269,12 +294,14 @@ export default function WarOfTheDice(): ReactElement {
     );
 
     let nextIdx = (fromIdx + 1) % turnOrder.length;
+    let wrapped = nextIdx === 0;
     let safety = turnOrder.length;
     while (
       playerIsEliminated(reinforced, turnOrder[nextIdx]) &&
       safety-- > 0
     ) {
       nextIdx = (nextIdx + 1) % turnOrder.length;
+      if (nextIdx === 0) wrapped = true;
     }
 
     setMap(reinforced);
@@ -284,13 +311,16 @@ export default function WarOfTheDice(): ReactElement {
       return next;
     });
     setCurrentTurnIdx(nextIdx);
+    if (wrapped) setRound((r) => r + 1);
   };
 
-  // Run phases 2-4 of an attack. Phase 1 (source-only highlight) is the
-  // caller's responsibility — for the player it's the manual selection
-  // step, for the AI it's an explicit setAiAction in the scheduler before
-  // calling this. Reads mapRef so the AI chain can keep firing without
-  // mid-chain renders tearing down the closure.
+  /**
+   * Run phases 2–4 of an attack. Phase 1 (source-only highlight) is the
+   * caller's responsibility — for the player it's the manual selection
+   * step, for the AI it's an explicit setAiAction in the scheduler before
+   * calling this. Reads mapRef so the AI chain can keep firing without
+   * mid-chain renders tearing down the closure.
+   */
   const runAttackFromPhase2 = (
     actorId: number,
     sourceId: number,
@@ -342,11 +372,13 @@ export default function WarOfTheDice(): ReactElement {
 
     const playOneMove = (): void => {
       if (cancelled) return;
-      const move = selectBestAttack(
-        mapRef.current,
-        currentActor,
-        personalities[currentActor]
-      );
+      const move = USE_NN_AI
+        ? selectBestAttackBaked(mapRef.current, currentActor, roundRef.current)
+        : selectBestAttack(
+            mapRef.current,
+            currentActor,
+            personalities[currentActor],
+          );
       if (!move) {
         advanceTurn(mapRef.current, currentTurnIdx);
         return;
@@ -373,6 +405,7 @@ export default function WarOfTheDice(): ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAITurn, currentActor, currentTurnIdx]);
 
+  /** Reset everything for a fresh game: new map, turn order, personalities, banks. */
   const regenerate = (): void => {
     cancelPlayerAttack();
     setAttackInProgress(false);
@@ -386,14 +419,21 @@ export default function WarOfTheDice(): ReactElement {
     );
     setAiAction(null);
     setLastBattle(null);
+    setRound(0);
   };
 
+  /** Player clicks "end turn" — reinforce and advance, ignored while an attack is mid-animation. */
   const endTurn = (): void => {
     if (!isPlayerTurn || attackInProgress) return;
     setSelectedTerritoryId(null);
     advanceTurn(map, currentTurnIdx);
   };
 
+  /**
+   * Player clicked a territory. If no source is selected, pick one of theirs
+   * with >= 2 dice. If a source is selected, try to attack (enemy + adjacent)
+   * or switch source (another of theirs). Click-on-self deselects.
+   */
   const handleTerritoryClick = (territoryId: number): void => {
     if (!isPlayerTurn) return;
     if (attackInProgress) return;

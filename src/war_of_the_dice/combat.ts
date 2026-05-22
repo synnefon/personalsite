@@ -1,5 +1,9 @@
 import type { GameMap } from "./types.ts";
 
+/**
+ * Whether the source territory can launch an attack on the target. Requires
+ * different owners, source.dice >= 2, and adjacency.
+ */
 export function canAttack(
   map: GameMap,
   sourceId: number,
@@ -28,21 +32,25 @@ export type AttackResult = {
   outcome: AttackOutcome;
 };
 
+/** Roll `count` six-sided dice and return the individual results. */
 function rollDice(count: number, rng: () => number): number[] {
   const out: number[] = [];
   for (let i = 0; i < count; i++) out.push(1 + Math.floor(rng() * 6));
   return out;
 }
 
+/** Sum of array elements. */
 function sum(arr: ReadonlyArray<number>): number {
   let s = 0;
   for (const n of arr) s += n;
   return s;
 }
 
-// Attacker wins on ties. On success, attacker's surviving dice move to the
-// captured territory and the source drops to 1. On failure, source drops to
-// 1, defender unchanged.
+/**
+ * Roll dice for both sides and apply the outcome. Attacker wins on ties.
+ * On success, attacker's surviving dice move to the captured territory and
+ * the source drops to 1. On failure, source drops to 1, defender unchanged.
+ */
 export function resolveAttack(
   map: GameMap,
   sourceId: number,

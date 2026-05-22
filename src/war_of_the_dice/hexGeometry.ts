@@ -3,11 +3,12 @@ import type { HexCoord } from "./types.ts";
 
 const SQRT3 = Math.sqrt(3);
 
+/** Stable canonical key for an axial hex coord. */
 export function hexKey(q: number, r: number): string {
   return `${q},${r}`;
 }
 
-// Pointy-top axial → pixel (centroid).
+/** Pointy-top axial → pixel (centroid). */
 export function hexToPixel(
   coord: HexCoord,
   size: number = HEX_SIZE
@@ -31,11 +32,13 @@ const EDGE_NEIGHBOR_OFFSETS: ReadonlyArray<readonly [number, number]> = [
   [1, 0], // 5: E — edge v5 (upper-right) → v0 (lower-right)
 ];
 
+/** The hex sharing edge `edgeIdx` with `coord` (edges indexed 0..5 around the hex). */
 export function hexNeighborByEdge(coord: HexCoord, edgeIdx: number): HexCoord {
   const [dq, dr] = EDGE_NEIGHBOR_OFFSETS[edgeIdx];
   return { q: coord.q + dq, r: coord.r + dr };
 }
 
+/** All six axial neighbors of `coord`, in edge-index order. */
 export function hexAllNeighbors(coord: HexCoord): HexCoord[] {
   return EDGE_NEIGHBOR_OFFSETS.map(([dq, dr]) => ({
     q: coord.q + dq,
@@ -43,15 +46,18 @@ export function hexAllNeighbors(coord: HexCoord): HexCoord[] {
   }));
 }
 
+/** Distance between two hexes in hex-steps. */
 export function hexDistance(a: HexCoord, b: HexCoord): number {
   const dq = a.q - b.q;
   const dr = a.r - b.r;
   return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2;
 }
 
-// Hex-relative vertex key: identifies a vertex by the three hex cells that
-// meet at it, sorted canonically. Bulletproof against floating-point — two
-// adjacent hexes that share a vertex always produce the same key.
+/**
+ * Hex-relative vertex key: identifies a vertex by the three hex cells that
+ * meet at it, sorted canonically. Bulletproof against floating-point — two
+ * adjacent hexes that share a vertex always produce the same key.
+ */
 export function hexVertexKey(h: HexCoord, vertexIdx: number): string {
   const aOff = EDGE_NEIGHBOR_OFFSETS[(vertexIdx + 5) % 6];
   const bOff = EDGE_NEIGHBOR_OFFSETS[vertexIdx % 6];
@@ -64,7 +70,7 @@ export function hexVertexKey(h: HexCoord, vertexIdx: number): string {
   return `${trio[0][0]},${trio[0][1]}|${trio[1][0]},${trio[1][1]}|${trio[2][0]},${trio[2][1]}`;
 }
 
-// Edge i runs from vertex i to vertex (i + 1) mod 6.
+/** Vertex keys for the two endpoints of edge `edgeIdx` (edge i runs from vertex i to vertex (i+1) mod 6). */
 export function hexEdgeVertexKeys(
   h: HexCoord,
   edgeIdx: number
@@ -72,6 +78,7 @@ export function hexEdgeVertexKeys(
   return [hexVertexKey(h, edgeIdx), hexVertexKey(h, (edgeIdx + 1) % 6)];
 }
 
+/** Pixel coords of vertex `i` of a hex centered at (cx, cy). */
 function vertex(
   cx: number,
   cy: number,
@@ -85,6 +92,7 @@ function vertex(
   };
 }
 
+/** SVG `points` attribute for a hex centered at (cx, cy). */
 export function hexPolygonPoints(
   cx: number,
   cy: number,
@@ -98,6 +106,7 @@ export function hexPolygonPoints(
   return pts.join(" ");
 }
 
+/** Pixel endpoints of edge `edgeIdx` of a hex centered at (cx, cy). */
 export function hexEdgeEndpoints(
   cx: number,
   cy: number,
