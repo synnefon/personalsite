@@ -11,6 +11,22 @@ export const EMBEDDING_DIM = 32;
 export const PER_CELL_INPUT_DIM = FEATURES_PER_TERRITORY + GLOBAL_FEATURES;
 export const MOVE_HEAD_INPUT_DIM = EMBEDDING_DIM * 2 + 1;
 
+// Single source of truth for the trainable layer names. tfModel.ts, bake.ts,
+// and serialize/deserialize all iterate this list — adding or removing a
+// layer is a one-line change here plus matching layer construction in
+// buildTfModel.
+export const LAYER_NAMES = [
+  "dense1",
+  "dense2",
+  "mp",
+  "moveHead1",
+  "moveHead2",
+  "passHead1",
+  "passHead2",
+] as const;
+
+export type LayerName = (typeof LAYER_NAMES)[number];
+
 export type DenseWeights = {
   // Row-major: W[i, j] at index i * outDim + j. out[j] = Σ input[i] * W[i, j] + b[j].
   W: Float32Array;
@@ -36,15 +52,7 @@ export type DenseWeights = {
 //     → passHead2 [32 → 1, linear]          = Q(pass)
 //
 // ~8.8k params total (~35KB at fp32).
-export type ModelWeights = {
-  dense1: DenseWeights;
-  dense2: DenseWeights;
-  mp: DenseWeights;
-  moveHead1: DenseWeights;
-  moveHead2: DenseWeights;
-  passHead1: DenseWeights;
-  passHead2: DenseWeights;
-};
+export type ModelWeights = Record<LayerName, DenseWeights>;
 
 /**
  * Apply one Dense layer with ReLU activation, writing into `out` starting at
@@ -139,12 +147,14 @@ export function computeEmbeddings(
   const N = adjacency.numTerritories;
   const s = ensureScratch(N);
 
+  // Global features don't vary per-cell — copy them into the scratch input
+  // block once, then only overwrite the per-territory slice each iteration.
+  for (let k = 0; k < GLOBAL_FEATURES; k++) {
+    s.cellInput[FEATURES_PER_TERRITORY + k] = board.global[k];
+  }
   for (let i = 0; i < N; i++) {
     for (let k = 0; k < FEATURES_PER_TERRITORY; k++) {
       s.cellInput[k] = board.perTerritory[i * FEATURES_PER_TERRITORY + k];
-    }
-    for (let k = 0; k < GLOBAL_FEATURES; k++) {
-      s.cellInput[FEATURES_PER_TERRITORY + k] = board.global[k];
     }
     denseRelu(s.cellInput, weights.dense1, PER_CELL_INPUT_DIM, HIDDEN_DIM, s.hidden, 0);
     denseRelu(s.hidden, weights.dense2, HIDDEN_DIM, EMBEDDING_DIM, s.emb1, i * EMBEDDING_DIM);
@@ -186,8 +196,9 @@ export function scoreMove(
   targetId: number,
   winProb: number,
   weights: ModelWeights,
+  numTerritories: number,
 ): number {
-  const s = ensureScratch(scratch?.numTerritories ?? 0);
+  const s = ensureScratch(numTerritories);
   for (let k = 0; k < EMBEDDING_DIM; k++) {
     s.moveInput[k] = embeddings[sourceId * EMBEDDING_DIM + k];
     s.moveInput[EMBEDDING_DIM + k] = embeddings[targetId * EMBEDDING_DIM + k];

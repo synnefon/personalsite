@@ -1,10 +1,6 @@
 import { winProbability, type AIMove } from "../ai.ts";
 import type { GameMap } from "../types.ts";
-import {
-  encodeAdjacency,
-  encodeBoard,
-  type EncodedAdjacency,
-} from "./encoding.ts";
+import type { EncodedAdjacency, EncodedBoard } from "./encoding.ts";
 import {
   computeEmbeddings,
   scoreMove,
@@ -37,31 +33,32 @@ export function enumerateLegalAttacks(
 }
 
 /**
- * Greedy NN policy: encode board, compute embeddings once, score every
- * legal attack plus the pass action, pick the argmax. Returns null when
- * pass is chosen (end-of-turn signal). Pre-computed adjacency is reused
- * if the caller already has it.
+ * Greedy NN policy: given a pre-encoded board and adjacency (and optionally
+ * pre-enumerated legal moves), score every legal attack plus pass and pick
+ * the argmax. Returns null when pass wins. `encodedBoard` must have been
+ * built with the same `playerId` and personality conditioning the caller
+ * wants the model to act under.
  */
 export function selectBestAttackModel(
   map: GameMap,
   playerId: number,
   weights: ModelWeights,
-  turnIndex: number,
-  adjacency?: EncodedAdjacency,
+  encodedBoard: EncodedBoard,
+  adjacency: EncodedAdjacency,
+  legalMoves?: ReadonlyArray<AIMove>,
 ): AIMove | null {
-  const adj = adjacency ?? encodeAdjacency(map);
-  const board = encodeBoard(map, playerId, turnIndex);
-  const embeddings = computeEmbeddings(board, adj, weights);
+  const candidates = legalMoves ?? enumerateLegalAttacks(map, playerId);
+  const embeddings = computeEmbeddings(encodedBoard, adjacency, weights);
+  const N = adjacency.numTerritories;
 
-  const candidates = enumerateLegalAttacks(map, playerId);
   let bestMove: AIMove | null = null;
-  let bestScore = scorePass(embeddings, adj.numTerritories, weights);
+  let bestScore = scorePass(embeddings, N, weights);
   for (const move of candidates) {
     const wp = winProbability(
       map.territories[move.sourceId].dice,
       map.territories[move.targetId].dice,
     );
-    const q = scoreMove(embeddings, move.sourceId, move.targetId, wp, weights);
+    const q = scoreMove(embeddings, move.sourceId, move.targetId, wp, weights, N);
     if (q > bestScore) {
       bestScore = q;
       bestMove = move;
@@ -80,27 +77,23 @@ export function sampleAttackModel(
   map: GameMap,
   playerId: number,
   weights: ModelWeights,
-  turnIndex: number,
+  encodedBoard: EncodedBoard,
+  adjacency: EncodedAdjacency,
   temp: number,
   rng: () => number = Math.random,
-  adjacency?: EncodedAdjacency,
+  legalMoves?: ReadonlyArray<AIMove>,
 ): AIMove | null {
-  const adj = adjacency ?? encodeAdjacency(map);
-  const board = encodeBoard(map, playerId, turnIndex);
-  const embeddings = computeEmbeddings(board, adj, weights);
+  const candidates = legalMoves ?? enumerateLegalAttacks(map, playerId);
+  const embeddings = computeEmbeddings(encodedBoard, adjacency, weights);
+  const N = adjacency.numTerritories;
 
-  const candidates = enumerateLegalAttacks(map, playerId);
-  const logits: number[] = [
-    scorePass(embeddings, adj.numTerritories, weights),
-  ];
+  const logits: number[] = [scorePass(embeddings, N, weights)];
   for (const m of candidates) {
     const wp = winProbability(
       map.territories[m.sourceId].dice,
       map.territories[m.targetId].dice,
     );
-    logits.push(
-      scoreMove(embeddings, m.sourceId, m.targetId, wp, weights),
-    );
+    logits.push(scoreMove(embeddings, m.sourceId, m.targetId, wp, weights, N));
   }
 
   let maxLogit = -Infinity;

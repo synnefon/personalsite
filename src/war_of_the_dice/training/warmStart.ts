@@ -1,8 +1,10 @@
 /* eslint-disable no-console */
-import * as tf from "@tensorflow/tfjs";
+import * as tf from "@tensorflow/tfjs-node";
 import * as fs from "fs";
 import * as path from "path";
 import { NUM_PLAYERS } from "../constants.ts";
+import { PERSONALITY_IDS } from "../model/personalities.ts";
+import { milestone, progress } from "./progress.ts";
 import {
   linearPolicy,
   runOneGameWithPolicy,
@@ -19,12 +21,21 @@ import {
   serializeWeights,
   type TfModel,
 } from "./tfModel.ts";
+import {
+  ensureDir,
+  envNumber,
+  makeRng,
+  runMain,
+  shuffleInPlace,
+} from "./util.ts";
 
 const DEFAULT_GAMES = 100;
-const DEFAULT_EPOCHS = 10;
+const DEFAULT_EPOCHS = 6;
 const DEFAULT_LR = 1e-3;
 const DEFAULT_VAL_FRACTION = 0.1;
 const DEFAULT_BATCH_SIZE = 16;
+// Stop early if val_acc gains less than this (0.5pp) over the previous epoch.
+const PLATEAU_DELTA = 0.005;
 
 type SampleWithAdj = {
   sample: DecisionRecord;
@@ -36,34 +47,31 @@ type SampleWithAdj = {
  * Each in-game decision becomes one (state, chosen action) sample. The
  * adjacency-mean matrix is materialized once per game and shared across
  * all of that game's samples (~30 decisions per game on average).
+ *
+ * Used as an optional imitation-pretraining step before self-play (see
+ * `train.ts`). Self-play can also start from random init by setting
+ * WOTD_SKIP_WS=1 or deleting checkpoints/warmStart.json.
  */
 function collectLinearSamples(numGames: number): SampleWithAdj[] {
   const out: SampleWithAdj[] = [];
+  // Linear AI has no notion of v2 personality — we feed a fixed
+  // "optimizer" conditioning so the encoder produces consistent inputs.
+  const personalities = Array.from({ length: NUM_PLAYERS }, () =>
+    PERSONALITY_IDS[0],
+  );
   for (let g = 0; g < numGames; g++) {
     const policies = Array.from(
       { length: NUM_PLAYERS },
       () => linearPolicy(),
     );
-    const result = runOneGameWithPolicy(policies);
+    const result = runOneGameWithPolicy(policies, personalities);
     const adjMatrix = adjacencyToMeanMatrix(result.adjacency);
     for (const d of result.decisions) {
       out.push({ sample: d, adjMatrix });
     }
-    if ((g + 1) % 10 === 0) {
-      console.log(`  collected ${g + 1}/${numGames} games`);
-    }
+    progress(`  collected ${g + 1}/${numGames} games (${out.length} decisions)`);
   }
   return out;
-}
-
-/** Fisher–Yates shuffle in place. */
-function shuffleInPlace<T>(arr: T[]): void {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const tmp = arr[i];
-    arr[i] = arr[j];
-    arr[j] = tmp;
-  }
 }
 
 /**
@@ -112,10 +120,14 @@ async function trainOneEpoch(
   optimizer: tf.Optimizer,
   samples: SampleWithAdj[],
   batchSize: number,
+  epochLabel: string,
+  rng: () => number,
 ): Promise<number> {
-  shuffleInPlace(samples);
+  shuffleInPlace(samples, rng);
   let totalLoss = 0;
   let totalSamples = 0;
+  const totalBatches = Math.ceil(samples.length / batchSize);
+  let batchIdx = 0;
   for (let start = 0; start < samples.length; start += batchSize) {
     const batch = samples.slice(start, start + batchSize);
     const lossTensor = optimizer.minimize(() => {
@@ -135,31 +147,40 @@ async function trainOneEpoch(
     totalLoss += (await lossTensor.data())[0] * batch.length;
     totalSamples += batch.length;
     lossTensor.dispose();
+    batchIdx++;
+    progress(
+      `  ${epochLabel} batch ${batchIdx}/${totalBatches}  running_loss=${(totalLoss / totalSamples).toFixed(4)}`,
+    );
   }
   return totalLoss / totalSamples;
 }
 
 /** Top-level warm-start script: collect → split → train → checkpoint. */
 async function main(): Promise<void> {
-  const numGames = Number(process.env.WOTD_GAMES ?? DEFAULT_GAMES);
-  const epochs = Number(process.env.WOTD_EPOCHS ?? DEFAULT_EPOCHS);
-  const lr = Number(process.env.WOTD_LR ?? DEFAULT_LR);
-  const valFraction = Number(process.env.WOTD_VAL ?? DEFAULT_VAL_FRACTION);
-  const batchSize = Number(process.env.WOTD_BATCH ?? DEFAULT_BATCH_SIZE);
+  const numGames = envNumber("WOTD_GAMES", DEFAULT_GAMES);
+  const epochs = envNumber("WOTD_EPOCHS", DEFAULT_EPOCHS);
+  const lr = envNumber("WOTD_LR", DEFAULT_LR);
+  const valFraction = envNumber("WOTD_VAL", DEFAULT_VAL_FRACTION);
+  const batchSize = envNumber("WOTD_BATCH", DEFAULT_BATCH_SIZE);
+  const rng = makeRng(process.env.WOTD_SEED);
 
-  console.log(
+  milestone(
     `warm-start config: games=${numGames} epochs=${epochs} lr=${lr} val=${valFraction} batch=${batchSize}`,
   );
 
-  console.log(`collecting linear-AI samples...`);
+  milestone(`collecting linear-AI samples...`);
   const all = collectLinearSamples(numGames);
-  console.log(`  ${all.length} decisions collected`);
+  milestone(`  ${all.length} decisions collected`);
 
-  shuffleInPlace(all);
+  shuffleInPlace(all, rng);
   const valSize = Math.floor(all.length * valFraction);
   const valSamples = all.slice(0, valSize);
   const trainSamples = all.slice(valSize);
-  console.log(`  train: ${trainSamples.length}, val: ${valSamples.length}`);
+  milestone(`  train: ${trainSamples.length}, val: ${valSamples.length}`);
+
+  const checkpointDir = path.resolve(__dirname, "checkpoints");
+  ensureDir(checkpointDir);
+  const outPath = path.join(checkpointDir, "warmStart.json");
 
   const model = buildTfModel();
   // Force every layer to build (and register its trainable variables) before
@@ -177,27 +198,38 @@ async function main(): Promise<void> {
 
   const optimizer = tf.train.adam(lr);
 
+  let prevAcc = -Infinity;
   for (let ep = 0; ep < epochs; ep++) {
     const t0 = Date.now();
-    const loss = await trainOneEpoch(model, optimizer, trainSamples, batchSize);
+    const loss = await trainOneEpoch(
+      model,
+      optimizer,
+      trainSamples,
+      batchSize,
+      `epoch ${ep + 1}/${epochs}`,
+      rng,
+    );
     const acc = await evalAccuracy(model, valSamples);
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-    console.log(
-      `epoch ${ep + 1}/${epochs}  loss=${loss.toFixed(4)}  val_acc=${(acc * 100).toFixed(1)}%  (${elapsed}s)`,
+
+    // Per-epoch checkpoint so Ctrl+C is always safe.
+    const weights = await extractWeights(model);
+    fs.writeFileSync(outPath, JSON.stringify(serializeWeights(weights)));
+
+    milestone(
+      `epoch ${ep + 1}/${epochs}  loss=${loss.toFixed(4)}  val_acc=${(acc * 100).toFixed(1)}%  (${elapsed}s)  saved`,
     );
+
+    if (ep >= 1 && acc - prevAcc < PLATEAU_DELTA) {
+      milestone(
+        `val_acc plateaued (Δ=${((acc - prevAcc) * 100).toFixed(2)}pp ≤ 0.5pp); stopping early`,
+      );
+      break;
+    }
+    prevAcc = acc;
   }
 
-  const checkpointDir = path.resolve(__dirname, "checkpoints");
-  if (!fs.existsSync(checkpointDir)) {
-    fs.mkdirSync(checkpointDir, { recursive: true });
-  }
-  const outPath = path.join(checkpointDir, "warmStart.json");
-  const weights = await extractWeights(model);
-  fs.writeFileSync(outPath, JSON.stringify(serializeWeights(weights)));
-  console.log(`saved weights to ${outPath}`);
+  milestone(`weights at ${outPath}`);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+runMain(main);

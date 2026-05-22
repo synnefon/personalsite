@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import * as tf from "@tensorflow/tfjs";
+import * as tf from "@tensorflow/tfjs-node";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
@@ -12,10 +12,17 @@ import {
 } from "../model/encoding.ts";
 import type { ModelWeights } from "../model/forward.ts";
 import {
+  PERSONALITY_IDS,
+  randomPersonality,
+  type PersonalityId,
+} from "../model/personalities.ts";
+import { milestone, progress } from "./progress.ts";
+import {
   runOneGameWithPolicy,
   samplingNeuralPolicy,
   type DecisionRecord,
   type GameResultWithLog,
+  type Policy,
 } from "./selfPlay.ts";
 import {
   adjacencyToMeanMatrix,
@@ -30,6 +37,13 @@ import {
   serializeWeights,
   type TfModel,
 } from "./tfModel.ts";
+import {
+  ensureDir,
+  envNumber,
+  makeRng,
+  runMain,
+  shuffleInPlace,
+} from "./util.ts";
 
 const DEFAULT_ROUNDS = 10;
 const DEFAULT_GAMES_PER_ROUND = 30;
@@ -44,25 +58,16 @@ type SampleWithAdj = {
   adjMatrix: tf.Tensor;
 };
 
-/** Fisher–Yates in place. */
-function shuffleInPlace<T>(arr: T[]): void {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const tmp = arr[i];
-    arr[i] = arr[j];
-    arr[j] = tmp;
-  }
-}
-
 /**
  * Force every layer to build (and register trainable variables) before any
- * weight-loading or training. Uses a quick generated map for a real-shape
- * dummy forward pass.
+ * weight-loading. Uses a quick generated map for a real-shape dummy forward
+ * pass; the conditioning personality picked doesn't matter, just that the
+ * input shape matches what training will produce.
  */
 function buildLayers(model: TfModel): void {
   const dummyMap = generateMap();
   const adjacency = encodeAdjacency(dummyMap);
-  const board = encodeBoard(dummyMap, 0, 0);
+  const board = encodeBoard(dummyMap, 0, 0, PERSONALITY_IDS[0]);
   const adjMatrix = adjacencyToMeanMatrix(adjacency);
   tf.tidy(() => {
     const emb = forwardEmbeddings(model, board, adjMatrix);
@@ -74,27 +79,38 @@ function buildLayers(model: TfModel): void {
 
 /**
  * Run one round of self-play with the current weights snapshot, collecting
- * every per-decision sample for training. Caller owns the returned tensors
- * and must dispose them (one adjMatrix per game, shared by that game's
- * decisions).
+ * every per-decision sample for training. Each seat is assigned a fresh
+ * random personality per game from PERSONALITY_IDS, so the network sees
+ * every trained archetype evenly across training. Caller owns the returned
+ * tensors and must dispose them (one adjMatrix per game).
  */
 function collectSelfPlay(
-  weightsSnapshot: ReturnType<typeof extractWeights> extends Promise<infer T>
-    ? T
-    : never,
+  weightsSnapshot: ModelWeights,
   numGames: number,
   temp: number,
+  rng: () => number,
 ): SampleWithAdj[] {
   const out: SampleWithAdj[] = [];
-  const policies = Array.from({ length: NUM_PLAYERS }, () =>
-    samplingNeuralPolicy(weightsSnapshot, temp),
-  );
   for (let g = 0; g < numGames; g++) {
-    const result = runOneGameWithPolicy(policies);
+    const personalities: PersonalityId[] = Array.from(
+      { length: NUM_PLAYERS },
+      () => randomPersonality(rng),
+    );
+    const policies: Policy[] = personalities.map(() =>
+      samplingNeuralPolicy(weightsSnapshot, temp, rng),
+    );
+    const result = runOneGameWithPolicy(
+      policies,
+      personalities,
+      undefined,
+      undefined,
+      rng,
+    );
     const adjMatrix = adjacencyToMeanMatrix(result.adjacency);
     for (const d of result.decisions) {
       out.push({ sample: d, adjMatrix });
     }
+    progress(`  collected ${g + 1}/${numGames} games`);
   }
   return out;
 }
@@ -133,6 +149,16 @@ function collectSelfPlayParallel(
     );
   }
 
+  let completedWorkers = 0;
+  for (const p of workerPromises) {
+    void p.then(() => {
+      completedWorkers++;
+      progress(
+        `  data collection: ${completedWorkers}/${workerPromises.length} workers done`,
+      );
+    });
+  }
+
   return Promise.all(workerPromises).then((perWorker) => {
     const samples: SampleWithAdj[] = [];
     for (const results of perWorker) {
@@ -160,18 +186,22 @@ function disposeAdjacencies(samples: ReadonlyArray<SampleWithAdj>): void {
 
 /**
  * One pass over `samples` with BCE-against-outcome. Variable batch size = 1
- * because each sample's candidate count differs (padding is on the
- * perf-tuning list).
+ * inside the optimizer step because each sample's candidate count differs
+ * (vectorized batching would need padding/bucketing).
  */
 async function trainOneEpoch(
   model: TfModel,
   optimizer: tf.Optimizer,
   samples: SampleWithAdj[],
   batchSize: number,
+  label: string,
+  rng: () => number,
 ): Promise<number> {
-  shuffleInPlace(samples);
+  shuffleInPlace(samples, rng);
   let totalLoss = 0;
   let totalSamples = 0;
+  const totalBatches = Math.ceil(samples.length / batchSize);
+  let batchIdx = 0;
   for (let start = 0; start < samples.length; start += batchSize) {
     const batch = samples.slice(start, start + batchSize);
     const lossTensor = optimizer.minimize(() => {
@@ -183,7 +213,7 @@ async function trainOneEpoch(
           adjMatrix,
           sample.candidates,
           sample.chosenIdx,
-          sample.won,
+          sample.target,
         );
         sumLoss = sumLoss === null ? sampleLoss : sumLoss.add(sampleLoss);
       }
@@ -192,6 +222,10 @@ async function trainOneEpoch(
     totalLoss += (await lossTensor.data())[0] * batch.length;
     totalSamples += batch.length;
     lossTensor.dispose();
+    batchIdx++;
+    progress(
+      `  ${label} batch ${batchIdx}/${totalBatches}  running_loss=${(totalLoss / totalSamples).toFixed(4)}`,
+    );
   }
   return totalLoss / totalSamples;
 }
@@ -203,16 +237,14 @@ async function trainOneEpoch(
  * Checkpoints every round.
  */
 async function main(): Promise<void> {
-  const rounds = Number(process.env.WOTD_ROUNDS ?? DEFAULT_ROUNDS);
-  const gamesPerRound = Number(
-    process.env.WOTD_GAMES ?? DEFAULT_GAMES_PER_ROUND,
-  );
-  const epochsPerRound = Number(
-    process.env.WOTD_EPOCHS ?? DEFAULT_EPOCHS_PER_ROUND,
-  );
-  const lr = Number(process.env.WOTD_LR ?? DEFAULT_LR);
-  const temp = Number(process.env.WOTD_TEMP ?? DEFAULT_TEMP);
-  const batchSize = Number(process.env.WOTD_BATCH ?? DEFAULT_BATCH_SIZE);
+  const rounds = envNumber("WOTD_ROUNDS", DEFAULT_ROUNDS);
+  const gamesPerRound = envNumber("WOTD_GAMES", DEFAULT_GAMES_PER_ROUND);
+  const epochsPerRound = envNumber("WOTD_EPOCHS", DEFAULT_EPOCHS_PER_ROUND);
+  const lr = envNumber("WOTD_LR", DEFAULT_LR);
+  const temp = envNumber("WOTD_TEMP", DEFAULT_TEMP);
+  const batchSize = envNumber("WOTD_BATCH", DEFAULT_BATCH_SIZE);
+  const seed = process.env.WOTD_SEED;
+  const rng = makeRng(seed);
 
   const useWorkers =
     gamesPerRound >= PARALLEL_THRESHOLD &&
@@ -221,17 +253,15 @@ async function main(): Promise<void> {
     ? Math.min(os.cpus().length, gamesPerRound)
     : 1;
 
-  console.log(
-    `self-play training: rounds=${rounds} games/round=${gamesPerRound} epochs/round=${epochsPerRound} lr=${lr} temp=${temp} batch=${batchSize}`,
+  milestone(
+    `self-play training: rounds=${rounds} games/round=${gamesPerRound} epochs/round=${epochsPerRound} lr=${lr} temp=${temp} batch=${batchSize}${seed ? ` seed=${seed}` : ""}`,
   );
-  console.log(
+  milestone(
     `data collection: ${useWorkers ? `${numWorkers} workers` : "single-threaded"}`,
   );
 
   const checkpointDir = path.resolve(__dirname, "checkpoints");
-  if (!fs.existsSync(checkpointDir)) {
-    fs.mkdirSync(checkpointDir, { recursive: true });
-  }
+  ensureDir(checkpointDir);
 
   const model = buildTfModel();
   buildLayers(model);
@@ -240,9 +270,9 @@ async function main(): Promise<void> {
   if (fs.existsSync(warmStartPath) && process.env.WOTD_SKIP_WS !== "1") {
     const raw = JSON.parse(fs.readFileSync(warmStartPath, "utf8"));
     applyWeights(model, deserializeWeights(raw));
-    console.log(`loaded warm-start weights from ${warmStartPath}`);
+    milestone(`loaded warm-start weights from ${warmStartPath}`);
   } else {
-    console.log(
+    milestone(
       `starting from random init (warmStart not found or WOTD_SKIP_WS=1)`,
     );
   }
@@ -255,11 +285,18 @@ async function main(): Promise<void> {
     const snapshot = await extractWeights(model);
     const samples = useWorkers
       ? await collectSelfPlayParallel(snapshot, gamesPerRound, temp, numWorkers)
-      : collectSelfPlay(snapshot, gamesPerRound, temp);
+      : collectSelfPlay(snapshot, gamesPerRound, temp, rng);
 
     let lastLoss = 0;
     for (let ep = 0; ep < epochsPerRound; ep++) {
-      lastLoss = await trainOneEpoch(model, optimizer, samples, batchSize);
+      lastLoss = await trainOneEpoch(
+        model,
+        optimizer,
+        samples,
+        batchSize,
+        `round ${round + 1}/${rounds} ep ${ep + 1}/${epochsPerRound}`,
+        rng,
+      );
     }
 
     disposeAdjacencies(samples);
@@ -282,7 +319,4 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+runMain(main);

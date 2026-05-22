@@ -7,7 +7,6 @@ import React, {
 } from "react";
 import MapView from "./MapView.tsx";
 import {
-  bucketKnob,
   makePersonality,
   selectBestAttack,
   type AIPersonality,
@@ -25,13 +24,24 @@ import {
 } from "./gameLogic.ts";
 import { generateMap } from "./mapGenerator.ts";
 import { selectBestAttackBaked } from "./model/bakedAI.ts";
+import {
+  ARCHETYPE_IDS,
+  archetypeToPersonality,
+  archetypeToTemp,
+  defaultColorArchetype,
+  type ArchetypeId,
+} from "./model/personalities.ts";
 import { reinforcePlayer } from "./reinforcement.ts";
 import type { GameMap } from "./types.ts";
 
 import "../styles/warofthedice.css";
 
-// Flip to `false` to fall back to the linear personality-driven AI.
-const USE_NN_AI = true;
+// v2 personality conditioning changed the encoder's input shape, so the
+// previously-baked v1 weights are incompatible. Flip back to `true` once
+// v2 training completes and we bake fresh weights.
+const USE_NN_AI = false;
+
+type GamePhase = "setup" | "playing" | "gameOver";
 
 // Attack visualization timing. Both AI moves and player attacks walk the
 // same four-phase sequence so the user can follow each step:
@@ -153,6 +163,96 @@ function BattleSide({
 }
 
 /**
+ * Pre-game setup view: shows the current map preview, per-color archetype
+ * dropdowns, a player-color radio, and a "preview new map" button. The
+ * archetype dropdown options and per-color defaults all come from
+ * ARCHETYPES / defaultColorArchetype in `personalities.ts` — a single
+ * source of truth.
+ */
+function SetupScreen({
+  map,
+  playerColorId,
+  setPlayerColorId,
+  colorArchetypes,
+  setColorArchetypes,
+  onStart,
+  onRerollMap,
+}: {
+  map: GameMap;
+  playerColorId: number;
+  setPlayerColorId: (id: number) => void;
+  colorArchetypes: ReadonlyArray<ArchetypeId>;
+  setColorArchetypes: (next: ArchetypeId[]) => void;
+  onStart: () => void;
+  onRerollMap: () => void;
+}): ReactElement {
+  return (
+    <div className="wotd-setup">
+      <div className="wotd-setup-map">
+        <MapView
+          map={map}
+          highlightedTerritoryIds={[]}
+          onTerritoryClick={() => {}}
+          onBackgroundClick={() => {}}
+        />
+      </div>
+      <div className="wotd-setup-controls">
+        <button
+          className="wotd-setup-reroll"
+          type="button"
+          onClick={onRerollMap}
+          title="preview a different map"
+        >
+          preview new map
+        </button>
+        <div className="wotd-setup-colors">
+          {PLAYER_COLORS.map((color, i) => {
+            const isPlayer = i === playerColorId;
+            return (
+              <div key={i} className="wotd-setup-row">
+                <span
+                  className="wotd-swatch"
+                  style={{ backgroundColor: color.hex }}
+                />
+                <span className="wotd-setup-color-name">{color.name}</span>
+                <label className="wotd-setup-play-as">
+                  <input
+                    type="radio"
+                    name="wotd-player-color"
+                    checked={isPlayer}
+                    onChange={() => setPlayerColorId(i)}
+                  />
+                  you
+                </label>
+                <select
+                  className="wotd-setup-personality"
+                  value={colorArchetypes[i]}
+                  disabled={isPlayer}
+                  onChange={(e) => {
+                    const next = colorArchetypes.slice();
+                    next[i] = e.target.value as ArchetypeId;
+                    setColorArchetypes(next);
+                  }}
+                >
+                  {ARCHETYPE_IDS.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
+        </div>
+        <button className="wotd-setup-start" type="button" onClick={onStart}>
+          start game
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Top-level component for the war-of-the-dice game: owns all game state
  * (map, turn order, banks, personalities), runs the AI scheduler, handles
  * player input, and renders the map, sidebar, and battle pane.
@@ -177,12 +277,25 @@ export default function WarOfTheDice(): ReactElement {
   const [isRegenSpinning, setIsRegenSpinning] = useState<boolean>(false);
   const [attackInProgress, setAttackInProgress] = useState<boolean>(false);
   const [round, setRound] = useState<number>(0);
+  const [gamePhase, setGamePhase] = useState<GamePhase>("setup");
+  const [playerColorId, setPlayerColorId] = useState<number>(USER_PLAYER_ID);
+  const [colorArchetypes, setColorArchetypes] = useState<ArchetypeId[]>(() =>
+    Array.from({ length: NUM_PLAYERS }, (_, i) => defaultColorArchetype(i)),
+  );
   const battleKeyRef = useRef(0);
   const playerTimeoutsRef = useRef<number[]>([]);
   const roundRef = useRef<number>(0);
+  const playerColorIdRef = useRef<number>(USER_PLAYER_ID);
+  const colorArchetypesRef = useRef<ArchetypeId[]>(colorArchetypes);
   useEffect(() => {
     roundRef.current = round;
   }, [round]);
+  useEffect(() => {
+    playerColorIdRef.current = playerColorId;
+  }, [playerColorId]);
+  useEffect(() => {
+    colorArchetypesRef.current = colorArchetypes;
+  }, [colorArchetypes]);
 
   /** Cancel any scheduled timeouts from the player's in-progress attack chain. */
   const cancelPlayerAttack = (): void => {
@@ -224,8 +337,16 @@ export default function WarOfTheDice(): ReactElement {
   const winnerId = useMemo(() => soleSurvivor(map), [map]);
   const currentActor = turnOrder[currentTurnIdx];
   const isGameOver = winnerId !== null;
-  const isPlayerTurn = !isGameOver && currentActor === USER_PLAYER_ID;
-  const isAITurn = !isGameOver && currentActor !== USER_PLAYER_ID;
+  const isPlayingPhase = gamePhase === "playing";
+  const isPlayerTurn =
+    isPlayingPhase && !isGameOver && currentActor === playerColorId;
+  const isAITurn =
+    isPlayingPhase && !isGameOver && currentActor !== playerColorId;
+
+  // Transition to gameOver phase the moment a winner emerges.
+  useEffect(() => {
+    if (isGameOver && gamePhase === "playing") setGamePhase("gameOver");
+  }, [isGameOver, gamePhase]);
 
   // The set of territories that should show the white selection outline:
   // the user's currently-picked-up source, plus whatever the AI is currently
@@ -248,36 +369,18 @@ export default function WarOfTheDice(): ReactElement {
     mapRef.current = map;
   }, [map]);
 
-  // Log each game's AI personalities so the player can see what they're up
-  // against. A field-description table comes first as a legend, then the
-  // per-AI values keyed by color name. Fires on initial mount and every new
-  // game.
+  // Log per-color v2 archetype assignments at game start.
   useEffect(() => {
-    const fieldDescriptions: Record<string, string> = {
-      confidence: "trusts its dice-odds heavily",
-      expansion: "values growing its own cluster",
-      disruption: "loves carving up opponents",
-      caution: "avoids ending up exposed",
-      pickiness: "passes on marginal attacks",
-      predation: "HIGH preys on the weak; LOW targets the strong",
-    };
-    const rows: Record<string, Record<string, string>> = {};
-    personalities.forEach((p, i) => {
-      if (i === USER_PLAYER_ID) return;
-      rows[PLAYER_COLORS[i].name] = {
-        confidence: bucketKnob(p.confidence),
-        expansion: bucketKnob(p.expansion),
-        disruption: bucketKnob(p.disruption),
-        caution: bucketKnob(p.caution),
-        pickiness: bucketKnob(p.pickiness),
-        predation: bucketKnob(p.predation),
-      };
-    });
+    if (gamePhase !== "playing") return;
+    const rows: Record<string, string> = {};
+    for (let i = 0; i < NUM_PLAYERS; i++) {
+      if (i === playerColorId) continue;
+      rows[PLAYER_COLORS[i].name] = colorArchetypes[i];
+    }
     /* eslint-disable no-console */
-    console.table(fieldDescriptions);
     console.table(rows);
     /* eslint-enable no-console */
-  }, [personalities]);
+  }, [gamePhase, colorArchetypes, playerColorId]);
 
   /**
    * End the current actor's turn: reinforce them (one die per territory in
@@ -372,8 +475,15 @@ export default function WarOfTheDice(): ReactElement {
 
     const playOneMove = (): void => {
       if (cancelled) return;
+      const arch = colorArchetypesRef.current[currentActor];
       const move = USE_NN_AI
-        ? selectBestAttackBaked(mapRef.current, currentActor, roundRef.current)
+        ? selectBestAttackBaked(
+            mapRef.current,
+            currentActor,
+            roundRef.current,
+            archetypeToPersonality(arch),
+            archetypeToTemp(arch),
+          )
         : selectBestAttack(
             mapRef.current,
             currentActor,
@@ -405,21 +515,34 @@ export default function WarOfTheDice(): ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAITurn, currentActor, currentTurnIdx]);
 
-  /** Reset everything for a fresh game: new map, turn order, personalities, banks. */
-  const regenerate = (): void => {
+  /** Open the setup screen for a new game (without changing the map yet). */
+  const openSetup = (): void => {
     cancelPlayerAttack();
     setAttackInProgress(false);
-    setMap(generateMap());
+    setSelectedTerritoryId(null);
+    setAiAction(null);
+    setGamePhase("setup");
+  };
+
+  /**
+   * Apply the setup choices and start a new game with whatever map is
+   * currently previewed. Reroll the preview via the setup screen's
+   * "preview new map" button before starting if you want a different one.
+   */
+  const startGame = (): void => {
+    cancelPlayerAttack();
+    setAttackInProgress(false);
     setTurnOrder(makeTurnOrder(Math.random));
     setCurrentTurnIdx(0);
     setSelectedTerritoryId(null);
     setBankedDice(new Array(NUM_PLAYERS).fill(0));
     setPersonalities(
-      Array.from({ length: NUM_PLAYERS }, () => makePersonality(Math.random))
+      Array.from({ length: NUM_PLAYERS }, () => makePersonality(Math.random)),
     );
     setAiAction(null);
     setLastBattle(null);
     setRound(0);
+    setGamePhase("playing");
   };
 
   /** Player clicks "end turn" — reinforce and advance, ignored while an attack is mid-animation. */
@@ -441,7 +564,7 @@ export default function WarOfTheDice(): ReactElement {
     if (!clicked) return;
 
     if (selectedTerritoryId === null) {
-      if (clicked.ownerId === USER_PLAYER_ID && clicked.dice >= 2) {
+      if (clicked.ownerId === playerColorId && clicked.dice >= 2) {
         setSelectedTerritoryId(territoryId);
       }
       return;
@@ -452,7 +575,7 @@ export default function WarOfTheDice(): ReactElement {
       return;
     }
 
-    if (clicked.ownerId === USER_PLAYER_ID) {
+    if (clicked.ownerId === playerColorId) {
       setSelectedTerritoryId(clicked.dice >= 2 ? territoryId : null);
       return;
     }
@@ -462,11 +585,11 @@ export default function WarOfTheDice(): ReactElement {
       setSelectedTerritoryId(null);
       setAttackInProgress(true);
       runAttackFromPhase2(
-        USER_PLAYER_ID,
+        playerColorId,
         source,
         territoryId,
         schedulePlayerWait,
-        () => setAttackInProgress(false)
+        () => setAttackInProgress(false),
       );
       return;
     }
@@ -475,7 +598,7 @@ export default function WarOfTheDice(): ReactElement {
 
   const statusText: ReactElement | string = (() => {
     if (isGameOver) {
-      if (winnerId === USER_PLAYER_ID) return "you win!";
+      if (winnerId === playerColorId) return "you win!";
       if (winnerId !== null) return "you lose";
       return "game over";
     }
@@ -493,18 +616,32 @@ export default function WarOfTheDice(): ReactElement {
     <div className="wotd-container">
       <div className="wotd-header">
         <h2 className="wotd-title">war of the dice</h2>
-        <button
-          className={`wotd-regen${isRegenSpinning ? " spinning" : ""}`}
-          onClick={() => {
-            setIsRegenSpinning(true);
-            regenerate();
-          }}
-          onAnimationEnd={() => setIsRegenSpinning(false)}
-          title="new game"
-        >
-          ↻
-        </button>
+        {gamePhase !== "setup" && (
+          <button
+            className={`wotd-regen${isRegenSpinning ? " spinning" : ""}`}
+            onClick={() => {
+              setIsRegenSpinning(true);
+              openSetup();
+            }}
+            onAnimationEnd={() => setIsRegenSpinning(false)}
+            title="new game"
+          >
+            ↻
+          </button>
+        )}
       </div>
+      {gamePhase === "setup" && (
+        <SetupScreen
+          map={map}
+          playerColorId={playerColorId}
+          setPlayerColorId={setPlayerColorId}
+          colorArchetypes={colorArchetypes}
+          setColorArchetypes={setColorArchetypes}
+          onStart={startGame}
+          onRerollMap={() => setMap(generateMap())}
+        />
+      )}
+      {gamePhase !== "setup" && (
       <div className="wotd-body">
         <aside className="wotd-sidebar">
           <div className="wotd-scores">
@@ -514,7 +651,7 @@ export default function WarOfTheDice(): ReactElement {
               .map((s) => {
                 const classes = [
                   "wotd-score",
-                  s.playerId === USER_PLAYER_ID ? "you" : "",
+                  s.playerId === playerColorId ? "you" : "",
                   s.playerId === currentActor && !isGameOver ? "active" : "",
                 ]
                   .filter(Boolean)
@@ -595,6 +732,7 @@ export default function WarOfTheDice(): ReactElement {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

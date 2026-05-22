@@ -1,16 +1,17 @@
-import * as tf from "@tensorflow/tfjs";
+import * as tf from "@tensorflow/tfjs-node";
 import {
   FEATURES_PER_TERRITORY,
-  GLOBAL_FEATURES,
   type EncodedAdjacency,
   type EncodedBoard,
 } from "../model/encoding.ts";
 import {
   EMBEDDING_DIM,
   HIDDEN_DIM,
+  LAYER_NAMES,
   MOVE_HEAD_INPUT_DIM,
   PER_CELL_INPUT_DIM,
   type DenseWeights,
+  type LayerName,
   type ModelWeights,
 } from "../model/forward.ts";
 
@@ -19,15 +20,7 @@ import {
  * widths, same activations, same data flow — but built from tf.layers so
  * gradients flow through and weights are trainable.
  */
-export type TfModel = {
-  dense1: tf.layers.Layer;
-  dense2: tf.layers.Layer;
-  mp: tf.layers.Layer;
-  moveHead1: tf.layers.Layer;
-  moveHead2: tf.layers.Layer;
-  passHead1: tf.layers.Layer;
-  passHead2: tf.layers.Layer;
-};
+export type TfModel = Record<LayerName, tf.layers.Layer>;
 
 /**
  * Build a fresh TfModel with randomly-initialized weights. Each layer
@@ -99,7 +92,7 @@ export function adjacencyToMeanMatrix(adj: EncodedAdjacency): tf.Tensor {
       matrix[i * N + j] = weight;
     }
   }
-  return tf.tensor2d(Array.from(matrix), [N, N]);
+  return tf.tensor2d(matrix, [N, N]);
 }
 
 /**
@@ -114,12 +107,9 @@ export function forwardEmbeddings(
   adjacencyMatrix: tf.Tensor,
 ): tf.Tensor {
   const N = adjacencyMatrix.shape[0]!;
-  const perCell = tf.tensor2d(
-    Array.from(board.perTerritory),
-    [N, FEATURES_PER_TERRITORY],
-  );
+  const perCell = tf.tensor2d(board.perTerritory, [N, FEATURES_PER_TERRITORY]);
   const globals = tf
-    .tensor1d(Array.from(board.global))
+    .tensor1d(board.global)
     .expandDims(0)
     .tile([N, 1]);
   const input = tf.concat([perCell, globals], 1);
@@ -198,12 +188,21 @@ export function imitationLoss(
 }
 
 /**
- * Binary cross-entropy loss for self-play outcome: score only the chosen
- * action, regress its sigmoid output toward the per-player win label.
- * Uses the numerically-stable BCE-from-logits identity
+ * BCE-from-logits loss against a soft target value in [0, 1]. The target
+ * comes from the per-personality reward shaper (per-decision shaping +
+ * smeared terminal). Uses the numerically-stable identity
  * `max(x, 0) - x*z + log(1 + exp(-|x|))` directly rather than
  * tf.losses.sigmoidCrossEntropy, which doesn't trace gradients cleanly
  * through scalar logits in this version of TFJS.
+ *
+ * Why we touch every logit even though only one drives the loss: TFJS
+ * Adam (adam_optimizer.js) indexes its per-variable accumulators by
+ * *position* in each step's gradient list, not by name. If consecutive
+ * steps return different gradient lists (pass-only vs. move-only), slot
+ * `i` ends up pointing at differently-shaped variables across steps and
+ * the apply step throws a [shapeA] vs [shapeB] broadcast error. Multiplying
+ * an "every logit" sum by zero keeps every variable in the gradient graph
+ * on every step at zero numerical cost.
  */
 export function outcomeLoss(
   model: TfModel,
@@ -215,14 +214,10 @@ export function outcomeLoss(
     winProb: number;
   }>,
   chosenIdx: number,
-  won: boolean,
+  target: number,
 ): tf.Scalar {
   const embeddings = forwardEmbeddings(model, board, adjacencyMatrix);
 
-  // Compute every head's output so all trainable layers appear in the
-  // gradient graph regardless of which action was chosen. Without this,
-  // Adam's per-variable accumulators get out of sync across pass-vs-move
-  // samples and the apply step throws a shape-broadcast error.
   const passLogit = forwardScorePass(model, embeddings);
   const moveLogits = candidates.map((c) =>
     forwardScoreMove(model, embeddings, c.sourceId, c.targetId, c.winProb),
@@ -232,18 +227,22 @@ export function outcomeLoss(
     chosenIdx === -1 ? passLogit : moveLogits[chosenIdx];
 
   const x = chosenLogit.reshape([1]);
-  const z = tf.tensor1d([won ? 1 : 0]);
+  const clamped = Math.max(0, Math.min(1, target));
+  const z = tf.tensor1d([clamped]);
   const bce = x
     .relu()
     .sub(x.mul(z))
     .add(x.abs().neg().exp().add(1).log());
 
-  // Touch every unused logit with a zero-coefficient term so it still
-  // participates in autodiff (contributes 0 to the loss value).
-  const everyLogit = tf.stack([passLogit, ...moveLogits]);
-  const dummy = everyLogit.sum().mul(0);
+  // Anchor every variable in the gradient graph at zero numerical cost so
+  // Adam's positional accumulators stay aligned across steps. See the
+  // outcomeLoss docstring for the underlying TFJS bug.
+  const gradientAnchor = tf
+    .stack([passLogit, ...moveLogits])
+    .sum()
+    .mul(0);
 
-  return bce.sum().add(dummy) as tf.Scalar;
+  return bce.sum().add(gradientAnchor) as tf.Scalar;
 }
 
 /**
@@ -252,26 +251,21 @@ export function outcomeLoss(
  */
 async function readDense(layer: tf.layers.Layer): Promise<DenseWeights> {
   const ws = layer.getWeights();
-  const W = new Float32Array(await ws[0].data());
-  const b = new Float32Array(await ws[1].data());
-  return { W, b };
+  const [W, b] = await Promise.all([ws[0].data(), ws[1].data()]);
+  return { W: W as Float32Array, b: b as Float32Array };
 }
 
 /**
  * Snapshot the TFJS model's trainable weights into the plain Float32Array
  * format used by the hand-rolled forward pass. Useful both for periodic
- * checkpointing and for final baking into weights.ts.
+ * checkpointing and for final baking into weights.ts. Layer reads run in
+ * parallel.
  */
 export async function extractWeights(model: TfModel): Promise<ModelWeights> {
-  return {
-    dense1: await readDense(model.dense1),
-    dense2: await readDense(model.dense2),
-    mp: await readDense(model.mp),
-    moveHead1: await readDense(model.moveHead1),
-    moveHead2: await readDense(model.moveHead2),
-    passHead1: await readDense(model.passHead1),
-    passHead2: await readDense(model.passHead2),
-  };
+  const entries = await Promise.all(
+    LAYER_NAMES.map(async (name) => [name, await readDense(model[name])] as const),
+  );
+  return Object.fromEntries(entries) as ModelWeights;
 }
 
 /**
@@ -281,64 +275,42 @@ export async function extractWeights(model: TfModel): Promise<ModelWeights> {
  * triggers build).
  */
 export function applyWeights(model: TfModel, weights: ModelWeights): void {
-  const setDense = (
-    layer: tf.layers.Layer,
-    w: DenseWeights,
-  ): void => {
-    const wShape = layer.getWeights()[0].shape;
-    const bShape = layer.getWeights()[1].shape;
-    layer.setWeights([
-      tf.tensor(Array.from(w.W), wShape),
-      tf.tensor(Array.from(w.b), bShape),
-    ]);
+  const setDense = (layer: tf.layers.Layer, w: DenseWeights): void => {
+    const [Wvar, bvar] = layer.getWeights();
+    layer.setWeights([tf.tensor(w.W, Wvar.shape), tf.tensor(w.b, bvar.shape)]);
   };
-  setDense(model.dense1, weights.dense1);
-  setDense(model.dense2, weights.dense2);
-  setDense(model.mp, weights.mp);
-  setDense(model.moveHead1, weights.moveHead1);
-  setDense(model.moveHead2, weights.moveHead2);
-  setDense(model.passHead1, weights.passHead1);
-  setDense(model.passHead2, weights.passHead2);
+  for (const name of LAYER_NAMES) {
+    setDense(model[name], weights[name]);
+  }
 }
 
 /**
  * Serialize ModelWeights to a JSON-friendly plain-number layout. Use with
  * `JSON.stringify` and a file write for on-disk checkpoints.
  */
-export function serializeWeights(weights: ModelWeights): Record<string, {
-  W: number[];
-  b: number[];
-}> {
-  const conv = (w: DenseWeights): { W: number[]; b: number[] } => ({
-    W: Array.from(w.W),
-    b: Array.from(w.b),
-  });
-  return {
-    dense1: conv(weights.dense1),
-    dense2: conv(weights.dense2),
-    mp: conv(weights.mp),
-    moveHead1: conv(weights.moveHead1),
-    moveHead2: conv(weights.moveHead2),
-    passHead1: conv(weights.passHead1),
-    passHead2: conv(weights.passHead2),
-  };
+export function serializeWeights(
+  weights: ModelWeights,
+): Record<LayerName, { W: number[]; b: number[] }> {
+  const out = {} as Record<LayerName, { W: number[]; b: number[] }>;
+  for (const name of LAYER_NAMES) {
+    out[name] = {
+      W: Array.from(weights[name].W),
+      b: Array.from(weights[name].b),
+    };
+  }
+  return out;
 }
 
 /** Inverse of serializeWeights. */
 export function deserializeWeights(
   raw: Record<string, { W: number[]; b: number[] }>,
 ): ModelWeights {
-  const conv = (j: { W: number[]; b: number[] }): DenseWeights => ({
-    W: Float32Array.from(j.W),
-    b: Float32Array.from(j.b),
-  });
-  return {
-    dense1: conv(raw.dense1),
-    dense2: conv(raw.dense2),
-    mp: conv(raw.mp),
-    moveHead1: conv(raw.moveHead1),
-    moveHead2: conv(raw.moveHead2),
-    passHead1: conv(raw.passHead1),
-    passHead2: conv(raw.passHead2),
-  };
+  const out = {} as ModelWeights;
+  for (const name of LAYER_NAMES) {
+    out[name] = {
+      W: Float32Array.from(raw[name].W),
+      b: Float32Array.from(raw[name].b),
+    };
+  }
+  return out;
 }

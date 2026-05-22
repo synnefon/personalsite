@@ -2,8 +2,6 @@ import MultiRangeSlider from "multi-range-slider-react";
 import { useEffect, useRef, useState } from "react";
 import Select from "react-select";
 
-import { SCORE_TYPE } from "./ShuffleScorers";
-
 import "../styles/shufflenator.css";
 
 const selectStyles = {
@@ -53,10 +51,14 @@ export default function Shufflenator() {
   const [pileMax, setPileMax] = useState(10);
   const [maxShuffles, setMaxShuffles] = useState({ value: 3, label: 3 });
   const [shuffleStrat] = useState({ value: "PILE", label: "PILE" });
-  const [scoreType, setScoreType] = useState({
+  // const [scoreType, _setScoreType] = useState({
+  //   value: "SHANNON_ENTROPY",
+  //   label: "SHANNON_ENTROPY",
+  // });
+  const scoreType = {
     value: "SHANNON_ENTROPY",
     label: "SHANNON_ENTROPY",
-  });
+  };
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showProgress, setShowProgress] = useState(false);

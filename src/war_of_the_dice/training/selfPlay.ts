@@ -15,26 +15,38 @@ import {
   type EncodedAdjacency,
   type EncodedBoard,
 } from "../model/encoding.ts";
+import type { ModelWeights } from "../model/forward.ts";
+import type { PersonalityId } from "../model/personalities.ts";
 import {
   enumerateLegalAttacks,
   sampleAttackModel,
   selectBestAttackModel,
 } from "../model/policy.ts";
-import type { ModelWeights } from "../model/forward.ts";
 import { reinforcePlayer } from "../reinforcement.ts";
 import type { GameMap } from "../types.ts";
+import { shapingReward, terminalReward } from "./rewards.ts";
+import { shuffleInPlace } from "./util.ts";
+
+/**
+ * Everything a policy needs to make one decision. The runner builds this
+ * once per decision (encoding + legal moves), so the policy doesn't have to
+ * — and so the resulting training partial uses the *same* encoding the
+ * policy saw (no risk of divergence).
+ */
+export type DecisionContext = {
+  map: GameMap;
+  playerId: number;
+  encodedBoard: EncodedBoard;
+  adjacency: EncodedAdjacency;
+  legalMoves: ReadonlyArray<AIMove>;
+};
 
 /**
  * Decision rule for one player at one step. Returning null = pass the turn.
- * The same Policy is invoked many times per game (once per move within a
- * turn). `adjacency` is precomputed and held constant for the whole game.
+ * Must return either null or a move present in `ctx.legalMoves`; the runner
+ * asserts this and will throw otherwise.
  */
-export type Policy = (
-  map: GameMap,
-  playerId: number,
-  turnIndex: number,
-  adjacency: EncodedAdjacency,
-) => AIMove | null;
+export type Policy = (ctx: DecisionContext) => AIMove | null;
 
 /**
  * One candidate attack with its win probability precomputed at decision
@@ -48,9 +60,9 @@ export type CandidateWithProb = {
 };
 
 /**
- * One labeled training sample: the board the policy saw, the legal moves
- * available (with winProbs), the index of the action it chose (-1 = pass),
- * and (after the game ends) whether the acting player went on to win.
+ * One labeled training sample. `target` is the regression target for the
+ * chosen action's Q logit — per-decision shaping reward plus this seat's
+ * smeared terminal reward, both functions of the acting seat's personality.
  */
 export type DecisionRecord = {
   playerId: number;
@@ -58,7 +70,7 @@ export type DecisionRecord = {
   board: EncodedBoard;
   candidates: CandidateWithProb[];
   chosenIdx: number;
-  won: boolean;
+  target: number;
 };
 
 export type GameResultWithLog = {
@@ -72,19 +84,11 @@ export type GameResultWithLog = {
 const DEFAULT_MAX_MOVES_PER_TURN = 250;
 const DEFAULT_MAX_ROUNDS = 250;
 
-/**
- * Fresh shuffled turn order across all NUM_PLAYERS players. The caller can
- * supply a custom rng for determinism; defaults to Math.random.
- */
+/** Fresh shuffled turn order across all NUM_PLAYERS players. */
 function freshTurnOrder(rng: () => number = Math.random): number[] {
   const order: number[] = [];
   for (let i = 0; i < NUM_PLAYERS; i++) order.push(i);
-  for (let i = order.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    const tmp = order[i];
-    order[i] = order[j];
-    order[j] = tmp;
-  }
+  shuffleInPlace(order, rng);
   return order;
 }
 
@@ -108,8 +112,9 @@ function decorateCandidates(
 
 /**
  * Find which index in `candidates` corresponds to `chosen`. Returns -1 if
- * chosen is null (the policy passed) or if the policy returned a move not
- * in the legal set (shouldn't happen for well-behaved policies).
+ * chosen is null (the policy passed). Throws if the move isn't in the legal
+ * set — a misbehaving policy must fail loudly so we don't silently train on
+ * garbage transitions.
  */
 function indexOfChosen(
   candidates: ReadonlyArray<AIMove>,
@@ -124,34 +129,124 @@ function indexOfChosen(
       return i;
     }
   }
-  return -1;
+  throw new Error(
+    `policy returned illegal move (${chosen.sourceId}→${chosen.targetId}); not in legal set`,
+  );
 }
 
 /**
- * Run one full headless game with the given per-seat policies and return
- * the outcome plus a complete decision log. Each turn the actor's policy
- * is invoked repeatedly until it returns null (pass) or hits the move cap;
- * then reinforcement runs and the next non-eliminated player goes.
+ * One in-progress decision before terminal smearing — same shape as
+ * DecisionRecord but stores raw shaping reward, which gets combined with
+ * the seat's terminal share after the game ends.
+ */
+type PartialDecision = Omit<DecisionRecord, "target"> & {
+  shaping: number;
+};
+
+/**
+ * Apply terminal-reward smearing across a seat's decisions. Each seat's
+ * terminal reward (function of personality and final rank) is divided
+ * evenly over the count of decisions it made, and added to the per-decision
+ * shaping reward. Survivors at game timeout are treated as runners-up
+ * (rank = NUM_PLAYERS).
+ */
+function applyTerminalRewards(
+  partials: ReadonlyArray<PartialDecision>,
+  finalRank: ReadonlyArray<number>,
+  personalities: ReadonlyArray<PersonalityId>,
+): DecisionRecord[] {
+  const decisionsCount = new Array<number>(NUM_PLAYERS).fill(0);
+  for (const p of partials) decisionsCount[p.playerId]++;
+
+  const seatTerminal = new Array<number>(NUM_PLAYERS).fill(0);
+  for (let p = 0; p < NUM_PLAYERS; p++) {
+    if (decisionsCount[p] === 0) continue;
+    const rank = finalRank[p] === -1 ? NUM_PLAYERS : finalRank[p];
+    seatTerminal[p] = terminalReward(personalities[p], rank);
+  }
+
+  return partials.map((d) => {
+    const { shaping, ...rest } = d;
+    const share = seatTerminal[d.playerId] / decisionsCount[d.playerId];
+    return { ...rest, target: shaping + share };
+  });
+}
+
+/**
+ * Pick the territory-leader when the game runs out the clock at maxRounds.
+ * Ties are broken randomly so we don't bias toward seat 0.
+ */
+function pickLeader(
+  map: GameMap,
+  rng: () => number,
+): number {
+  const counts = new Array<number>(NUM_PLAYERS).fill(0);
+  for (const t of map.territories) counts[t.ownerId]++;
+  let maxCount = -1;
+  const leaders: number[] = [];
+  for (let i = 0; i < NUM_PLAYERS; i++) {
+    if (counts[i] > maxCount) {
+      maxCount = counts[i];
+      leaders.length = 0;
+      leaders.push(i);
+    } else if (counts[i] === maxCount) {
+      leaders.push(i);
+    }
+  }
+  return leaders[Math.floor(rng() * leaders.length)];
+}
+
+/**
+ * Run one full headless game with the given per-seat policies + matching
+ * personalities, and return the outcome plus a complete decision log.
  *
- * If the game tails out at maxRounds, the territory leader is declared
- * winner so every decision still gets a label.
+ * Per turn, the actor's policy is invoked repeatedly until it returns null
+ * (pass) or hits the move cap; then reinforcement runs and the next
+ * non-eliminated player goes. Per-decision shaping reward is recorded
+ * inline; terminal reward is smeared across each seat's decisions at game
+ * end. If the game runs out the clock at maxRounds, the territory leader
+ * is declared winner (ties broken randomly) so every decision still gets a
+ * label.
+ *
+ * Each decision encodes the board exactly once. The encoded board is
+ * threaded through to the policy via DecisionContext and reused for the
+ * training partial — no double-encoding.
  */
 export function runOneGameWithPolicy(
   policies: Policy[],
+  personalities: ReadonlyArray<PersonalityId>,
   maxRounds: number = DEFAULT_MAX_ROUNDS,
   maxMovesPerTurn: number = DEFAULT_MAX_MOVES_PER_TURN,
+  rng: () => number = Math.random,
 ): GameResultWithLog {
   let map = generateMap();
   const adjacency = encodeAdjacency(map);
   const bank = new Array<number>(NUM_PLAYERS).fill(0);
-  const partials: Omit<DecisionRecord, "won">[] = [];
+  const partials: PartialDecision[] = [];
 
-  const turnOrder = freshTurnOrder();
+  const turnOrder = freshTurnOrder(rng);
+
+  // finalRank[p] = 1 for the eventual winner; 2..N for eliminations in
+  // reverse-chronological order; -1 for survivors at maxRounds (treated
+  // as runners-up below).
+  const finalRank = new Array<number>(NUM_PLAYERS).fill(-1);
+  let eliminationsCount = 0;
+  const isAlive = new Array<boolean>(NUM_PLAYERS).fill(true);
 
   let turnIdx = 0;
   let round = 0;
   let winner: number | null = null;
   let completed = false;
+
+  const checkEliminations = (currentMap: GameMap): void => {
+    for (let p = 0; p < NUM_PLAYERS; p++) {
+      if (isAlive[p] && playerIsEliminated(currentMap, p)) {
+        isAlive[p] = false;
+        eliminationsCount++;
+        finalRank[p] = NUM_PLAYERS - eliminationsCount + 1;
+      }
+    }
+  };
 
   outer: while (round < maxRounds) {
     const actor = turnOrder[turnIdx];
@@ -161,17 +256,41 @@ export function runOneGameWithPolicy(
       while (movesThisTurn++ < maxMovesPerTurn) {
         const legal = enumerateLegalAttacks(map, actor);
         if (legal.length === 0) break;
-        const action = policies[actor](map, actor, round, adjacency);
+
+        const encodedBoard = encodeBoard(
+          map,
+          actor,
+          round,
+          personalities[actor],
+        );
+        const action = policies[actor]({
+          map,
+          playerId: actor,
+          encodedBoard,
+          adjacency,
+          legalMoves: legal,
+        });
+        const candidates = decorateCandidates(map, legal);
+        const chosenIdx = indexOfChosen(legal, action);
+        const winProb =
+          chosenIdx === -1 ? 0 : candidates[chosenIdx].winProb;
+        const shaping = shapingReward(personalities[actor], {
+          isAttack: chosenIdx !== -1,
+          winProb,
+        });
         partials.push({
           playerId: actor,
           turnIndex: round,
-          board: encodeBoard(map, actor, round),
-          candidates: decorateCandidates(map, legal),
-          chosenIdx: indexOfChosen(legal, action),
+          board: encodedBoard,
+          candidates,
+          chosenIdx,
+          shaping,
         });
         if (!action) break;
+
         const result = resolveAttack(map, action.sourceId, action.targetId);
         map = result.map;
+        checkEliminations(map);
         const w = soleSurvivor(map);
         if (w !== null) {
           winner = w;
@@ -199,52 +318,61 @@ export function runOneGameWithPolicy(
   }
 
   if (winner === null) {
-    const counts = new Array<number>(NUM_PLAYERS).fill(0);
-    for (const t of map.territories) counts[t.ownerId]++;
-    let leader = 0;
-    for (let i = 1; i < NUM_PLAYERS; i++) {
-      if (counts[i] > counts[leader]) leader = i;
-    }
-    winner = leader;
+    winner = pickLeader(map, rng);
   }
+  finalRank[winner] = 1;
 
-  const decisions: DecisionRecord[] = partials.map((d) => ({
-    ...d,
-    won: d.playerId === winner,
-  }));
-
+  const decisions = applyTerminalRewards(partials, finalRank, personalities);
   return { winner, rounds: round, completed, adjacency, decisions };
 }
 
 /**
  * Build a Policy that uses the existing linear selectBestAttack with a
- * (possibly fixed) personality. Default: fresh random personality per
- * factory call.
+ * (possibly fixed) AI personality (the v1 linear-AI personality vector,
+ * unrelated to v2's archetype conditioning). Default: fresh random vector.
  */
 export function linearPolicy(
   personality: AIPersonality = makePersonality(),
 ): Policy {
-  return (map, playerId) => selectBestAttack(map, playerId, personality);
+  return (ctx) => selectBestAttack(ctx.map, ctx.playerId, personality);
 }
 
 /**
- * Build a Policy that uses the NN's greedy selectBestAttackModel. Reuses
- * the pre-encoded adjacency the self-play loop already holds.
+ * Build a Policy that uses the NN's greedy selectBestAttackModel. The
+ * personality conditioning is baked into the encoded board the runner
+ * passes in via DecisionContext, so this closure only needs weights.
  */
 export function greedyNeuralPolicy(weights: ModelWeights): Policy {
-  return (map, playerId, turnIndex, adjacency) =>
-    selectBestAttackModel(map, playerId, weights, turnIndex, adjacency);
+  return (ctx) =>
+    selectBestAttackModel(
+      ctx.map,
+      ctx.playerId,
+      weights,
+      ctx.encodedBoard,
+      ctx.adjacency,
+      ctx.legalMoves,
+    );
 }
 
 /**
- * Build a Policy that softmax-samples NN actions at temperature `temp`.
- * Used for exploration during self-play training.
+ * Build a Policy that softmax-samples NN actions at temperature `temp`,
+ * with personality conditioning baked into the encoded board. Used for
+ * exploration during self-play training.
  */
 export function samplingNeuralPolicy(
   weights: ModelWeights,
   temp: number,
   rng: () => number = Math.random,
 ): Policy {
-  return (map, playerId, turnIndex, adjacency) =>
-    sampleAttackModel(map, playerId, weights, turnIndex, temp, rng, adjacency);
+  return (ctx) =>
+    sampleAttackModel(
+      ctx.map,
+      ctx.playerId,
+      weights,
+      ctx.encodedBoard,
+      ctx.adjacency,
+      temp,
+      rng,
+      ctx.legalMoves,
+    );
 }
