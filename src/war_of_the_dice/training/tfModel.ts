@@ -8,7 +8,6 @@ import {
   EMBEDDING_DIM,
   HIDDEN_DIM,
   LAYER_NAMES,
-  MOVE_HEAD_INPUT_DIM,
   PER_CELL_INPUT_DIM,
   type DenseWeights,
   type LayerName,
@@ -47,25 +46,14 @@ export function buildTfModel(): TfModel {
       activation: "relu",
       inputShape: [EMBEDDING_DIM * 2],
     }),
-    moveHead1: tf.layers.dense({
-      name: "wotd_moveHead1",
-      units: EMBEDDING_DIM,
-      activation: "relu",
-      inputShape: [MOVE_HEAD_INPUT_DIM],
-    }),
-    moveHead2: tf.layers.dense({
-      name: "wotd_moveHead2",
-      units: 1,
-      inputShape: [EMBEDDING_DIM],
-    }),
-    passHead1: tf.layers.dense({
-      name: "wotd_passHead1",
+    valueHead1: tf.layers.dense({
+      name: "wotd_valueHead1",
       units: EMBEDDING_DIM,
       activation: "relu",
       inputShape: [EMBEDDING_DIM],
     }),
-    passHead2: tf.layers.dense({
-      name: "wotd_passHead2",
+    valueHead2: tf.layers.dense({
+      name: "wotd_valueHead2",
       units: 1,
       inputShape: [EMBEDDING_DIM],
     }),
@@ -96,10 +84,8 @@ export function adjacencyToMeanMatrix(adj: EncodedAdjacency): tf.Tensor {
 }
 
 /**
- * Per-territory embeddings [N, EMBEDDING_DIM] for one board: build the
- * [N, F_T + F_G] input by broadcasting globals onto each cell, run the
- * per-cell MLP, then one message-passing pass via matMul with the
- * precomputed neighbor-mean matrix.
+ * Per-territory embeddings [N, EMBEDDING_DIM] for one board. Mirrors
+ * `forward.computeEmbeddings` but built from tf ops so gradients flow.
  */
 export function forwardEmbeddings(
   model: TfModel,
@@ -123,126 +109,47 @@ export function forwardEmbeddings(
 }
 
 /**
- * Q-value scalar for one candidate attack via the move head: gather source
- * + target embeddings, concat with the winProb scalar, run the two-layer
- * head.
+ * State-value scalar (logit of P(actor wins)). Mean-pools per-cell
+ * embeddings into a single board summary, then runs the two-layer value
+ * head. Mirrors `forward.scoreValue`.
  */
-export function forwardScoreMove(
-  model: TfModel,
-  embeddings: tf.Tensor,
-  sourceId: number,
-  targetId: number,
-  winProb: number,
-): tf.Tensor {
-  const src = embeddings.gather([sourceId]);
-  const tgt = embeddings.gather([targetId]);
-  const wp = tf.tensor2d([[winProb]], [1, 1]);
-  const input = tf.concat([src, tgt, wp], 1);
-  let h = model.moveHead1.apply(input) as tf.Tensor;
-  h = model.moveHead2.apply(h) as tf.Tensor;
-  return h.squeeze();
-}
-
-/**
- * Q-value scalar for the pass action: mean-pool all cell embeddings into a
- * single board summary, run the two-layer pass head.
- */
-export function forwardScorePass(
+export function forwardScoreValue(
   model: TfModel,
   embeddings: tf.Tensor,
 ): tf.Tensor {
   const pooled = embeddings.mean(0).expandDims(0);
-  let h = model.passHead1.apply(pooled) as tf.Tensor;
-  h = model.passHead2.apply(h) as tf.Tensor;
+  let h = model.valueHead1.apply(pooled) as tf.Tensor;
+  h = model.valueHead2.apply(h) as tf.Tensor;
   return h.squeeze();
 }
 
 /**
- * Cross-entropy loss for warm-start imitation: stack the logits for pass
- * plus every candidate move, take softmax cross-entropy against the chosen
- * action index. Pass action lives at index 0; candidate i lives at index
- * i + 1.
- */
-export function imitationLoss(
-  model: TfModel,
-  board: EncodedBoard,
-  adjacencyMatrix: tf.Tensor,
-  candidates: ReadonlyArray<{
-    sourceId: number;
-    targetId: number;
-    winProb: number;
-  }>,
-  chosenIdx: number,
-): tf.Scalar {
-  const embeddings = forwardEmbeddings(model, board, adjacencyMatrix);
-  const logits: tf.Tensor[] = [forwardScorePass(model, embeddings)];
-  for (const c of candidates) {
-    logits.push(
-      forwardScoreMove(model, embeddings, c.sourceId, c.targetId, c.winProb),
-    );
-  }
-  const stacked = tf.stack(logits);
-  const targetIdx = chosenIdx === -1 ? 0 : chosenIdx + 1;
-  const target = tf.oneHot(targetIdx, stacked.shape[0]!);
-  return tf.losses.softmaxCrossEntropy(target, stacked) as tf.Scalar;
-}
-
-/**
- * BCE-from-logits loss against a soft target value in [0, 1]. The target
- * comes from the per-personality reward shaper (per-decision shaping +
- * smeared terminal). Uses the numerically-stable identity
+ * BCE-with-logits loss against a binary win/loss label. `label` is 1 if
+ * the actor encoded in `board` ended up winning the game, 0 otherwise.
+ * Uses the numerically-stable identity
  * `max(x, 0) - x*z + log(1 + exp(-|x|))` directly rather than
  * tf.losses.sigmoidCrossEntropy, which doesn't trace gradients cleanly
  * through scalar logits in this version of TFJS.
  *
- * Why we touch every logit even though only one drives the loss: TFJS
- * Adam (adam_optimizer.js) indexes its per-variable accumulators by
- * *position* in each step's gradient list, not by name. If consecutive
- * steps return different gradient lists (pass-only vs. move-only), slot
- * `i` ends up pointing at differently-shaped variables across steps and
- * the apply step throws a [shapeA] vs [shapeB] broadcast error. Multiplying
- * an "every logit" sum by zero keeps every variable in the gradient graph
- * on every step at zero numerical cost.
+ * No "anchor" trick needed here (unlike the old per-action Q-loss): every
+ * training step touches the same set of variables (encoder + value head),
+ * so TFJS Adam's positional accumulator indexing stays stable across
+ * steps automatically.
  */
-export function outcomeLoss(
+export function valueLoss(
   model: TfModel,
   board: EncodedBoard,
   adjacencyMatrix: tf.Tensor,
-  candidates: ReadonlyArray<{
-    sourceId: number;
-    targetId: number;
-    winProb: number;
-  }>,
-  chosenIdx: number,
-  target: number,
+  label: 0 | 1,
 ): tf.Scalar {
   const embeddings = forwardEmbeddings(model, board, adjacencyMatrix);
-
-  const passLogit = forwardScorePass(model, embeddings);
-  const moveLogits = candidates.map((c) =>
-    forwardScoreMove(model, embeddings, c.sourceId, c.targetId, c.winProb),
-  );
-
-  const chosenLogit =
-    chosenIdx === -1 ? passLogit : moveLogits[chosenIdx];
-
-  const x = chosenLogit.reshape([1]);
-  const clamped = Math.max(0, Math.min(1, target));
-  const z = tf.tensor1d([clamped]);
-  const bce = x
+  const logit = forwardScoreValue(model, embeddings).reshape([1]);
+  const z = tf.tensor1d([label]);
+  const bce = logit
     .relu()
-    .sub(x.mul(z))
-    .add(x.abs().neg().exp().add(1).log());
-
-  // Anchor every variable in the gradient graph at zero numerical cost so
-  // Adam's positional accumulators stay aligned across steps. See the
-  // outcomeLoss docstring for the underlying TFJS bug.
-  const gradientAnchor = tf
-    .stack([passLogit, ...moveLogits])
-    .sum()
-    .mul(0);
-
-  return bce.sum().add(gradientAnchor) as tf.Scalar;
+    .sub(logit.mul(z))
+    .add(logit.abs().neg().exp().add(1).log());
+  return bce.sum() as tf.Scalar;
 }
 
 /**

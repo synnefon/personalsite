@@ -7,7 +7,7 @@ import { resolveCheckpoint } from "./util.ts";
 const inPath = resolveCheckpoint({
   override: process.argv[2],
   ckptDir: path.resolve(__dirname, "checkpoints"),
-  candidates: ["selfPlay-latest.json", "warmStart.json"],
+  candidates: ["value-latest.json"],
 });
 const outPath = path.resolve(__dirname, "..", "model", "weights.ts");
 const raw = JSON.parse(fs.readFileSync(inPath, "utf8"));

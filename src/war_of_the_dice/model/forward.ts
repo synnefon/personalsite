@@ -6,10 +6,17 @@ import {
 } from "./encoding.ts";
 
 // Architecture constants — must match the trainable model in TFJS.
-export const HIDDEN_DIM = 64;
-export const EMBEDDING_DIM = 32;
+//
+// Dimensions are intentionally small: the thesis's WPM-D (which we're
+// closely modeled on) used logistic regression with ~14 features, total
+// ~14 parameters. We're at ~770 params, which is already much more
+// expressive than the thesis baseline. Bigger encoder dims overfit the
+// per-cell encoder to noise — the value head then can't distinguish
+// pre/post-attack states reliably, and the policy degenerates to "pass
+// always".
+export const HIDDEN_DIM = 16;
+export const EMBEDDING_DIM = 8;
 export const PER_CELL_INPUT_DIM = FEATURES_PER_TERRITORY + GLOBAL_FEATURES;
-export const MOVE_HEAD_INPUT_DIM = EMBEDDING_DIM * 2 + 1;
 
 // Single source of truth for the trainable layer names. tfModel.ts, bake.ts,
 // and serialize/deserialize all iterate this list — adding or removing a
@@ -19,10 +26,8 @@ export const LAYER_NAMES = [
   "dense1",
   "dense2",
   "mp",
-  "moveHead1",
-  "moveHead2",
-  "passHead1",
-  "passHead2",
+  "valueHead1",
+  "valueHead2",
 ] as const;
 
 export type LayerName = (typeof LAYER_NAMES)[number];
@@ -33,34 +38,31 @@ export type DenseWeights = {
   b: Float32Array;
 };
 
-// Architecture: per-cell MLP → message-passing layer → move/pass heads.
+// Architecture: per-cell MLP → message-passing layer → mean-pool → value head.
 //
-//   per-cell input  [PER_CELL_INPUT_DIM = 21]
-//     → dense1 [21 → 64, relu]
-//     → dense2 [64 → 32, relu]              = emb1
-//     → concat(emb1, mean_neighbor(emb1))   [32 + 32 = 64]
-//     → mp     [64 → 32, relu]              = emb2 (final embedding)
+//   per-cell input  [PER_CELL_INPUT_DIM]
+//     → dense1 [→ 64, relu]
+//     → dense2 [→ 32, relu]                  = emb1
+//     → concat(emb1, mean_neighbor(emb1))   [64]
+//     → mp     [→ 32, relu]                  = emb2 (final cell embedding)
 //
-//   move scoring (per candidate (s, t)):
-//     concat(emb2[s], emb2[t], winProb)     [32 + 32 + 1 = 65]
-//     → moveHead1 [65 → 32, relu]
-//     → moveHead2 [32 → 1, linear]          = Q(s, t)
+//   value scoring (one per state, from the actor's POV via the encoder
+//   personality + actor input slot):
+//     mean_pool(emb2)                        [32]
+//     → valueHead1 [→ 32, relu]
+//     → valueHead2 [→ 1, linear]            = logit of P(actor wins)
 //
-//   pass scoring:
-//     mean_pool(emb2)                       [32]
-//     → passHead1 [32 → 32, relu]
-//     → passHead2 [32 → 1, linear]          = Q(pass)
-//
-// ~8.8k params total (~35KB at fp32).
+// Decision rule lives outside this module: for each candidate attack,
+// the policy simulates the success/fail outcomes, calls scoreValue on
+// each, and picks the action maximizing
+//     P_attack * V(s_success) + (1 - P_attack) * V(s_fail).
+// Pass is just V(s_current). See `model/policy.ts`.
 export type ModelWeights = Record<LayerName, DenseWeights>;
 
-/**
- * Apply one Dense layer with ReLU activation, writing into `out` starting at
- * `outOffset`. Weights are row-major [inDim, outDim].
- */
 // Module-scope scratch buffers, lazily resized to fit N territories.
 // All forward functions read/write these instead of allocating fresh
 // Float32Arrays per call, eliminating GC churn on the hot inference path.
+// Single-threaded JS only — re-entrant inference would corrupt scratch.
 type Scratch = {
   numTerritories: number;
   cellInput: Float32Array;
@@ -68,10 +70,8 @@ type Scratch = {
   emb1: Float32Array;
   emb2: Float32Array;
   mpInput: Float32Array;
-  moveInput: Float32Array;
-  moveHidden: Float32Array;
-  passPooled: Float32Array;
-  passHidden: Float32Array;
+  pooled: Float32Array;
+  valueHidden: Float32Array;
 };
 
 let scratch: Scratch | null = null;
@@ -90,10 +90,8 @@ function ensureScratch(n: number): Scratch {
     emb1: new Float32Array(n * EMBEDDING_DIM),
     emb2: new Float32Array(n * EMBEDDING_DIM),
     mpInput: new Float32Array(EMBEDDING_DIM * 2),
-    moveInput: new Float32Array(MOVE_HEAD_INPUT_DIM),
-    moveHidden: new Float32Array(EMBEDDING_DIM),
-    passPooled: new Float32Array(EMBEDDING_DIM),
-    passHidden: new Float32Array(EMBEDDING_DIM),
+    pooled: new Float32Array(EMBEDDING_DIM),
+    valueHidden: new Float32Array(EMBEDDING_DIM),
   };
   return scratch;
 }
@@ -122,7 +120,7 @@ function denseRelu(
 
 /**
  * Apply a Dense layer that produces a single scalar (no activation). Used
- * for the move/pass head's final output. Weights are [inDim, 1].
+ * for the value head's final output. Weights are [inDim, 1].
  */
 function denseLinearScalar(
   input: Float32Array,
@@ -136,8 +134,9 @@ function denseLinearScalar(
 }
 
 /**
- * One forward pass over the whole board. Returns flat [N * EMBEDDING_DIM].
- * Caller reuses this output for every candidate move that turn.
+ * One forward pass over the whole board, producing per-cell embeddings.
+ * Returns flat [N * EMBEDDING_DIM]. The caller passes this output to
+ * `scoreValue` to get the state value.
  */
 export function computeEmbeddings(
   board: EncodedBoard,
@@ -187,61 +186,32 @@ export function computeEmbeddings(
 }
 
 /**
- * Q-value for one candidate attack. Run computeEmbeddings once per turn,
- * then call this for each (source, target) pair the policy considers.
+ * Value scalar for one board state, from the perspective of the actor
+ * encoded into `board`. Output is the logit of P(actor wins); pass it
+ * through sigmoid if you need a probability. Mean-pools the per-cell
+ * embeddings and runs the two-layer value head.
  */
-export function scoreMove(
-  embeddings: Float32Array,
-  sourceId: number,
-  targetId: number,
-  winProb: number,
-  weights: ModelWeights,
-  numTerritories: number,
-): number {
-  const s = ensureScratch(numTerritories);
-  for (let k = 0; k < EMBEDDING_DIM; k++) {
-    s.moveInput[k] = embeddings[sourceId * EMBEDDING_DIM + k];
-    s.moveInput[EMBEDDING_DIM + k] = embeddings[targetId * EMBEDDING_DIM + k];
-  }
-  s.moveInput[EMBEDDING_DIM * 2] = winProb;
-
-  denseRelu(
-    s.moveInput,
-    weights.moveHead1,
-    MOVE_HEAD_INPUT_DIM,
-    EMBEDDING_DIM,
-    s.moveHidden,
-    0,
-  );
-  return denseLinearScalar(s.moveHidden, weights.moveHead2, EMBEDDING_DIM);
-}
-
-/**
- * Q-value for the "stop attacking" action. Mean-pools embeddings into a
- * single board summary, then runs the pass head. Replaces the linear AI's
- * `pickiness` knob.
- */
-export function scorePass(
+export function scoreValue(
   embeddings: Float32Array,
   numTerritories: number,
   weights: ModelWeights,
 ): number {
   const s = ensureScratch(numTerritories);
-  for (let k = 0; k < EMBEDDING_DIM; k++) s.passPooled[k] = 0;
+  for (let k = 0; k < EMBEDDING_DIM; k++) s.pooled[k] = 0;
   for (let i = 0; i < numTerritories; i++) {
     for (let k = 0; k < EMBEDDING_DIM; k++) {
-      s.passPooled[k] += embeddings[i * EMBEDDING_DIM + k];
+      s.pooled[k] += embeddings[i * EMBEDDING_DIM + k];
     }
   }
-  for (let k = 0; k < EMBEDDING_DIM; k++) s.passPooled[k] /= numTerritories;
+  for (let k = 0; k < EMBEDDING_DIM; k++) s.pooled[k] /= numTerritories;
 
   denseRelu(
-    s.passPooled,
-    weights.passHead1,
+    s.pooled,
+    weights.valueHead1,
     EMBEDDING_DIM,
     EMBEDDING_DIM,
-    s.passHidden,
+    s.valueHidden,
     0,
   );
-  return denseLinearScalar(s.passHidden, weights.passHead2, EMBEDDING_DIM);
+  return denseLinearScalar(s.valueHidden, weights.valueHead2, EMBEDDING_DIM);
 }

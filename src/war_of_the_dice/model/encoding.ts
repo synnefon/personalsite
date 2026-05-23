@@ -1,11 +1,6 @@
 import { winProbability } from "../ai.ts";
 import { MAX_DICE_PER_TERRITORY, NUM_PLAYERS } from "../constants.ts";
 import type { GameMap } from "../types.ts";
-import {
-  NUM_PERSONALITIES,
-  personalityIndex,
-  type PersonalityId,
-} from "./personalities.ts";
 
 // Per-territory feature layout (row-major in `perTerritory`):
 //   0  own dice / 8
@@ -31,11 +26,20 @@ import {
 //   4  mean enemy effective income / N
 //   5  weakest enemy effective income / N
 //   6  turn index / 250 (clamped to 1)
-//   7..12  personality one-hot over PERSONALITY_IDS (v2 conditioning)
+//   7  actor largest component (score) / N
+//   8  actor total dice / total dice in play
+//   9  actor owned count / N
+//  10  actor effective income / N
 //
 // Indexed positionally — the model relies on this ordering.
+//
+// Actor-specific globals 7–10 are the analog of WPM's per-player score
+// and log-dice features (thesis Sec 5.4.1 / 5.4.2). They give the value
+// head a direct, low-noise signal that's mechanically tied to win rate —
+// without these the per-cell encoder is the only path for the model to
+// infer "how strong am I", which is brittle.
 export const FEATURES_PER_TERRITORY = 14;
-export const GLOBAL_FEATURES = 7 + NUM_PERSONALITIES;
+export const GLOBAL_FEATURES = 11;
 
 export type EncodedBoard = {
   perTerritory: Float32Array;
@@ -163,15 +167,13 @@ function amputationCost(
 /**
  * Build the per-state input for the network: per-territory feature rows
  * (owner-relative power + broadcast owner strengths) and a global block
- * (predation-style enemy summary, turn index, personality one-hot).
- * Layout is documented at the top of this file alongside
- * FEATURES_PER_TERRITORY / GLOBAL_FEATURES.
+ * (predation-style enemy summary, turn index). Layout is documented at
+ * the top of this file alongside FEATURES_PER_TERRITORY / GLOBAL_FEATURES.
  */
 export function encodeBoard(
   map: GameMap,
   actingPlayerId: number,
   turnIndex: number,
-  personality: PersonalityId,
 ): EncodedBoard {
   const N = map.territories.length;
   const stats = computePlayerStats(map);
@@ -264,8 +266,11 @@ export function encodeBoard(
   global[5] = minEnemyStrength;
   global[6] = Math.min(turnIndex / 250, 1);
 
-  const pIdx = personalityIndex(personality);
-  if (pIdx >= 0) global[7 + pIdx] = 1;
+  const actorStats = stats[actingPlayerId];
+  global[7] = actorStats.largestComponent / N;
+  global[8] = actorStats.totalDice / totalDice;
+  global[9] = actorStats.ownedCount / N;
+  global[10] = actorStats.effectiveIncome / N;
 
   return { perTerritory, global };
 }

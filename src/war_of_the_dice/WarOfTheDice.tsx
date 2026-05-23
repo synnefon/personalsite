@@ -26,7 +26,6 @@ import { generateMap } from "./mapGenerator.ts";
 import { selectBestAttackBaked } from "./model/bakedAI.ts";
 import {
   ARCHETYPE_IDS,
-  archetypeToPersonality,
   archetypeToTemp,
   defaultColorArchetype,
   type ArchetypeId,
@@ -481,7 +480,6 @@ export default function WarOfTheDice(): ReactElement {
             mapRef.current,
             currentActor,
             roundRef.current,
-            archetypeToPersonality(arch),
             archetypeToTemp(arch),
           )
         : selectBestAttack(

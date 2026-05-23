@@ -5,42 +5,35 @@ import * as os from "os";
 import * as path from "path";
 import { Worker } from "worker_threads";
 import { NUM_PLAYERS } from "../constants.ts";
-import { generateMap } from "../mapGenerator.ts";
 import {
   encodeAdjacency,
   encodeBoard,
 } from "../model/encoding.ts";
 import type { ModelWeights } from "../model/forward.ts";
+import { generateMap } from "../mapGenerator.ts";
+import { milestone } from "./progress.ts";
 import {
-  PERSONALITY_IDS,
-  randomPersonality,
-  type PersonalityId,
-} from "../model/personalities.ts";
-import { milestone, progress } from "./progress.ts";
-import {
-  runOneGameWithPolicy,
-  samplingNeuralPolicy,
-  type DecisionRecord,
-  type GameResultWithLog,
+  greedyValuePolicy,
+  linearPolicy,
+  runOneGame,
   type Policy,
+  type ValueSample,
 } from "./selfPlay.ts";
 import {
   adjacencyToMeanMatrix,
-  applyWeights,
   buildTfModel,
-  deserializeWeights,
   extractWeights,
   forwardEmbeddings,
-  forwardScoreMove,
-  forwardScorePass,
-  outcomeLoss,
+  forwardScoreValue,
   serializeWeights,
+  valueLoss,
   type TfModel,
 } from "./tfModel.ts";
 import {
   ensureDir,
   envNumber,
   makeRng,
+  pickRandomSeats,
   runMain,
   shuffleInPlace,
 } from "./util.ts";
@@ -49,127 +42,163 @@ const DEFAULT_ROUNDS = 10;
 const DEFAULT_GAMES_PER_ROUND = 30;
 const DEFAULT_EPOCHS_PER_ROUND = 3;
 const DEFAULT_LR = 5e-4;
-const DEFAULT_TEMP = 0.5;
 const DEFAULT_BATCH_SIZE = 16;
 const PARALLEL_THRESHOLD = 16;
 
+const QUICK_EVAL_GAMES = 20;
+const QUICK_EVAL_NN_SEATS = 3;
+
+// ---- per-round batch progress bar ----------------------------------------
+// Bar resets to 0% at the start of every round and fills to 100% as that
+// round's training batches complete. Denominator (batches in this round)
+// is known exactly after collection: ceil(samples / batchSize) * epochs.
+
+const BAR_WIDTH = 24;
+
+function renderBar(
+  round: number,
+  totalRounds: number,
+  done: number,
+  total: number,
+): void {
+  const pct = total > 0 ? Math.min(done / total, 1) : 0;
+  const filled = Math.floor(pct * BAR_WIDTH);
+  const bar = "█".repeat(filled) + "░".repeat(BAR_WIDTH - filled);
+  process.stdout.write(
+    `\r\x1b[Kround ${round}/${totalRounds} [${bar}] ${(pct * 100).toFixed(1)}%`,
+  );
+}
+
+function clearBar(): void {
+  process.stdout.write("\r\x1b[K");
+}
+
+// --------------------------------------------------------------------------
+
 type SampleWithAdj = {
-  sample: DecisionRecord;
+  sample: ValueSample;
   adjMatrix: tf.Tensor;
 };
 
 /**
  * Force every layer to build (and register trainable variables) before any
- * weight-loading. Uses a quick generated map for a real-shape dummy forward
- * pass; the conditioning personality picked doesn't matter, just that the
- * input shape matches what training will produce.
+ * weight-loading. Uses a generated map for a real-shape dummy forward pass.
  */
 function buildLayers(model: TfModel): void {
   const dummyMap = generateMap();
   const adjacency = encodeAdjacency(dummyMap);
-  const board = encodeBoard(dummyMap, 0, 0, PERSONALITY_IDS[0]);
+  const board = encodeBoard(dummyMap, 0, 0);
   const adjMatrix = adjacencyToMeanMatrix(adjacency);
   tf.tidy(() => {
     const emb = forwardEmbeddings(model, board, adjMatrix);
-    forwardScorePass(model, emb);
-    forwardScoreMove(model, emb, 0, 1, 0.5);
+    forwardScoreValue(model, emb);
   });
   adjMatrix.dispose();
 }
 
-/**
- * Run one round of self-play with the current weights snapshot, collecting
- * every per-decision sample for training. Each seat is assigned a fresh
- * random personality per game from PERSONALITY_IDS, so the network sees
- * every trained archetype evenly across training. Caller owns the returned
- * tensors and must dispose them (one adjMatrix per game).
- */
-function collectSelfPlay(
-  weightsSnapshot: ModelWeights,
+/** Single-threaded all-linear-AI data collection. */
+function collectLinearGames(
   numGames: number,
-  temp: number,
   rng: () => number,
 ): SampleWithAdj[] {
   const out: SampleWithAdj[] = [];
   for (let g = 0; g < numGames; g++) {
-    const personalities: PersonalityId[] = Array.from(
+    const policies: Policy[] = Array.from(
       { length: NUM_PLAYERS },
-      () => randomPersonality(rng),
+      () => linearPolicy(),
     );
-    const policies: Policy[] = personalities.map(() =>
-      samplingNeuralPolicy(weightsSnapshot, temp, rng),
-    );
-    const result = runOneGameWithPolicy(
-      policies,
-      personalities,
-      undefined,
-      undefined,
-      rng,
-    );
+    const result = runOneGame(policies, undefined, undefined, rng);
     const adjMatrix = adjacencyToMeanMatrix(result.adjacency);
-    for (const d of result.decisions) {
-      out.push({ sample: d, adjMatrix });
+    for (const s of result.samples) {
+      out.push({ sample: s, adjMatrix });
     }
-    progress(`  collected ${g + 1}/${numGames} games`);
   }
   return out;
 }
 
+type WorkerResult = {
+  winner: number;
+  rounds: number;
+  completed: boolean;
+  adjacency: ReturnType<typeof encodeAdjacency>;
+  samples: ValueSample[];
+};
+
+type WorkerMessage =
+  | { type: "ready" }
+  | { type: "done"; result: WorkerResult };
+
 /**
- * Spawn `numWorkers` worker_threads, each running a chunk of self-play games
- * with the supplied weights snapshot. Workers return raw GameResultWithLog
- * objects; the main thread materializes the per-game adjacency-mean tensor
- * (tf.Tensor can't cross thread boundaries).
+ * Parallel all-linear-AI data collection via worker pool. Workers send
+ * `ready` once after boot, then alternate between accepting `job`
+ * messages and posting `done` results. Each `done` arrival immediately
+ * triggers the next dispatch (or shutdown if all games dispatched), so
+ * completions trickle in at the natural per-game cadence — no
+ * synchronized bursts.
  */
-function collectSelfPlayParallel(
-  weights: ModelWeights,
+function collectLinearGamesParallel(
   numGames: number,
-  temp: number,
   numWorkers: number,
 ): Promise<SampleWithAdj[]> {
   const workerPath = path.resolve(__dirname, "selfPlayWorker.js");
-  const gamesPerWorker = Math.ceil(numGames / numWorkers);
+  const effectiveWorkers = Math.min(numWorkers, numGames);
 
-  const workerPromises: Promise<GameResultWithLog[]>[] = [];
-  for (let w = 0; w < numWorkers; w++) {
-    const offset = w * gamesPerWorker;
-    const n = Math.min(gamesPerWorker, numGames - offset);
-    if (n <= 0) break;
-    workerPromises.push(
-      new Promise<GameResultWithLog[]>((resolve, reject) => {
-        const worker = new Worker(workerPath, {
-          workerData: { weights, numGames: n, temp },
-        });
-        worker.on("message", (msg: GameResultWithLog[]) => resolve(msg));
-        worker.on("error", reject);
-        worker.on("exit", (code) => {
-          if (code !== 0) reject(new Error(`worker exited with code ${code}`));
-        });
-      }),
-    );
-  }
+  return new Promise<SampleWithAdj[]>((resolve, reject) => {
+    const workers: Worker[] = [];
+    const collected: WorkerResult[] = [];
+    let dispatched = 0;
+    let completed = 0;
+    let settled = false;
 
-  let completedWorkers = 0;
-  for (const p of workerPromises) {
-    void p.then(() => {
-      completedWorkers++;
-      progress(
-        `  data collection: ${completedWorkers}/${workerPromises.length} workers done`,
-      );
-    });
-  }
+    const fail = (e: unknown): void => {
+      if (settled) return;
+      settled = true;
+      for (const w of workers) w.terminate();
+      reject(e);
+    };
 
-  return Promise.all(workerPromises).then((perWorker) => {
-    const samples: SampleWithAdj[] = [];
-    for (const results of perWorker) {
-      for (const result of results) {
-        const adjMatrix = adjacencyToMeanMatrix(result.adjacency);
-        for (const d of result.decisions) {
-          samples.push({ sample: d, adjMatrix });
-        }
+    const dispatchNext = (worker: Worker): void => {
+      if (dispatched < numGames) {
+        dispatched++;
+        worker.postMessage({ type: "job" });
+      } else {
+        worker.postMessage({ type: "shutdown" });
       }
+    };
+
+    for (let w = 0; w < effectiveWorkers; w++) {
+      const worker = new Worker(workerPath, { workerData: {} });
+      workers.push(worker);
+      worker.on("message", (msg: WorkerMessage) => {
+        if (msg.type === "ready") {
+          dispatchNext(worker);
+          return;
+        }
+        if (msg.type === "done") {
+          collected.push(msg.result);
+          completed++;
+          if (completed === numGames) {
+            if (settled) return;
+            settled = true;
+            for (const w2 of workers) w2.postMessage({ type: "shutdown" });
+            const samples: SampleWithAdj[] = [];
+            for (const r of collected) {
+              const adjMatrix = adjacencyToMeanMatrix(r.adjacency);
+              for (const s of r.samples) samples.push({ sample: s, adjMatrix });
+            }
+            resolve(samples);
+          } else {
+            dispatchNext(worker);
+          }
+        }
+      });
+      worker.on("error", fail);
+      worker.on("exit", (code) => {
+        if (code !== 0 && !settled) {
+          fail(new Error(`worker exited with code ${code}`));
+        }
+      });
     }
-    return samples;
   });
 }
 
@@ -185,35 +214,31 @@ function disposeAdjacencies(samples: ReadonlyArray<SampleWithAdj>): void {
 }
 
 /**
- * One pass over `samples` with BCE-against-outcome. Variable batch size = 1
- * inside the optimizer step because each sample's candidate count differs
- * (vectorized batching would need padding/bucketing).
+ * One pass over samples with BCE-on-value loss. Effective batch size = 1
+ * per gradient step (per-sample forward pass), but `batchSize` samples are
+ * accumulated into a single optimizer.minimize call.
  */
 async function trainOneEpoch(
   model: TfModel,
   optimizer: tf.Optimizer,
   samples: SampleWithAdj[],
   batchSize: number,
-  label: string,
   rng: () => number,
+  onBatchDone: () => void,
 ): Promise<number> {
   shuffleInPlace(samples, rng);
   let totalLoss = 0;
   let totalSamples = 0;
-  const totalBatches = Math.ceil(samples.length / batchSize);
-  let batchIdx = 0;
   for (let start = 0; start < samples.length; start += batchSize) {
     const batch = samples.slice(start, start + batchSize);
     const lossTensor = optimizer.minimize(() => {
       let sumLoss: tf.Tensor | null = null;
       for (const { sample, adjMatrix } of batch) {
-        const sampleLoss = outcomeLoss(
+        const sampleLoss = valueLoss(
           model,
           sample.board,
           adjMatrix,
-          sample.candidates,
-          sample.chosenIdx,
-          sample.target,
+          sample.win ? 1 : 0,
         );
         sumLoss = sumLoss === null ? sampleLoss : sumLoss.add(sampleLoss);
       }
@@ -222,26 +247,46 @@ async function trainOneEpoch(
     totalLoss += (await lossTensor.data())[0] * batch.length;
     totalSamples += batch.length;
     lossTensor.dispose();
-    batchIdx++;
-    progress(
-      `  ${label} batch ${batchIdx}/${totalBatches}  running_loss=${(totalLoss / totalSamples).toFixed(4)}`,
-    );
+    onBatchDone();
   }
   return totalLoss / totalSamples;
 }
 
 /**
- * Top-level self-play training: alternate between collecting fresh games
- * (using current weights + softmax exploration) and training on the
- * collected decisions with BCE against the per-actor win label.
- * Checkpoints every round.
+ * Quick NN-vs-linear sanity eval at end of each round. Invokes
+ * `onGameDone()` per game for bar updates.
+ */
+function quickEval(
+  weights: ModelWeights,
+  numGames: number,
+  numNNSeats: number,
+  rng: () => number,
+): { nnWins: number; nnPlays: number; rate: number } {
+  const nnPolicy = greedyValuePolicy(weights);
+  let nnWins = 0;
+  let nnPlays = 0;
+  for (let g = 0; g < numGames; g++) {
+    const nnSeats = pickRandomSeats(numNNSeats, rng);
+    const policies: Policy[] = [];
+    for (let i = 0; i < NUM_PLAYERS; i++) {
+      policies.push(nnSeats.has(i) ? nnPolicy : linearPolicy());
+    }
+    const result = runOneGame(policies, undefined, undefined, rng);
+    nnPlays += numNNSeats;
+    if (nnSeats.has(result.winner)) nnWins++;
+  }
+  return { nnWins, nnPlays, rate: nnPlays > 0 ? nnWins / nnPlays : 0 };
+}
+
+/**
+ * Top-level training: collect linear-AI games each round, train the value
+ * network on per-state win labels, snapshot weights, eval against linear.
  */
 async function main(): Promise<void> {
   const rounds = envNumber("WOTD_ROUNDS", DEFAULT_ROUNDS);
   const gamesPerRound = envNumber("WOTD_GAMES", DEFAULT_GAMES_PER_ROUND);
   const epochsPerRound = envNumber("WOTD_EPOCHS", DEFAULT_EPOCHS_PER_ROUND);
   const lr = envNumber("WOTD_LR", DEFAULT_LR);
-  const temp = envNumber("WOTD_TEMP", DEFAULT_TEMP);
   const batchSize = envNumber("WOTD_BATCH", DEFAULT_BATCH_SIZE);
   const seed = process.env.WOTD_SEED;
   const rng = makeRng(seed);
@@ -254,7 +299,7 @@ async function main(): Promise<void> {
     : 1;
 
   milestone(
-    `self-play training: rounds=${rounds} games/round=${gamesPerRound} epochs/round=${epochsPerRound} lr=${lr} temp=${temp} batch=${batchSize}${seed ? ` seed=${seed}` : ""}`,
+    `value training: rounds=${rounds} games/round=${gamesPerRound} epochs/round=${epochsPerRound} lr=${lr} batch=${batchSize}${seed ? ` seed=${seed}` : ""}`,
   );
   milestone(
     `data collection: ${useWorkers ? `${numWorkers} workers` : "single-threaded"}`,
@@ -265,27 +310,25 @@ async function main(): Promise<void> {
 
   const model = buildTfModel();
   buildLayers(model);
-
-  const warmStartPath = path.join(checkpointDir, "warmStart.json");
-  if (fs.existsSync(warmStartPath) && process.env.WOTD_SKIP_WS !== "1") {
-    const raw = JSON.parse(fs.readFileSync(warmStartPath, "utf8"));
-    applyWeights(model, deserializeWeights(raw));
-    milestone(`loaded warm-start weights from ${warmStartPath}`);
-  } else {
-    milestone(
-      `starting from random init (warmStart not found or WOTD_SKIP_WS=1)`,
-    );
-  }
+  milestone(`starting from random init`);
 
   const optimizer = tf.train.adam(lr);
+
+  // Initial bar at 0% for round 1 — denominator unknown until first
+  // collection finishes, so pass 1 so it renders as an empty bar.
+  renderBar(1, rounds, 0, 1);
 
   for (let round = 0; round < rounds; round++) {
     const t0 = Date.now();
 
-    const snapshot = await extractWeights(model);
     const samples = useWorkers
-      ? await collectSelfPlayParallel(snapshot, gamesPerRound, temp, numWorkers)
-      : collectSelfPlay(snapshot, gamesPerRound, temp, rng);
+      ? await collectLinearGamesParallel(gamesPerRound, numWorkers)
+      : collectLinearGames(gamesPerRound, rng);
+
+    const batchesPerEpoch = Math.ceil(samples.length / batchSize);
+    const batchesInRound = batchesPerEpoch * epochsPerRound;
+    let batchesDone = 0;
+    renderBar(round + 1, rounds, batchesDone, batchesInRound);
 
     let lastLoss = 0;
     for (let ep = 0; ep < epochsPerRound; ep++) {
@@ -294,29 +337,58 @@ async function main(): Promise<void> {
         optimizer,
         samples,
         batchSize,
-        `round ${round + 1}/${rounds} ep ${ep + 1}/${epochsPerRound}`,
         rng,
+        () => {
+          batchesDone++;
+          renderBar(round + 1, rounds, batchesDone, batchesInRound);
+        },
       );
     }
 
     disposeAdjacencies(samples);
 
+    // Bar's done. Spinner-style ellipsis while we extract weights, save the
+    // checkpoint, and run quickEval — these can take 5–10s combined, so
+    // an explicit "still working" indicator beats a frozen 100%-full bar.
+    clearBar();
+    const summaryPrefix = `round ${round + 1}/${rounds} generating round summary`;
+    let dots = "";
+    process.stdout.write(summaryPrefix);
+    const spinner = setInterval(() => {
+      dots += ".";
+      process.stdout.write(`\r\x1b[K${summaryPrefix}${dots}`);
+    }, 1000);
+
     const finalWeights = await extractWeights(model);
     const ckptPath = path.join(
       checkpointDir,
-      `selfPlay-${round.toString().padStart(3, "0")}.json`,
+      `value-${round.toString().padStart(3, "0")}.json`,
     );
     fs.writeFileSync(ckptPath, JSON.stringify(serializeWeights(finalWeights)));
     fs.writeFileSync(
-      path.join(checkpointDir, "selfPlay-latest.json"),
+      path.join(checkpointDir, "value-latest.json"),
       JSON.stringify(serializeWeights(finalWeights)),
     );
 
-    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-    console.log(
-      `round ${round + 1}/${rounds}  loss=${lastLoss.toFixed(4)}  decisions=${samples.length}  (${elapsed}s)`,
+    const evalResult = quickEval(
+      finalWeights,
+      QUICK_EVAL_GAMES,
+      QUICK_EVAL_NN_SEATS,
+      rng,
     );
+    clearInterval(spinner);
+    const baseline = 1 / NUM_PLAYERS;
+    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+    clearBar();
+    console.log(
+      `round ${round + 1}/${rounds}  loss=${lastLoss.toFixed(4)}  samples=${samples.length}  nn_win=${(evalResult.rate * 100).toFixed(1)}% (${evalResult.nnWins}/${evalResult.nnPlays}, baseline ${(baseline * 100).toFixed(1)}%)  (${elapsed}s)`,
+    );
+    if (round + 1 < rounds) {
+      // Empty bar for the next round during its collection phase.
+      renderBar(round + 2, rounds, 0, 1);
+    }
   }
+  clearBar();
 }
 
 runMain(main);

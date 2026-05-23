@@ -4,41 +4,26 @@ import * as path from "path";
 import { NUM_PLAYERS } from "../constants.ts";
 import type { ModelWeights } from "../model/forward.ts";
 import {
-  defaultColorPersonality,
-  type PersonalityId,
-} from "../model/personalities.ts";
-import {
-  greedyNeuralPolicy,
+  greedyValuePolicy,
   linearPolicy,
-  runOneGameWithPolicy,
+  runOneGame,
   type Policy,
 } from "./selfPlay.ts";
 import { deserializeWeights } from "./tfModel.ts";
 import {
   envNumber,
   makeRng,
+  pickRandomSeats,
   resolveCheckpoint,
   runMain,
-  shuffleInPlace,
 } from "./util.ts";
 
 const DEFAULT_NUM_GAMES = 100;
 const DEFAULT_NN_SEATS = 3;
 
 /**
- * Pick `count` distinct random integers from [0, NUM_PLAYERS) without
- * replacement. Used to decide which seats the NN takes in a given game.
- */
-function pickRandomSeats(count: number, rng: () => number): Set<number> {
-  const pool: number[] = [];
-  for (let i = 0; i < NUM_PLAYERS; i++) pool.push(i);
-  shuffleInPlace(pool, rng);
-  return new Set(pool.slice(0, count));
-}
-
-/**
  * Wilson 95% binomial CI for a proportion. More accurate than the normal
- * approximation when k is small or p is near 0/1. Returns [low, high].
+ * approximation when k is small or p is near 0/1.
  */
 function wilson95(k: number, n: number): [number, number] {
   if (n === 0) return [0, 0];
@@ -47,14 +32,14 @@ function wilson95(k: number, n: number): [number, number] {
   const denom = 1 + (z * z) / n;
   const center = (p + (z * z) / (2 * n)) / denom;
   const margin =
-    (z * Math.sqrt(p * (1 - p) / n + (z * z) / (4 * n * n))) / denom;
+    (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / denom;
   return [Math.max(0, center - margin), Math.min(1, center + margin)];
 }
 
 /**
  * Multi-game tournament where each game randomly assigns `nnSeats` seats
- * to the NN policy and the rest to the linear policy. Reports per-seat
- * win rates with Wilson 95% CIs so noise floor is visible at small N.
+ * to the NN policy and the rest to linear. Reports per-seat win rates
+ * with Wilson 95% CIs so the noise floor is visible.
  */
 async function main(): Promise<void> {
   const numGames = envNumber("WOTD_GAMES", DEFAULT_NUM_GAMES);
@@ -70,15 +55,12 @@ async function main(): Promise<void> {
   const ckptPath = resolveCheckpoint({
     override: process.env.WOTD_CKPT,
     ckptDir: path.resolve(__dirname, "checkpoints"),
-    candidates: ["selfPlay-latest.json", "warmStart.json"],
+    candidates: ["value-latest.json"],
   });
   console.log(`loading weights from ${ckptPath}`);
   const raw = JSON.parse(fs.readFileSync(ckptPath, "utf8"));
   const weights: ModelWeights = deserializeWeights(raw);
-  // One NN policy shared across all seats; personality conditioning is
-  // applied via the encoded board the runner builds with each seat's
-  // personality.
-  const nnPolicy: Policy = greedyNeuralPolicy(weights);
+  const nnPolicy: Policy = greedyValuePolicy(weights);
 
   console.log(
     `eval: ${numGames} games, ${numNNSeats} NN seats vs ${
@@ -96,26 +78,10 @@ async function main(): Promise<void> {
   for (let g = 0; g < numGames; g++) {
     const nnSeats = pickRandomSeats(numNNSeats, rng);
     const policies: Policy[] = [];
-    const personalities: PersonalityId[] = [];
     for (let i = 0; i < NUM_PLAYERS; i++) {
-      if (nnSeats.has(i)) {
-        policies.push(nnPolicy);
-        personalities.push(defaultColorPersonality(i));
-      } else {
-        policies.push(linearPolicy());
-        // Linear seats ignore conditioning, but the encoder still needs a
-        // valid personality. Use the default per-color so the encoding is
-        // consistent with what's baked.
-        personalities.push(defaultColorPersonality(i));
-      }
+      policies.push(nnSeats.has(i) ? nnPolicy : linearPolicy());
     }
-    const result = runOneGameWithPolicy(
-      policies,
-      personalities,
-      undefined,
-      undefined,
-      rng,
-    );
+    const result = runOneGame(policies, undefined, undefined, rng);
 
     nnSeatPlays += numNNSeats;
     linSeatPlays += NUM_PLAYERS - numNNSeats;
@@ -154,7 +120,7 @@ async function main(): Promise<void> {
   );
   console.log(`  Random baseline (1/${NUM_PLAYERS}):       ${fmtPct(baselineRate)}`);
   if (linSeatPlays > 0 && linSeatWins > 0) {
-    const ratio = (nnSeatWins / nnSeatPlays) / (linSeatWins / linSeatPlays);
+    const ratio = nnSeatWins / nnSeatPlays / (linSeatWins / linSeatPlays);
     console.log(`  NN / Linear ratio:                ${ratio.toFixed(2)}x`);
   }
 }

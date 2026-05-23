@@ -26,9 +26,9 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "wotd:train": "ts-node --transpile-only src/war_of_the_dice/training/train.ts",
-    "wotd:evaluate": "ts-node --transpile-only src/war_of_the_dice/training/evaluate.ts",
-    "wotd:bake": "ts-node --transpile-only src/war_of_the_dice/training/bake.ts"
+    "wotd:train": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/war_of_the_dice/training/train.ts",
+    "wotd:evaluate": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/war_of_the_dice/training/evaluate.ts",
+    "wotd:bake": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/war_of_the_dice/training/bake.ts"
   },
   "eslintConfig": {
     "extends": [

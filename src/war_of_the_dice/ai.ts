@@ -1,5 +1,5 @@
 import { shuffle } from "../util/Random";
-import { canAttack } from "./combat.ts";
+import { canAttack, simulateAttackSuccess } from "./combat.ts";
 import { MAX_DICE_PER_TERRITORY, NUM_PLAYERS } from "./constants.ts";
 import { largestComponent } from "./gameLogic.ts";
 import type { GameMap } from "./types.ts";
@@ -69,24 +69,6 @@ export function winProbability(
   defenderDice: number,
 ): number {
   return WIN_PROB[attackerDice]?.[defenderDice] ?? 0;
-}
-
-/**
- * Hypothetical post-attack map used when scoring candidate moves: target's
- * owner becomes source's owner, target's dice = source.dice − 1, source's
- * dice = 1. Pure — no actual game-state mutation.
- */
-function simulateCapture(
-  map: GameMap,
-  sourceId: number,
-  targetId: number,
-): GameMap {
-  const newTerritories = map.territories.map((t) => ({ ...t }));
-  const sourceDice = newTerritories[sourceId].dice;
-  newTerritories[targetId].ownerId = newTerritories[sourceId].ownerId;
-  newTerritories[targetId].dice = sourceDice - 1;
-  newTerritories[sourceId].dice = 1;
-  return { ...map, territories: newTerritories };
 }
 
 /**
@@ -247,12 +229,11 @@ export function selectBestAttack(
       if (!canAttack(map, s, t)) continue;
       const target = map.territories[t];
       const winProb = winProbability(source.dice, target.dice);
-      const sim = simulateCapture(map, s, t);
+      const sim = simulateAttackSuccess(map, s, t);
       const myAfter = largestComponent(sim, playerId);
-      const theirBefore = largestComponent(map, target.ownerId);
+      const defenderComp = enemyComponent[target.ownerId];
       const theirAfter = largestComponent(sim, target.ownerId);
       const exposure = totalEnemyDiceAdjacent(sim, t, playerId);
-      const defenderComp = enemyComponent[target.ownerId];
       // Positive when defender's largest cluster is smaller than the
       // typical enemy's, negative when bigger. Scaled so the term is
       // roughly in [-1, +1].
@@ -262,7 +243,7 @@ export function selectBestAttack(
       const score =
         winProb * wConfidence +
         (myAfter - myBefore) * wExpansion +
-        (theirBefore - theirAfter) * wDisruption -
+        (defenderComp - theirAfter) * wDisruption -
         exposure * wCaution +
         strengthBias * wPredation;
 

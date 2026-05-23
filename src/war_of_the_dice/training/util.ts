@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import * as fs from "fs";
 import * as path from "path";
+import { NUM_PLAYERS } from "../constants.ts";
 
 /** Fisher–Yates shuffle in place. Pass an `rng` for determinism. */
 export function shuffleInPlace<T>(
@@ -103,4 +104,19 @@ function hashSeed(s: string): number {
 export function makeRng(seed: string | undefined): () => number {
   if (!seed) return Math.random;
   return mulberry32(hashSeed(seed));
+}
+
+/**
+ * Pick `count` distinct seat indices from [0, NUM_PLAYERS) without
+ * replacement. Used by eval / diagnose / in-training quick-eval to assign
+ * NN seats randomly each game.
+ */
+export function pickRandomSeats(
+  count: number,
+  rng: () => number,
+): Set<number> {
+  const pool: number[] = [];
+  for (let i = 0; i < NUM_PLAYERS; i++) pool.push(i);
+  shuffleInPlace(pool, rng);
+  return new Set(pool.slice(0, count));
 }
