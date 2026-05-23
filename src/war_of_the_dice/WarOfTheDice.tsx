@@ -36,6 +36,10 @@ import "../styles/warofthedice.css";
 
 const USE_NN_AI = true;
 
+// Sentinel for "observer" mode — playerColorId === OBSERVER_ID means no
+// human seat; all 7 colors play as AI and the game runs autonomously.
+const OBSERVER_ID = -1;
+
 type GamePhase = "setup" | "playing" | "gameOver";
 
 // Attack visualization timing. Both AI moves and player attacks walk the
@@ -201,6 +205,17 @@ function SetupScreen({
           preview new map
         </button>
         <div className="wotd-setup-colors">
+          <div className="wotd-setup-row wotd-setup-observer">
+            <label className="wotd-setup-play-as">
+              <input
+                type="radio"
+                name="wotd-player-color"
+                checked={playerColorId === OBSERVER_ID}
+                onChange={() => setPlayerColorId(OBSERVER_ID)}
+              />
+              observer (watch all AIs play)
+            </label>
+          </div>
           {PLAYER_COLORS.map((color, i) => {
             const isPlayer = i === playerColorId;
             return (
@@ -610,8 +625,16 @@ export default function WarOfTheDice(): ReactElement {
     setSelectedTerritoryId(null);
   };
 
+  const isObserver = playerColorId === OBSERVER_ID;
   const statusText: ReactElement | string = (() => {
     if (isGameOver) {
+      if (isObserver && winnerId !== null) {
+        return (
+          <span style={{ color: PLAYER_COLORS[winnerId].hex }}>
+            {PLAYER_COLORS[winnerId].name} wins
+          </span>
+        );
+      }
       if (winnerId === playerColorId) return "you win!";
       if (winnerId !== null) return "you lose";
       return "game over";
@@ -619,7 +642,9 @@ export default function WarOfTheDice(): ReactElement {
     if (isAITurn) {
       return (
         <span style={{ color: PLAYER_COLORS[currentActor].hex }}>
-          thinking…
+          {isObserver
+            ? `${PLAYER_COLORS[currentActor].name}'s turn`
+            : "thinking…"}
         </span>
       );
     }
@@ -635,10 +660,11 @@ export default function WarOfTheDice(): ReactElement {
             className={`wotd-regen${isRegenSpinning ? " spinning" : ""}`}
             onClick={() => {
               setIsRegenSpinning(true);
+              setMap(generateMap());
               openSetup();
             }}
             onAnimationEnd={() => setIsRegenSpinning(false)}
-            title="new game"
+            title="new game (re-rolls map)"
           >
             ↻
           </button>

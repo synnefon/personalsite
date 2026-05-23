@@ -173,8 +173,8 @@ function countAlivePlayers(map: GameMap): number {
  * gives a spread from berserker (effective ~0.10) → coward (effective
  * ~0.55), which is what makes the archetypes feel distinct in play.
  */
-const THRESHOLD_MAX = 0.3;
-const THRESHOLD_MIN = 0.1;
+const THRESHOLD_MAX = 0.15;
+const THRESHOLD_MIN = 0.05;
 function decisionThreshold(map: GameMap): number {
   const alive = countAlivePlayers(map);
   if (alive <= 2) return THRESHOLD_MIN;

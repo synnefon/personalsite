@@ -68,7 +68,9 @@ export const PLAYER_COLORS: ReadonlyArray<PlayerColor> = [
 export const BORDER_COLOR = "#1b1726";
 
 // The local user is always this player. Index 1 = green in PLAYER_COLORS.
-export const USER_PLAYER_ID = 1;
+export const USER_PLAYER_ID = PLAYER_COLORS.findIndex(
+  (color) => color.name === COLOR_NAME.blue,
+);
 
 // Dice setup. Every player starts with exactly this many dice, distributed
 // randomly across their territories with each territory holding at least 1
