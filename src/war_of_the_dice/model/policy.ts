@@ -60,16 +60,106 @@ function valueOf(
 }
 
 /**
- * 1-ply expected-value Q for one candidate attack: simulate success and
- * failure outcomes, project each through end-of-turn reinforcement, then
- * value the resulting states and weight by attack success probability.
+ * Inside the recursive lookahead, only consider the top-K candidate
+ * attacks at each non-root level (ranked by win probability — a cheap
+ * proxy for "promising"). The outer decision still considers all moves;
+ * this caps the branching factor of the inner expectimax tree.
  *
- * The reinforcement projection is critical (thesis Eq 5.2): without it,
- * V(s_after_attack) differs from V(s_current) only by "one die lost from
- * source" — a tiny perturbation the value head can't distinguish, so the
- * policy collapses to pass. Projecting through reinforcement adds the
- * actor's `score` dice to the post-attack state, making the V comparison
- * reflect the actual turn-level delta.
+ * Depth 3 with N=10 unpruned: ~8000 leaf V-evals (~400ms). With K=4:
+ * ~1280 leaf evals (~64ms). Quality tradeoff is small because the
+ * pruned-away moves had low winProb — they were unlikely to be the best
+ * continuation anyway.
+ */
+const INNER_BRANCHING_LIMIT = 4;
+
+/**
+ * Optimal end-of-turn value reachable from `map` with up to `remainingDepth`
+ * more decisions. Recursive expectimax over my decisions (max over pass +
+ * legal attacks) and chance over attack outcomes (success/fail weighted by
+ * win probability).
+ *
+ * At depth 0 (or no legal moves), returns `V(map after my reinforcement)`
+ * — i.e., "if I pass now, end the turn, what's V". For attacks at deeper
+ * levels, reinforcement is applied at the depth-0 leaf, so each branch
+ * represents a true end-of-turn evaluation.
+ *
+ * "Greedy" because inner branches argmax over actions; doesn't respect
+ * archetype-specific decision modifiers. The inner branching is pruned
+ * to the top-`INNER_BRANCHING_LIMIT` candidates by win probability to
+ * keep depth 3 tractable.
+ */
+function expectedTurnValueGreedy(
+  map: GameMap,
+  playerId: number,
+  turnIndex: number,
+  remainingDepth: number,
+  adjacency: EncodedAdjacency,
+  weights: ModelWeights,
+): number {
+  // Pass-now value: end the turn after this seat's reinforcement.
+  const passV = valueOf(
+    simulateReinforcement(map, playerId),
+    playerId,
+    turnIndex,
+    adjacency,
+    weights,
+  );
+
+  if (remainingDepth <= 0) return passV;
+  const legal = enumerateLegalAttacks(map, playerId);
+  if (legal.length === 0) return passV;
+
+  // Score each candidate by winProb (cheap) and keep only the top-K.
+  // Trades a small chance of missing a low-winProb-but-positional gem for
+  // ~6× speedup at depth 3.
+  const scored = legal.map((m) => ({
+    m,
+    wp: winProbability(
+      map.territories[m.sourceId].dice,
+      map.territories[m.targetId].dice,
+    ),
+  }));
+  scored.sort((a, b) => b.wp - a.wp);
+  const candidates = scored.slice(0, INNER_BRANCHING_LIMIT);
+
+  let best = passV;
+  for (const { m, wp } of candidates) {
+    const sMap = simulateAttackSuccess(map, m.sourceId, m.targetId);
+    const fMap = simulateAttackFail(map, m.sourceId, m.targetId);
+    const vS = expectedTurnValueGreedy(
+      sMap,
+      playerId,
+      turnIndex,
+      remainingDepth - 1,
+      adjacency,
+      weights,
+    );
+    const vF = expectedTurnValueGreedy(
+      fMap,
+      playerId,
+      turnIndex,
+      remainingDepth - 1,
+      adjacency,
+      weights,
+    );
+    const q = wp * vS + (1 - wp) * vF;
+    if (q > best) best = q;
+  }
+  return best;
+}
+
+/**
+ * Expected-value Q for one candidate attack at this turn-step, with
+ * `remainingDepth` additional decisions explored after this one.
+ *
+ * The reinforcement projection inside the recursion is critical (thesis
+ * Eq 5.2): without it, V(s_after_attack) differs from V(s_current) only
+ * by "one die lost from source" — a tiny perturbation the value head
+ * can't distinguish, so the policy collapses to pass.
+ *
+ * remainingDepth=0 → "this attack is the last move of the turn" (the
+ * original 1-ply behavior). remainingDepth=1 → "after this attack I
+ * might consider one more", etc.
  */
 function qOfAttack(
   map: GameMap,
@@ -78,21 +168,30 @@ function qOfAttack(
   move: AIMove,
   adjacency: EncodedAdjacency,
   weights: ModelWeights,
+  remainingDepth: number,
 ): number {
   const wp = winProbability(
     map.territories[move.sourceId].dice,
     map.territories[move.targetId].dice,
   );
-  const successMap = simulateReinforcement(
-    simulateAttackSuccess(map, move.sourceId, move.targetId),
+  const sMap = simulateAttackSuccess(map, move.sourceId, move.targetId);
+  const fMap = simulateAttackFail(map, move.sourceId, move.targetId);
+  const vSuccess = expectedTurnValueGreedy(
+    sMap,
     playerId,
+    turnIndex,
+    remainingDepth,
+    adjacency,
+    weights,
   );
-  const failMap = simulateReinforcement(
-    simulateAttackFail(map, move.sourceId, move.targetId),
+  const vFail = expectedTurnValueGreedy(
+    fMap,
     playerId,
+    turnIndex,
+    remainingDepth,
+    adjacency,
+    weights,
   );
-  const vSuccess = valueOf(successMap, playerId, turnIndex, adjacency, weights);
-  const vFail = valueOf(failMap, playerId, turnIndex, adjacency, weights);
   return wp * vSuccess + (1 - wp) * vFail;
 }
 
@@ -122,7 +221,8 @@ export type CandidateScore = {
 
 /**
  * Score the pass action plus every legal attack from `playerId`. Pass is
- * `V(current state, after my reinforcement)`; attacks are `qOfAttack`.
+ * `V(current state, after my reinforcement)`; attacks are `qOfAttack` with
+ * `remainingDepth` more moves looked ahead (0 = original 1-ply behavior).
  * Caller picks argmax for greedy play, or softmax-samples for stochastic
  * play.
  */
@@ -133,6 +233,7 @@ export function scoreAllActions(
   adjacency: EncodedAdjacency,
   weights: ModelWeights,
   legalMoves?: ReadonlyArray<AIMove>,
+  remainingDepth = 0,
 ): CandidateScore[] {
   const moves = legalMoves ?? enumerateLegalAttacks(map, playerId);
   const out: CandidateScore[] = [];
@@ -143,7 +244,7 @@ export function scoreAllActions(
   for (const m of moves) {
     out.push({
       move: m,
-      q: qOfAttack(map, playerId, turnIndex, m, adjacency, weights),
+      q: qOfAttack(map, playerId, turnIndex, m, adjacency, weights, remainingDepth),
     });
   }
   return out;
@@ -163,18 +264,12 @@ function countAlivePlayers(map: GameMap): number {
  * units). Lerps from `THRESHOLD_MAX` (with all players alive) down to
  * `THRESHOLD_MIN` (with 2 players alive) as the game narrows.
  *
- * Tuned for archetype differentiation, not pure win rate. With the
- * trained model's Q-gap distribution (mean ≈ 0.26, std ≈ 0.26):
- *   0.4 → optimizer 30-40% attack (too passive — "super duper inactive")
- *   0.2 → optimizer 90% attack (basically same as berserker, no spread)
- *   0.3 → optimizer ~50-60% attack — visibly cautious without stalling
- *
  * Combined with the per-archetype multipliers in `personalities.ts`, this
  * gives a spread from berserker (effective ~0.10) → coward (effective
  * ~0.55), which is what makes the archetypes feel distinct in play.
  */
 const THRESHOLD_MAX = 0.15;
-const THRESHOLD_MIN = 0.05;
+const THRESHOLD_MIN = 0.10;
 function decisionThreshold(map: GameMap): number {
   const alive = countAlivePlayers(map);
   if (alive <= 2) return THRESHOLD_MIN;
@@ -231,6 +326,7 @@ export function selectBestAttackByValue(
   adjacency: EncodedAdjacency,
   weights: ModelWeights,
   legalMoves?: ReadonlyArray<AIMove>,
+  remainingDepth = 0,
 ): AIMove | null {
   const moves = legalMoves ?? enumerateLegalAttacks(map, playerId);
   if (moves.length === 0) return null;
@@ -240,7 +336,7 @@ export function selectBestAttackByValue(
   let bestMove: AIMove | null = null;
   let bestQ = -Infinity;
   for (const m of moves) {
-    const q = qOfAttack(map, playerId, turnIndex, m, adjacency, weights);
+    const q = qOfAttack(map, playerId, turnIndex, m, adjacency, weights, remainingDepth);
     if (q > bestQ) {
       bestQ = q;
       bestMove = m;
@@ -404,10 +500,23 @@ export function selectBestAttackForArchetype(
 
   const myLargestPre = largestComponent(map, playerId);
 
+  // Lookahead depth comes from the archetype's behavior. The base Q for
+  // each candidate is "this attack's expected value, played out optimally
+  // for the remaining `lookaheadDepth - 1` decisions of this turn".
+  const remainingDepth = Math.max(0, behavior.lookaheadDepth - 1);
+
   type Scored = { move: AIMove; q: number };
   const scored: Scored[] = [];
   for (const m of moves) {
-    const baseQ = qOfAttack(map, playerId, turnIndex, m, adjacency, weights);
+    const baseQ = qOfAttack(
+      map,
+      playerId,
+      turnIndex,
+      m,
+      adjacency,
+      weights,
+      remainingDepth,
+    );
     const winProb = winProbability(
       map.territories[m.sourceId].dice,
       map.territories[m.targetId].dice,

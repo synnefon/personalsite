@@ -175,7 +175,6 @@ function SetupScreen({
   colorArchetypes,
   setColorArchetypes,
   onStart,
-  onRerollMap,
 }: {
   map: GameMap;
   playerColorId: number;
@@ -183,7 +182,6 @@ function SetupScreen({
   colorArchetypes: ReadonlyArray<ArchetypeId>;
   setColorArchetypes: (next: ArchetypeId[]) => void;
   onStart: () => void;
-  onRerollMap: () => void;
 }): ReactElement {
   return (
     <div className="wotd-setup">
@@ -196,14 +194,6 @@ function SetupScreen({
         />
       </div>
       <div className="wotd-setup-controls">
-        <button
-          className="wotd-setup-reroll"
-          type="button"
-          onClick={onRerollMap}
-          title="preview a different map"
-        >
-          preview new map
-        </button>
         <div className="wotd-setup-colors">
           <div className="wotd-setup-row wotd-setup-observer">
             <label className="wotd-setup-play-as">
@@ -655,20 +645,22 @@ export default function WarOfTheDice(): ReactElement {
     <div className="wotd-container">
       <div className="wotd-header">
         <h2 className="wotd-title">war of the dice</h2>
-        {gamePhase !== "setup" && (
-          <button
-            className={`wotd-regen${isRegenSpinning ? " spinning" : ""}`}
-            onClick={() => {
-              setIsRegenSpinning(true);
-              setMap(generateMap());
-              openSetup();
-            }}
-            onAnimationEnd={() => setIsRegenSpinning(false)}
-            title="new game (re-rolls map)"
-          >
-            ↻
-          </button>
-        )}
+        <button
+          className={`wotd-regen${isRegenSpinning ? " spinning" : ""}`}
+          onClick={() => {
+            setIsRegenSpinning(true);
+            setMap(generateMap());
+            if (gamePhase !== "setup") openSetup();
+          }}
+          onAnimationEnd={() => setIsRegenSpinning(false)}
+          title={
+            gamePhase === "setup"
+              ? "preview a different map"
+              : "new game (re-rolls map)"
+          }
+        >
+          ↻
+        </button>
       </div>
       {gamePhase === "setup" && (
         <SetupScreen
@@ -678,7 +670,6 @@ export default function WarOfTheDice(): ReactElement {
           colorArchetypes={colorArchetypes}
           setColorArchetypes={setColorArchetypes}
           onStart={startGame}
-          onRerollMap={() => setMap(generateMap())}
         />
       )}
       {gamePhase !== "setup" && (

@@ -26,6 +26,12 @@ export const ARCHETYPE_IDS: ReadonlyArray<ArchetypeId> = Object.keys(
   ARCHETYPES,
 ) as ArchetypeId[];
 
+export enum LOOKAHEAD {
+  SHALLOW = 1,
+  MODERATE = 2,
+  DEEP = 3,
+}
+
 /**
  * Per-archetype decision-rule modifiers. Magnitudes calibrated from the
  * trained model's empirical Q-distribution (see `calibrate.ts` output):
@@ -39,28 +45,62 @@ export const ARCHETYPE_IDS: ReadonlyArray<ArchetypeId> = Object.keys(
  *   samplingTemp — when > 0, softmax-samples over Q values at this
  *     temperature instead of taking argmax. Threshold + override are
  *     skipped in sampling mode.
+ *
+ *   lookaheadDepth — how many moves ahead to consider.
  */
 export type ArchetypeBehavior = {
   thresholdMultiplier: number;
   samplingTemp: number;
+  /**
+   * 1 = no lookahead (evaluate this attack only).
+   * 2 = consider one more move after this one.
+   * 3 = two more moves ahead.
+   */
+  lookaheadDepth: LOOKAHEAD;
 };
 
+export enum thresholdMultiplier {
+  LOW = 0.3,
+  MEDIUM = 0.7,
+  HIGH = 0.9,
+}
+
 export const ARCHETYPE_BEHAVIOR: Record<ArchetypeId, ArchetypeBehavior> = {
-  // Effective thresholds at 7-player opening (base 0.3), ordered from most
-  // aggressive to most passive:
-  //   berserker  ≈ 0.09  → near-always attacks
-  //   builder    ≈ 0.18  → leans attack, biased toward consolidation
-  //   kingmaker  ≈ 0.24  → moderate, picky about target rank
-  //   vengeful   ≈ 0.24  → moderate baseline; retaliation pushes it active
-  //   optimizer  ≈ 0.30  → balanced, the trained baseline
-  //   coward     ≈ 0.54  → mostly passes
-  [ARCHETYPES.optimizer]: { thresholdMultiplier: 1.0, samplingTemp: 0 },
-  [ARCHETYPES.berserker]: { thresholdMultiplier: 0.3, samplingTemp: 0 },
-  [ARCHETYPES.builder]: { thresholdMultiplier: 0.6, samplingTemp: 0 },
-  [ARCHETYPES.coward]: { thresholdMultiplier: 1.8, samplingTemp: 0 },
-  [ARCHETYPES.kingmaker]: { thresholdMultiplier: 0.8, samplingTemp: 0 },
-  [ARCHETYPES.vengeful]: { thresholdMultiplier: 0.8, samplingTemp: 0 },
-  [ARCHETYPES.chaos]: { thresholdMultiplier: 1.0, samplingTemp: 1.2 },
+  [ARCHETYPES.berserker]: {
+    thresholdMultiplier: 0.3,
+    samplingTemp: 0,
+    lookaheadDepth: LOOKAHEAD.SHALLOW,
+  },
+  [ARCHETYPES.vengeful]: {
+    thresholdMultiplier: 0.7,
+    samplingTemp: 0,
+    lookaheadDepth: LOOKAHEAD.SHALLOW,
+  },
+  [ARCHETYPES.coward]: {
+    thresholdMultiplier: 2,
+    samplingTemp: 0,
+    lookaheadDepth: LOOKAHEAD.MODERATE,
+  },
+  [ARCHETYPES.kingmaker]: {
+    thresholdMultiplier: 0.8,
+    samplingTemp: 0,
+    lookaheadDepth: LOOKAHEAD.MODERATE,
+  },
+  [ARCHETYPES.chaos]: {
+    thresholdMultiplier: 1.0,
+    samplingTemp: 1.2,
+    lookaheadDepth: LOOKAHEAD.DEEP,
+  },
+  [ARCHETYPES.builder]: {
+    thresholdMultiplier: 0.8,
+    samplingTemp: 0,
+    lookaheadDepth: LOOKAHEAD.DEEP,
+  },
+  [ARCHETYPES.optimizer]: {
+    thresholdMultiplier: 0.9,
+    samplingTemp: 0,
+    lookaheadDepth: LOOKAHEAD.DEEP,
+  },
 };
 
 /**
