@@ -5,13 +5,18 @@ import {
   simulateReinforcement,
 } from "../combat.ts";
 import { MAX_DICE_PER_TERRITORY, NUM_PLAYERS } from "../constants.ts";
-import { playerIsEliminated } from "../gameLogic.ts";
+import { largestComponent, playerIsEliminated } from "../gameLogic.ts";
 import type { GameMap } from "../types.ts";
 import {
   encodeBoard,
   type EncodedAdjacency,
 } from "./encoding.ts";
 import { computeEmbeddings, scoreValue, type ModelWeights } from "./forward.ts";
+import {
+  ARCHETYPE_BEHAVIOR,
+  ARCHETYPES,
+  type ArchetypeId,
+} from "./personalities.ts";
 
 /**
  * Every legal attack move for `playerId` on the current board: each source
@@ -155,17 +160,21 @@ function countAlivePlayers(map: GameMap): number {
 
 /**
  * Required attack-vs-pass advantage for an attack to be taken (logit
- * units). Lerps from `THRESHOLD_MAX` (with all players alive, like the
- * thesis's 0.4 multiplayer threshold) down to `THRESHOLD_MIN` (with 2
- * players, like the thesis's 0.2 two-player threshold) as the game
- * narrows.
+ * units). Lerps from `THRESHOLD_MAX` (with all players alive) down to
+ * `THRESHOLD_MIN` (with 2 players alive) as the game narrows.
  *
- * Late-game with few opponents alive → low threshold (more willing to
- * attack to close out). Early game with many opponents → high threshold
- * (more selective, conserve dice).
+ * Tuned for archetype differentiation, not pure win rate. With the
+ * trained model's Q-gap distribution (mean ≈ 0.26, std ≈ 0.26):
+ *   0.4 → optimizer 30-40% attack (too passive — "super duper inactive")
+ *   0.2 → optimizer 90% attack (basically same as berserker, no spread)
+ *   0.3 → optimizer ~50-60% attack — visibly cautious without stalling
+ *
+ * Combined with the per-archetype multipliers in `personalities.ts`, this
+ * gives a spread from berserker (effective ~0.10) → coward (effective
+ * ~0.55), which is what makes the archetypes feel distinct in play.
  */
-const THRESHOLD_MAX = 0.4;
-const THRESHOLD_MIN = 0.2;
+const THRESHOLD_MAX = 0.3;
+const THRESHOLD_MIN = 0.1;
 function decisionThreshold(map: GameMap): number {
   const alive = countAlivePlayers(map);
   if (alive <= 2) return THRESHOLD_MIN;
@@ -287,4 +296,174 @@ export function sampleAttackByValue(
     if (r <= 0) return scored[i].move;
   }
   return scored[scored.length - 1].move;
+}
+
+// ===== Archetype-aware decision rule (browser inference only) =============
+//
+// Layer per-archetype decision modifiers on top of the V-network's Q values.
+// Each archetype expressed as:
+//   - threshold multiplier (from ARCHETYPE_BEHAVIOR) — scales the base
+//     attack-vs-pass gap required to attack
+//   - per-candidate Q bias (computed below from game-state features)
+//   - optional softmax sampling (Chaos)
+// Magnitudes calibrated from the empirical Q-gap distribution; see
+// personalities.ts comments and calibrate.ts output.
+
+/**
+ * Probability the actor keeps the captured territory through opponents'
+ * next turn — product over enemy neighbors of (1 − their P of winning
+ * back). Matches the thesis's STEi hold-probability formula (Eq 5.1).
+ */
+function captureHoldProb(
+  map: GameMap,
+  targetId: number,
+  playerId: number,
+): number {
+  const t = map.territories[targetId];
+  const neighbors = map.adjacency.get(targetId);
+  if (!neighbors) return 1;
+  let p = 1;
+  for (const n of neighbors) {
+    const nT = map.territories[n];
+    if (nT.ownerId === playerId) continue;
+    p *= 1 - winProbability(nT.dice, t.dice);
+  }
+  return p;
+}
+
+type BiasContext = {
+  winProb: number;
+  deltaLargest: number;
+  holdProb: number;
+  targetOwner: number;
+  /** 0 = weakest alive enemy, maxRank = strongest. */
+  targetRank: number;
+  /** Largest possible value of targetRank for this state. */
+  maxRank: number;
+  /** Opponents who recently captured one of `playerId`'s territories. */
+  recentAttackers: ReadonlySet<number>;
+};
+
+function archetypeBias(arch: ArchetypeId, ctx: BiasContext): number {
+  switch (arch) {
+    case ARCHETYPES.berserker:
+      return 0.1 * ctx.winProb;
+    case ARCHETYPES.builder:
+      return 0.1 * ctx.deltaLargest;
+    case ARCHETYPES.coward:
+      return 0.1 * ctx.holdProb;
+    case ARCHETYPES.kingmaker:
+      // Linear map: rank=0 (weakest) → -0.15; rank=maxRank (strongest) → +0.15.
+      return ctx.maxRank > 0
+        ? 0.15 * ((2 * ctx.targetRank) / ctx.maxRank - 1)
+        : 0;
+    case ARCHETYPES.vengeful:
+      return ctx.recentAttackers.has(ctx.targetOwner) ? 0.15 : 0;
+    case ARCHETYPES.optimizer:
+    case ARCHETYPES.chaos:
+      return 0;
+  }
+}
+
+/**
+ * Archetype-aware decision rule. Computes V-network Q for each candidate
+ * (with reinforcement projection, identical to selectBestAttackByValue),
+ * then adds the archetype's per-candidate bias, and decides via either
+ * threshold-with-override (greedy archetypes) or softmax sampling (Chaos).
+ */
+export function selectBestAttackForArchetype(
+  map: GameMap,
+  playerId: number,
+  turnIndex: number,
+  adjacency: EncodedAdjacency,
+  weights: ModelWeights,
+  archetype: ArchetypeId,
+  recentAttackers: ReadonlySet<number>,
+  rng: () => number = Math.random,
+  legalMoves?: ReadonlyArray<AIMove>,
+): AIMove | null {
+  const moves = legalMoves ?? enumerateLegalAttacks(map, playerId);
+  if (moves.length === 0) return null;
+
+  const behavior = ARCHETYPE_BEHAVIOR[archetype];
+  const passQ = valueOfPass(map, playerId, turnIndex, adjacency, weights);
+
+  // Rank alive enemies by score (low → high), for kingmaker bias.
+  const playerScores: number[] = [];
+  for (let p = 0; p < NUM_PLAYERS; p++) {
+    playerScores.push(playerIsEliminated(map, p) ? -1 : largestComponent(map, p));
+  }
+  const aliveEnemies: number[] = [];
+  for (let p = 0; p < NUM_PLAYERS; p++) {
+    if (p !== playerId && !playerIsEliminated(map, p)) aliveEnemies.push(p);
+  }
+  aliveEnemies.sort((a, b) => playerScores[a] - playerScores[b]);
+  const rankFromLow = new Map<number, number>();
+  aliveEnemies.forEach((p, idx) => rankFromLow.set(p, idx));
+  const maxRank = Math.max(1, aliveEnemies.length - 1);
+
+  const myLargestPre = largestComponent(map, playerId);
+
+  type Scored = { move: AIMove; q: number };
+  const scored: Scored[] = [];
+  for (const m of moves) {
+    const baseQ = qOfAttack(map, playerId, turnIndex, m, adjacency, weights);
+    const winProb = winProbability(
+      map.territories[m.sourceId].dice,
+      map.territories[m.targetId].dice,
+    );
+    const successMap = simulateAttackSuccess(map, m.sourceId, m.targetId);
+    const deltaLargest = largestComponent(successMap, playerId) - myLargestPre;
+    const holdProb = captureHoldProb(successMap, m.targetId, playerId);
+    const targetOwner = map.territories[m.targetId].ownerId;
+    const targetRank = rankFromLow.get(targetOwner) ?? 0;
+    const bias = archetypeBias(archetype, {
+      winProb,
+      deltaLargest,
+      holdProb,
+      targetOwner,
+      targetRank,
+      maxRank,
+      recentAttackers,
+    });
+    scored.push({ move: m, q: baseQ + bias });
+  }
+
+  // Chaos: softmax-sample over biased Qs including pass.
+  if (behavior.samplingTemp > 0) {
+    const all: { move: AIMove | null; q: number }[] = [
+      { move: null, q: passQ },
+      ...scored,
+    ];
+    let maxQ = -Infinity;
+    for (const a of all) if (a.q > maxQ) maxQ = a.q;
+    const safeTemp = Math.max(behavior.samplingTemp, 1e-6);
+    let sum = 0;
+    const exps: number[] = [];
+    for (const a of all) {
+      const e = Math.exp((a.q - maxQ) / safeTemp);
+      exps.push(e);
+      sum += e;
+    }
+    let r = rng() * sum;
+    for (let i = 0; i < exps.length; i++) {
+      r -= exps[i];
+      if (r <= 0) return all[i].move;
+    }
+    return all[all.length - 1].move;
+  }
+
+  // Greedy with archetype-scaled threshold + all-cells-at-8 override.
+  let bestMove: AIMove | null = null;
+  let bestQ = -Infinity;
+  for (const s of scored) {
+    if (s.q > bestQ) {
+      bestQ = s.q;
+      bestMove = s.move;
+    }
+  }
+  const threshold = decisionThreshold(map) * behavior.thresholdMultiplier;
+  if (bestMove !== null && bestQ - passQ > threshold) return bestMove;
+  if (bestMove !== null && allOwnedAtMax(map, playerId)) return bestMove;
+  return null;
 }

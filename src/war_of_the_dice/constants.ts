@@ -7,10 +7,7 @@ export const HEX_SIZE = 18;
 // Map-shaping knobs. Larger boundary probabilities chew the outer rectangle
 // into an irregular blob; the small interior probability sprinkles holes.
 export const VOID_PROB_BY_DISTANCE: ReadonlyArray<number> = [
-  0.55,
-  0.22,
-  0.10,
-  0.04,
+  0.55, 0.22, 0.1, 0.04,
 ];
 export const MIN_PLAYABLE_HEXES = 500;
 export const MAX_GENERATION_ATTEMPTS = 40;
@@ -34,18 +31,38 @@ export const LAKE_COUNT_MIN = 4;
 export const LAKE_COUNT_MAX = 10;
 
 export type PlayerColor = {
-  hex: string;
-  name: string;
+  hex: COLOR_HEX;
+  name: COLOR_NAME;
 };
 
+export enum COLOR_NAME {
+  red = "red",
+  green = "green",
+  yellow = "yellow",
+  blue = "blue",
+  orange = "orange",
+  purple = "purple",
+  cyan = "cyan",
+}
+
+export enum COLOR_HEX {
+  red = "#e6194b",
+  green = "#3cb44b",
+  yellow = "#ffe119",
+  blue = "#4363d8",
+  orange = "#f58231",
+  purple = "#911eb4",
+  cyan = "#42d4f4",
+}
+
 export const PLAYER_COLORS: ReadonlyArray<PlayerColor> = [
-  { hex: "#e6194b", name: "red" },
-  { hex: "#3cb44b", name: "green" },
-  { hex: "#ffe119", name: "yellow" },
-  { hex: "#4363d8", name: "blue" },
-  { hex: "#f58231", name: "orange" },
-  { hex: "#911eb4", name: "purple" },
-  { hex: "#42d4f4", name: "cyan" },
+  { hex: COLOR_HEX.red, name: COLOR_NAME.red },
+  { hex: COLOR_HEX.green, name: COLOR_NAME.green },
+  { hex: COLOR_HEX.yellow, name: COLOR_NAME.yellow },
+  { hex: COLOR_HEX.blue, name: COLOR_NAME.blue },
+  { hex: COLOR_HEX.orange, name: COLOR_NAME.orange },
+  { hex: COLOR_HEX.purple, name: COLOR_NAME.purple },
+  { hex: COLOR_HEX.cyan, name: COLOR_NAME.cyan },
 ];
 
 export const BORDER_COLOR = "#1b1726";

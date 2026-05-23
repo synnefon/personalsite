@@ -1,7 +1,8 @@
 import type { AIMove } from "../ai.ts";
 import type { GameMap } from "../types.ts";
 import { encodeAdjacency, type EncodedAdjacency } from "./encoding.ts";
-import { sampleAttackByValue, selectBestAttackByValue } from "./policy.ts";
+import type { ArchetypeId } from "./personalities.ts";
+import { selectBestAttackForArchetype } from "./policy.ts";
 import { BAKED_WEIGHTS } from "./weights.ts";
 
 // Cache the CSR adjacency per game so the policy doesn't pay for it on every
@@ -15,38 +16,38 @@ let adjCache: {
 
 /**
  * Drop-in replacement for the linear `selectBestAttack`, backed by the
- * baked value-network weights. The decision rule is 1-ply expectation:
- * for each candidate attack, evaluate V(s_success) and V(s_fail) and
- * pick the move maximizing P_attack·V(success) + (1−P_attack)·V(fail).
- * Pass is V(current state).
+ * baked value-network weights with per-archetype decision modifiers.
  *
- * `temp > 0` softmax-samples the Q values — used to express the "Chaos"
- * archetype's stochasticity without training a separate model.
+ * Decision rule (see `policy.ts:selectBestAttackForArchetype`):
+ *   1. Compute V-network Q for each candidate (1-ply expected value
+ *      through end-of-turn reinforcement).
+ *   2. Add the archetype's per-candidate Q bias (e.g., builder rewards
+ *      attacks growing largest component; vengeful rewards retaliation).
+ *   3. Apply the archetype's threshold multiplier to the players-remaining
+ *      base threshold, then take the best attack if it clears, else pass.
+ *      Chaos archetype softmax-samples instead.
+ *
+ * `recentAttackers` is the set of opponent player IDs who have captured
+ * one of `playerId`'s territories recently; only the Vengeful archetype
+ * reads it, but the signature stays uniform across archetypes.
  */
 export function selectBestAttackBaked(
   map: GameMap,
   playerId: number,
   turnIndex: number,
-  temp: number,
+  archetype: ArchetypeId,
+  recentAttackers: ReadonlySet<number>,
 ): AIMove | null {
   if (!adjCache || adjCache.key !== map.adjacency) {
     adjCache = { key: map.adjacency, encoded: encodeAdjacency(map) };
   }
-  if (temp > 0) {
-    return sampleAttackByValue(
-      map,
-      playerId,
-      turnIndex,
-      adjCache.encoded,
-      BAKED_WEIGHTS,
-      temp,
-    );
-  }
-  return selectBestAttackByValue(
+  return selectBestAttackForArchetype(
     map,
     playerId,
     turnIndex,
     adjCache.encoded,
     BAKED_WEIGHTS,
+    archetype,
+    recentAttackers,
   );
 }

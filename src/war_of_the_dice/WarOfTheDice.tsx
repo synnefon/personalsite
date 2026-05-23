@@ -26,7 +26,6 @@ import { generateMap } from "./mapGenerator.ts";
 import { selectBestAttackBaked } from "./model/bakedAI.ts";
 import {
   ARCHETYPE_IDS,
-  archetypeToTemp,
   defaultColorArchetype,
   type ArchetypeId,
 } from "./model/personalities.ts";
@@ -35,10 +34,7 @@ import type { GameMap } from "./types.ts";
 
 import "../styles/warofthedice.css";
 
-// v2 personality conditioning changed the encoder's input shape, so the
-// previously-baked v1 weights are incompatible. Flip back to `true` once
-// v2 training completes and we bake fresh weights.
-const USE_NN_AI = false;
+const USE_NN_AI = true;
 
 type GamePhase = "setup" | "playing" | "gameOver";
 
@@ -286,6 +282,11 @@ export default function WarOfTheDice(): ReactElement {
   const roundRef = useRef<number>(0);
   const playerColorIdRef = useRef<number>(USER_PLAYER_ID);
   const colorArchetypesRef = useRef<ArchetypeId[]>(colorArchetypes);
+  // Per-defender sliding window of recent attackers (most-recent first,
+  // capped at ATTACK_HISTORY_LIMIT). Only the Vengeful archetype reads it,
+  // but every AI move flows through the same hook for uniformity.
+  const ATTACK_HISTORY_LIMIT = 6;
+  const attackHistoryRef = useRef<Map<number, number[]>>(new Map());
   useEffect(() => {
     roundRef.current = round;
   }, [round]);
@@ -435,6 +436,16 @@ export default function WarOfTheDice(): ReactElement {
       const defenderId = mapRef.current.territories[targetId].ownerId;
       const result = resolveAttack(mapRef.current, sourceId, targetId);
       recordBattle(actorId, defenderId, result.outcome);
+      // Successful captures update the defender's recent-attacker list so
+      // the Vengeful archetype can retaliate on its next turn.
+      if (result.outcome.attackerWon) {
+        const prior = attackHistoryRef.current.get(defenderId) ?? [];
+        const next = [actorId, ...prior.filter((a) => a !== actorId)].slice(
+          0,
+          ATTACK_HISTORY_LIMIT,
+        );
+        attackHistoryRef.current.set(defenderId, next);
+      }
       const maxRolls = Math.max(
         result.outcome.attackerRolls.length,
         result.outcome.defenderRolls.length
@@ -475,12 +486,16 @@ export default function WarOfTheDice(): ReactElement {
     const playOneMove = (): void => {
       if (cancelled) return;
       const arch = colorArchetypesRef.current[currentActor];
+      const recentAttackers = new Set(
+        attackHistoryRef.current.get(currentActor) ?? [],
+      );
       const move = USE_NN_AI
         ? selectBestAttackBaked(
             mapRef.current,
             currentActor,
             roundRef.current,
-            archetypeToTemp(arch),
+            arch,
+            recentAttackers,
           )
         : selectBestAttack(
             mapRef.current,
@@ -540,6 +555,7 @@ export default function WarOfTheDice(): ReactElement {
     setAiAction(null);
     setLastBattle(null);
     setRound(0);
+    attackHistoryRef.current.clear();
     setGamePhase("playing");
   };
 
