@@ -262,12 +262,19 @@ export function greedyValuePolicy(weights: ModelWeights): Policy {
 /**
  * Build a value-network Policy that softmax-samples over Q values at
  * temperature `temp`. Used for exploration during self-play training.
+ *
+ * `lookaheadDepth` controls expectimax search within the turn for each Q
+ * evaluation: 1 = original 1-ply, 2 = one extra move, 3 = two more. Self-
+ * play data quality benefits from deeper search (AlphaZero-style — better
+ * data → better training signal), at the cost of per-decision wall time.
  */
 export function samplingValuePolicy(
   weights: ModelWeights,
   temp: number,
   rng: () => number = Math.random,
+  lookaheadDepth = 1,
 ): Policy {
+  const remainingDepth = Math.max(0, lookaheadDepth - 1);
   return (ctx) =>
     sampleAttackByValue(
       ctx.map,
@@ -278,5 +285,6 @@ export function samplingValuePolicy(
       temp,
       rng,
       ctx.legalMoves,
+      remainingDepth,
     );
 }

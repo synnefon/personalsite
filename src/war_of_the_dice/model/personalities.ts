@@ -59,32 +59,30 @@ export type ArchetypeBehavior = {
   lookaheadDepth: LOOKAHEAD;
 };
 
-export enum thresholdMultiplier {
-  LOW = 0.3,
-  MEDIUM = 0.7,
-  HIGH = 0.9,
-}
-
+// Aggression overrides are disabled — all archetypes use the trained
+// model's natural threshold (multiplier 1.0) so we can observe pure
+// self-play V behavior. Differentiation comes from lookahead depth
+// (planning horizon) and, for Chaos, softmax sampling.
 export const ARCHETYPE_BEHAVIOR: Record<ArchetypeId, ArchetypeBehavior> = {
   [ARCHETYPES.berserker]: {
-    thresholdMultiplier: 0.3,
+    thresholdMultiplier: 1.0,
     samplingTemp: 0,
-    lookaheadDepth: LOOKAHEAD.SHALLOW,
+    lookaheadDepth: LOOKAHEAD.DEEP,
   },
   [ARCHETYPES.vengeful]: {
-    thresholdMultiplier: 0.7,
+    thresholdMultiplier: 1.0,
     samplingTemp: 0,
-    lookaheadDepth: LOOKAHEAD.SHALLOW,
+    lookaheadDepth: LOOKAHEAD.DEEP,
   },
   [ARCHETYPES.coward]: {
-    thresholdMultiplier: 2,
+    thresholdMultiplier: 1.0,
     samplingTemp: 0,
-    lookaheadDepth: LOOKAHEAD.MODERATE,
+    lookaheadDepth: LOOKAHEAD.DEEP,
   },
   [ARCHETYPES.kingmaker]: {
-    thresholdMultiplier: 0.8,
+    thresholdMultiplier: 1.0,
     samplingTemp: 0,
-    lookaheadDepth: LOOKAHEAD.MODERATE,
+    lookaheadDepth: LOOKAHEAD.DEEP,
   },
   [ARCHETYPES.chaos]: {
     thresholdMultiplier: 1.0,
@@ -92,12 +90,12 @@ export const ARCHETYPE_BEHAVIOR: Record<ArchetypeId, ArchetypeBehavior> = {
     lookaheadDepth: LOOKAHEAD.DEEP,
   },
   [ARCHETYPES.builder]: {
-    thresholdMultiplier: 0.8,
+    thresholdMultiplier: 1.0,
     samplingTemp: 0,
     lookaheadDepth: LOOKAHEAD.DEEP,
   },
   [ARCHETYPES.optimizer]: {
-    thresholdMultiplier: 0.9,
+    thresholdMultiplier: 1.0,
     samplingTemp: 0,
     lookaheadDepth: LOOKAHEAD.DEEP,
   },

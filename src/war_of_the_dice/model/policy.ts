@@ -366,6 +366,7 @@ export function sampleAttackByValue(
   temp: number,
   rng: () => number = Math.random,
   legalMoves?: ReadonlyArray<AIMove>,
+  remainingDepth = 0,
 ): AIMove | null {
   const scored = scoreAllActions(
     map,
@@ -374,6 +375,7 @@ export function sampleAttackByValue(
     adjacency,
     weights,
     legalMoves,
+    remainingDepth,
   );
 
   let maxQ = -Infinity;
@@ -440,25 +442,25 @@ type BiasContext = {
   recentAttackers: ReadonlySet<number>;
 };
 
-function archetypeBias(arch: ArchetypeId, ctx: BiasContext): number {
-  switch (arch) {
-    case ARCHETYPES.berserker:
-      return 0.1 * ctx.winProb;
-    case ARCHETYPES.builder:
-      return 0.1 * ctx.deltaLargest;
-    case ARCHETYPES.coward:
-      return 0.1 * ctx.holdProb;
-    case ARCHETYPES.kingmaker:
-      // Linear map: rank=0 (weakest) → -0.15; rank=maxRank (strongest) → +0.15.
-      return ctx.maxRank > 0
-        ? 0.15 * ((2 * ctx.targetRank) / ctx.maxRank - 1)
-        : 0;
-    case ARCHETYPES.vengeful:
-      return ctx.recentAttackers.has(ctx.targetOwner) ? 0.15 : 0;
-    case ARCHETYPES.optimizer:
-    case ARCHETYPES.chaos:
-      return 0;
-  }
+function archetypeBias(_arch: ArchetypeId, _ctx: BiasContext): number {
+  // Aggression overrides disabled: every archetype uses the trained
+  // model's natural Q evaluation with no per-archetype bias. The switch
+  // (winProb / Δ-largest-component / hold-prob / target-rank /
+  // recent-attackers) is preserved below for re-enabling once we want to
+  // re-tune archetypes on top of the self-play baseline.
+  return 0;
+  // switch (_arch) {
+  //   case ARCHETYPES.berserker: return 0.1 * _ctx.winProb;
+  //   case ARCHETYPES.builder:   return 0.1 * _ctx.deltaLargest;
+  //   case ARCHETYPES.coward:    return 0.1 * _ctx.holdProb;
+  //   case ARCHETYPES.kingmaker:
+  //     return _ctx.maxRank > 0
+  //       ? 0.15 * ((2 * _ctx.targetRank) / _ctx.maxRank - 1) : 0;
+  //   case ARCHETYPES.vengeful:
+  //     return _ctx.recentAttackers.has(_ctx.targetOwner) ? 0.15 : 0;
+  //   case ARCHETYPES.optimizer:
+  //   case ARCHETYPES.chaos:      return 0;
+  // }
 }
 
 /**

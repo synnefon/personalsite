@@ -16,12 +16,15 @@ import {
   greedyValuePolicy,
   linearPolicy,
   runOneGame,
+  samplingValuePolicy,
   type Policy,
   type ValueSample,
 } from "./selfPlay.ts";
 import {
   adjacencyToMeanMatrix,
+  applyWeights,
   buildTfModel,
+  deserializeWeights,
   extractWeights,
   forwardEmbeddings,
   forwardScoreValue,
@@ -55,17 +58,28 @@ const QUICK_EVAL_NN_SEATS = 3;
 
 const BAR_WIDTH = 24;
 
-function renderBar(
+const PHASE_BAR_WIDTH = 12;
+
+function makeBar(done: number, total: number): string {
+  const pct = total > 0 ? Math.min(done / total, 1) : 0;
+  const filled = Math.floor(pct * PHASE_BAR_WIDTH);
+  return "█".repeat(filled) + "░".repeat(PHASE_BAR_WIDTH - filled);
+}
+
+function renderBars(
   round: number,
   totalRounds: number,
-  done: number,
-  total: number,
+  collect: { done: number; total: number },
+  train: { done: number; total: number },
 ): void {
-  const pct = total > 0 ? Math.min(done / total, 1) : 0;
-  const filled = Math.floor(pct * BAR_WIDTH);
-  const bar = "█".repeat(filled) + "░".repeat(BAR_WIDTH - filled);
   process.stdout.write(
-    `\r\x1b[Kround ${round}/${totalRounds} [${bar}] ${(pct * 100).toFixed(1)}%`,
+    `\r\x1b[Kround ${round}/${totalRounds}  collect [${makeBar(
+      collect.done,
+      collect.total,
+    )}] ${collect.done}/${collect.total}  train [${makeBar(
+      train.done,
+      train.total,
+    )}] ${train.done}/${train.total}`,
   );
 }
 
@@ -96,22 +110,38 @@ function buildLayers(model: TfModel): void {
   adjMatrix.dispose();
 }
 
-/** Single-threaded all-linear-AI data collection. */
-function collectLinearGames(
+type CollectMode =
+  | { kind: "linear" }
+  | {
+      kind: "selfplay";
+      weights: ModelWeights;
+      temp: number;
+      lookaheadDepth: number;
+    };
+
+/** Single-threaded data collection in the configured mode. */
+function collectGames(
   numGames: number,
   rng: () => number,
+  mode: CollectMode,
+  onGameDone: () => void,
 ): SampleWithAdj[] {
+  const buildPolicies = (): Policy[] => {
+    if (mode.kind === "selfplay") {
+      return Array.from({ length: NUM_PLAYERS }, () =>
+        samplingValuePolicy(mode.weights, mode.temp, rng, mode.lookaheadDepth),
+      );
+    }
+    return Array.from({ length: NUM_PLAYERS }, () => linearPolicy());
+  };
   const out: SampleWithAdj[] = [];
   for (let g = 0; g < numGames; g++) {
-    const policies: Policy[] = Array.from(
-      { length: NUM_PLAYERS },
-      () => linearPolicy(),
-    );
-    const result = runOneGame(policies, undefined, undefined, rng);
+    const result = runOneGame(buildPolicies(), undefined, undefined, rng);
     const adjMatrix = adjacencyToMeanMatrix(result.adjacency);
     for (const s of result.samples) {
       out.push({ sample: s, adjMatrix });
     }
+    onGameDone();
   }
   return out;
 }
@@ -129,16 +159,20 @@ type WorkerMessage =
   | { type: "done"; result: WorkerResult };
 
 /**
- * Parallel all-linear-AI data collection via worker pool. Workers send
- * `ready` once after boot, then alternate between accepting `job`
- * messages and posting `done` results. Each `done` arrival immediately
- * triggers the next dispatch (or shutdown if all games dispatched), so
- * completions trickle in at the natural per-game cadence — no
- * synchronized bursts.
+ * Parallel data collection via worker pool. Workers send `ready` once
+ * after boot, then alternate between accepting `job` messages and posting
+ * `done` results. Each `done` arrival immediately triggers the next
+ * dispatch (or shutdown if all games dispatched), so completions trickle
+ * in at the natural per-game cadence — no synchronized bursts.
+ *
+ * `mode` controls policies: `linear` uses linearPolicy; `selfplay` uses
+ * samplingValuePolicy with the supplied weights and temperature.
  */
-function collectLinearGamesParallel(
+function collectGamesParallel(
   numGames: number,
   numWorkers: number,
+  mode: CollectMode,
+  onGameDone: () => void,
 ): Promise<SampleWithAdj[]> {
   const workerPath = path.resolve(__dirname, "selfPlayWorker.js");
   const effectiveWorkers = Math.min(numWorkers, numGames);
@@ -166,8 +200,22 @@ function collectLinearGamesParallel(
       }
     };
 
+    // Snapshot weights once per round here — sent to every worker via
+    // structured clone. Self-play training keeps weights fixed for the
+    // duration of one collection round (matching AlphaZero's "freeze the
+    // policy, generate games, then train on them" loop).
+    const workerData =
+      mode.kind === "selfplay"
+        ? {
+            mode: "selfplay",
+            weights: mode.weights,
+            temp: mode.temp,
+            lookaheadDepth: mode.lookaheadDepth,
+          }
+        : { mode: "linear" };
+
     for (let w = 0; w < effectiveWorkers; w++) {
-      const worker = new Worker(workerPath, { workerData: {} });
+      const worker = new Worker(workerPath, { workerData });
       workers.push(worker);
       worker.on("message", (msg: WorkerMessage) => {
         if (msg.type === "ready") {
@@ -177,6 +225,7 @@ function collectLinearGamesParallel(
         if (msg.type === "done") {
           collected.push(msg.result);
           completed++;
+          onGameDone();
           if (completed === numGames) {
             if (settled) return;
             settled = true;
@@ -279,8 +328,17 @@ function quickEval(
 }
 
 /**
- * Top-level training: collect linear-AI games each round, train the value
- * network on per-state win labels, snapshot weights, eval against linear.
+ * Top-level training. Two modes:
+ *
+ *   WOTD_SELF_PLAY=0 (default) — collects linear-AI games, trains V on
+ *     win labels. From-scratch supervised training, produces the baseline.
+ *
+ *   WOTD_SELF_PLAY=1 — warm-starts from `value-latest.json`, then each
+ *     round generates games with all 7 seats using samplingValuePolicy
+ *     (current weights, temperature WOTD_SELFPLAY_TEMP, default 0.5).
+ *     Trains V on those. AlphaZero-style: freeze policy, generate games,
+ *     train on outcomes, repeat. Output goes to `value-selfplay-*.json`
+ *     to keep the linear-trained baseline distinct.
  */
 async function main(): Promise<void> {
   const rounds = envNumber("WOTD_ROUNDS", DEFAULT_ROUNDS);
@@ -288,6 +346,9 @@ async function main(): Promise<void> {
   const epochsPerRound = envNumber("WOTD_EPOCHS", DEFAULT_EPOCHS_PER_ROUND);
   const lr = envNumber("WOTD_LR", DEFAULT_LR);
   const batchSize = envNumber("WOTD_BATCH", DEFAULT_BATCH_SIZE);
+  const selfPlay = process.env.WOTD_SELF_PLAY === "1";
+  const selfPlayTemp = envNumber("WOTD_SELFPLAY_TEMP", 0.5);
+  const selfPlayLookahead = envNumber("WOTD_SELFPLAY_LOOKAHEAD", 3);
   const seed = process.env.WOTD_SEED;
   const rng = makeRng(seed);
 
@@ -298,8 +359,12 @@ async function main(): Promise<void> {
     ? Math.min(os.cpus().length, gamesPerRound)
     : 1;
 
+  // Self-play writes to a separate prefix so the linear-trained baseline
+  // (value-latest.json) is preserved for A/B comparison.
+  const ckptPrefix = selfPlay ? "value-selfplay" : "value";
+
   milestone(
-    `value training: rounds=${rounds} games/round=${gamesPerRound} epochs/round=${epochsPerRound} lr=${lr} batch=${batchSize}${seed ? ` seed=${seed}` : ""}`,
+    `${selfPlay ? "self-play" : "linear-AI"} training: rounds=${rounds} games/round=${gamesPerRound} epochs/round=${epochsPerRound} lr=${lr} batch=${batchSize}${selfPlay ? ` temp=${selfPlayTemp} lookahead=${selfPlayLookahead}` : ""}${seed ? ` seed=${seed}` : ""}`,
   );
   milestone(
     `data collection: ${useWorkers ? `${numWorkers} workers` : "single-threaded"}`,
@@ -310,25 +375,77 @@ async function main(): Promise<void> {
 
   const model = buildTfModel();
   buildLayers(model);
-  milestone(`starting from random init`);
+
+  // Self-play requires a warm-start from the existing trained baseline.
+  // Generating data via random-init weights would produce noise; the loop
+  // only makes sense as a refinement step from an already-decent policy.
+  if (selfPlay) {
+    const baseline = path.join(checkpointDir, "value-latest.json");
+    if (!fs.existsSync(baseline)) {
+      throw new Error(
+        `self-play requires ${baseline}; run linear training first`,
+      );
+    }
+    const raw = JSON.parse(fs.readFileSync(baseline, "utf8"));
+    applyWeights(model, deserializeWeights(raw));
+    milestone(`warm-started from ${path.basename(baseline)}`);
+  } else {
+    milestone(`starting from random init`);
+  }
 
   const optimizer = tf.train.adam(lr);
 
-  // Initial bar at 0% for round 1 — denominator unknown until first
-  // collection finishes, so pass 1 so it renders as an empty bar.
-  renderBar(1, rounds, 0, 1);
+  // Initial empty bars for round 1. Training total is unknown until
+  // first collection finishes, so it starts as 0/0 (renders empty).
+  renderBars(
+    1,
+    rounds,
+    { done: 0, total: gamesPerRound },
+    { done: 0, total: 0 },
+  );
 
   for (let round = 0; round < rounds; round++) {
     const t0 = Date.now();
 
+    // Snapshot weights once per round for self-play data generation. The
+    // workers see this frozen policy for the entire round's games.
+    const collectMode: CollectMode = selfPlay
+      ? {
+          kind: "selfplay",
+          weights: await extractWeights(model),
+          temp: selfPlayTemp,
+          lookaheadDepth: selfPlayLookahead,
+        }
+      : { kind: "linear" };
+
+    let gamesDone = 0;
+    let batchesDone = 0;
+    let batchesInRound = 0;
+    const draw = (): void =>
+      renderBars(
+        round + 1,
+        rounds,
+        { done: gamesDone, total: gamesPerRound },
+        { done: batchesDone, total: batchesInRound },
+      );
+    draw();
+
+    const onGameDone = (): void => {
+      gamesDone++;
+      draw();
+    };
     const samples = useWorkers
-      ? await collectLinearGamesParallel(gamesPerRound, numWorkers)
-      : collectLinearGames(gamesPerRound, rng);
+      ? await collectGamesParallel(
+          gamesPerRound,
+          numWorkers,
+          collectMode,
+          onGameDone,
+        )
+      : collectGames(gamesPerRound, rng, collectMode, onGameDone);
 
     const batchesPerEpoch = Math.ceil(samples.length / batchSize);
-    const batchesInRound = batchesPerEpoch * epochsPerRound;
-    let batchesDone = 0;
-    renderBar(round + 1, rounds, batchesDone, batchesInRound);
+    batchesInRound = batchesPerEpoch * epochsPerRound;
+    draw();
 
     let lastLoss = 0;
     for (let ep = 0; ep < epochsPerRound; ep++) {
@@ -340,7 +457,7 @@ async function main(): Promise<void> {
         rng,
         () => {
           batchesDone++;
-          renderBar(round + 1, rounds, batchesDone, batchesInRound);
+          draw();
         },
       );
     }
@@ -362,11 +479,11 @@ async function main(): Promise<void> {
     const finalWeights = await extractWeights(model);
     const ckptPath = path.join(
       checkpointDir,
-      `value-${round.toString().padStart(3, "0")}.json`,
+      `${ckptPrefix}-${round.toString().padStart(3, "0")}.json`,
     );
     fs.writeFileSync(ckptPath, JSON.stringify(serializeWeights(finalWeights)));
     fs.writeFileSync(
-      path.join(checkpointDir, "value-latest.json"),
+      path.join(checkpointDir, `${ckptPrefix}-latest.json`),
       JSON.stringify(serializeWeights(finalWeights)),
     );
 
@@ -384,8 +501,13 @@ async function main(): Promise<void> {
       `round ${round + 1}/${rounds}  loss=${lastLoss.toFixed(4)}  samples=${samples.length}  nn_win=${(evalResult.rate * 100).toFixed(1)}% (${evalResult.nnWins}/${evalResult.nnPlays}, baseline ${(baseline * 100).toFixed(1)}%)  (${elapsed}s)`,
     );
     if (round + 1 < rounds) {
-      // Empty bar for the next round during its collection phase.
-      renderBar(round + 2, rounds, 0, 1);
+      // Empty bars for the next round during its collection phase.
+      renderBars(
+        round + 2,
+        rounds,
+        { done: 0, total: gamesPerRound },
+        { done: 0, total: 0 },
+      );
     }
   }
   clearBar();
