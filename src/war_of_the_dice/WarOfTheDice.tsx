@@ -25,6 +25,7 @@ import {
 import { generateMap } from "./mapGenerator.ts";
 import { selectBestAttackBaked } from "./model/bakedAI.ts";
 import {
+  ARCHETYPE_DESCRIPTIONS,
   ARCHETYPE_IDS,
   defaultColorArchetype,
   type ArchetypeId,
@@ -162,6 +163,80 @@ function BattleSide({
 }
 
 /**
+ * Custom dropdown for archetype selection. Replaces native `<select>` so
+ * that both the closed trigger AND each open option can carry our fast
+ * CSS-hover tooltip (native `<option>` can't be styled).
+ */
+function ArchetypeSelect({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: ArchetypeId;
+  onChange: (next: ArchetypeId) => void;
+  disabled: boolean;
+}): ReactElement {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e: MouseEvent): void => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="wotd-arch-select" ref={ref}>
+      <button
+        type="button"
+        className="wotd-arch-trigger wotd-tip"
+        data-tip={ARCHETYPE_DESCRIPTIONS[value]}
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="wotd-arch-trigger-label">{value}</span>
+        <span className="wotd-arch-caret" aria-hidden>▾</span>
+      </button>
+      {open && !disabled && (
+        <ul className="wotd-arch-popover" role="listbox">
+          {ARCHETYPE_IDS.map((a) => (
+            <li
+              key={a}
+              role="option"
+              aria-selected={a === value}
+              className={
+                "wotd-arch-option wotd-tip" + (a === value ? " selected" : "")
+              }
+              data-tip={ARCHETYPE_DESCRIPTIONS[a]}
+              onClick={() => {
+                onChange(a);
+                setOpen(false);
+              }}
+            >
+              {a}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/**
  * Pre-game setup view: shows the current map preview, per-color archetype
  * dropdowns, a player-color radio, and a "preview new map" button. The
  * archetype dropdown options and per-color defaults all come from
@@ -224,22 +299,15 @@ function SetupScreen({
                   />
                   you
                 </label>
-                <select
-                  className="wotd-setup-personality"
+                <ArchetypeSelect
                   value={colorArchetypes[i]}
                   disabled={isPlayer}
-                  onChange={(e) => {
-                    const next = colorArchetypes.slice();
-                    next[i] = e.target.value as ArchetypeId;
-                    setColorArchetypes(next);
+                  onChange={(next) => {
+                    const updated = colorArchetypes.slice();
+                    updated[i] = next;
+                    setColorArchetypes(updated);
                   }}
-                >
-                  {ARCHETYPE_IDS.map((a) => (
-                    <option key={a} value={a}>
-                      {a}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             );
           })}
@@ -687,14 +755,28 @@ export default function WarOfTheDice(): ReactElement {
                 ]
                   .filter(Boolean)
                   .join(" ");
+                const isHuman = s.playerId === playerColorId;
+                const archetype = colorArchetypes[s.playerId];
+                const tooltip = isHuman
+                  ? undefined
+                  : ARCHETYPE_DESCRIPTIONS[archetype];
                 return (
-                  <div key={s.playerId} className={classes}>
+                  <div
+                    key={s.playerId}
+                    className={
+                      tooltip ? `${classes} wotd-tip` : classes
+                    }
+                    data-tip={tooltip}
+                  >
                     <span
                       className="wotd-swatch"
                       style={{
                         backgroundColor: PLAYER_COLORS[s.playerId].hex,
                       }}
                     />
+                    <span className="wotd-score-arch">
+                      {isHuman ? "you" : archetype}
+                    </span>
                     <span className="wotd-score-dice">{s.largest}</span>
                     <span className="wotd-score-bank">
                       ({bankedDice[s.playerId]})

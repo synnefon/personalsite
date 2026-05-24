@@ -7,14 +7,10 @@ import {
 import { MAX_DICE_PER_TERRITORY, NUM_PLAYERS } from "../constants.ts";
 import { largestComponent, playerIsEliminated } from "../gameLogic.ts";
 import type { GameMap } from "../types.ts";
-import {
-  encodeBoard,
-  type EncodedAdjacency,
-} from "./encoding.ts";
+import { encodeBoard, type EncodedAdjacency } from "./encoding.ts";
 import { computeEmbeddings, scoreValue, type ModelWeights } from "./forward.ts";
 import {
   ARCHETYPE_BEHAVIOR,
-  ARCHETYPES,
   type ArchetypeId,
 } from "./personalities.ts";
 
@@ -244,7 +240,15 @@ export function scoreAllActions(
   for (const m of moves) {
     out.push({
       move: m,
-      q: qOfAttack(map, playerId, turnIndex, m, adjacency, weights, remainingDepth),
+      q: qOfAttack(
+        map,
+        playerId,
+        turnIndex,
+        m,
+        adjacency,
+        weights,
+        remainingDepth,
+      ),
     });
   }
   return out;
@@ -269,12 +273,11 @@ function countAlivePlayers(map: GameMap): number {
  * ~0.55), which is what makes the archetypes feel distinct in play.
  */
 const THRESHOLD_MAX = 0.15;
-const THRESHOLD_MIN = 0.10;
+const THRESHOLD_MIN = 0.1;
 function decisionThreshold(map: GameMap): number {
   const alive = countAlivePlayers(map);
   if (alive <= 2) return THRESHOLD_MIN;
-  const t =
-    (alive - 2) / (NUM_PLAYERS - 2); // 0 at 2 players, 1 at NUM_PLAYERS
+  const t = (alive - 2) / (NUM_PLAYERS - 2); // 0 at 2 players, 1 at NUM_PLAYERS
   return THRESHOLD_MIN + (THRESHOLD_MAX - THRESHOLD_MIN) * t;
 }
 
@@ -336,7 +339,15 @@ export function selectBestAttackByValue(
   let bestMove: AIMove | null = null;
   let bestQ = -Infinity;
   for (const m of moves) {
-    const q = qOfAttack(map, playerId, turnIndex, m, adjacency, weights, remainingDepth);
+    const q = qOfAttack(
+      map,
+      playerId,
+      turnIndex,
+      m,
+      adjacency,
+      weights,
+      remainingDepth,
+    );
     if (q > bestQ) {
       bestQ = q;
       bestMove = m;
@@ -408,6 +419,24 @@ export function sampleAttackByValue(
 // personalities.ts comments and calibrate.ts output.
 
 /**
+ * Count of edges where `playerId` borders a non-`playerId` territory.
+ * Used by the Expander archetype to reward attacks that shrink the
+ * actor's exposed perimeter.
+ */
+function frontierEdgesForActor(map: GameMap, playerId: number): number {
+  let count = 0;
+  for (let i = 0; i < map.territories.length; i++) {
+    if (map.territories[i].ownerId !== playerId) continue;
+    const neighbors = map.adjacency.get(i);
+    if (!neighbors) continue;
+    for (const n of neighbors) {
+      if (map.territories[n].ownerId !== playerId) count++;
+    }
+  }
+  return count;
+}
+
+/**
  * Probability the actor keeps the captured territory through opponents'
  * next turn — product over enemy neighbors of (1 − their P of winning
  * back). Matches the thesis's STEi hold-probability formula (Eq 5.1).
@@ -433,6 +462,14 @@ type BiasContext = {
   winProb: number;
   deltaLargest: number;
   holdProb: number;
+  /** Decrease in target owner's largest-component on attack success.
+   *  Non-negative; rewards attacks that fracture their reinforcement
+   *  income. */
+  enemyLargestShrink: number;
+  /** Decrease in *actor's own* frontier-edge count on attack success.
+   *  Positive = consolidating (border length shrinks); negative = capture
+   *  added more frontier than it absorbed. Range typically [-3, +3]. */
+  frontierShrink: number;
   targetOwner: number;
   /** 0 = weakest alive enemy, maxRank = strongest. */
   targetRank: number;
@@ -442,25 +479,39 @@ type BiasContext = {
   recentAttackers: ReadonlySet<number>;
 };
 
-function archetypeBias(_arch: ArchetypeId, _ctx: BiasContext): number {
-  // Aggression overrides disabled: every archetype uses the trained
-  // model's natural Q evaluation with no per-archetype bias. The switch
-  // (winProb / Δ-largest-component / hold-prob / target-rank /
-  // recent-attackers) is preserved below for re-enabling once we want to
-  // re-tune archetypes on top of the self-play baseline.
-  return 0;
-  // switch (_arch) {
-  //   case ARCHETYPES.berserker: return 0.1 * _ctx.winProb;
-  //   case ARCHETYPES.builder:   return 0.1 * _ctx.deltaLargest;
-  //   case ARCHETYPES.coward:    return 0.1 * _ctx.holdProb;
-  //   case ARCHETYPES.kingmaker:
-  //     return _ctx.maxRank > 0
-  //       ? 0.15 * ((2 * _ctx.targetRank) / _ctx.maxRank - 1) : 0;
-  //   case ARCHETYPES.vengeful:
-  //     return _ctx.recentAttackers.has(_ctx.targetOwner) ? 0.15 : 0;
-  //   case ARCHETYPES.optimizer:
-  //   case ARCHETYPES.chaos:      return 0;
-  // }
+/**
+ * Apply the archetype's declarative bias coefficients (from
+ * `ARCHETYPE_BEHAVIOR[arch].biases`) to a per-candidate context. Each
+ * non-zero coefficient adds a normalized contribution; missing fields
+ * default to zero. Calibration / tuning happens by editing the table in
+ * `personalities.ts`, not this function.
+ */
+function archetypeBias(arch: ArchetypeId, ctx: BiasContext): number {
+  const biases = ARCHETYPE_BEHAVIOR[arch].biases;
+  if (!biases) return 0;
+  let total = 0;
+  if (biases.winProb) total += biases.winProb * ctx.winProb;
+  if (biases.deltaLargest) total += biases.deltaLargest * ctx.deltaLargest;
+  if (biases.holdProb) total += biases.holdProb * ctx.holdProb;
+  if (biases.rankSpread && ctx.maxRank > 0) {
+    total += biases.rankSpread * ((2 * ctx.targetRank) / ctx.maxRank - 1);
+  }
+  if (biases.retaliation && ctx.recentAttackers.has(ctx.targetOwner)) {
+    total += biases.retaliation;
+  }
+  if (biases.winProbHold) {
+    total += biases.winProbHold * ctx.winProb * ctx.holdProb;
+  }
+  if (biases.winProbLargest) {
+    total += biases.winProbLargest * ctx.winProb * ctx.deltaLargest;
+  }
+  if (biases.enemyLargestShrink) {
+    total += biases.enemyLargestShrink * ctx.enemyLargestShrink;
+  }
+  if (biases.frontierShrink) {
+    total += biases.frontierShrink * ctx.frontierShrink;
+  }
+  return total;
 }
 
 /**
@@ -489,7 +540,9 @@ export function selectBestAttackForArchetype(
   // Rank alive enemies by score (low → high), for kingmaker bias.
   const playerScores: number[] = [];
   for (let p = 0; p < NUM_PLAYERS; p++) {
-    playerScores.push(playerIsEliminated(map, p) ? -1 : largestComponent(map, p));
+    playerScores.push(
+      playerIsEliminated(map, p) ? -1 : largestComponent(map, p),
+    );
   }
   const aliveEnemies: number[] = [];
   for (let p = 0; p < NUM_PLAYERS; p++) {
@@ -501,6 +554,7 @@ export function selectBestAttackForArchetype(
   const maxRank = Math.max(1, aliveEnemies.length - 1);
 
   const myLargestPre = largestComponent(map, playerId);
+  const myFrontierPre = frontierEdgesForActor(map, playerId);
 
   // Lookahead depth comes from the archetype's behavior. The base Q for
   // each candidate is "this attack's expected value, played out optimally
@@ -528,10 +582,20 @@ export function selectBestAttackForArchetype(
     const holdProb = captureHoldProb(successMap, m.targetId, playerId);
     const targetOwner = map.territories[m.targetId].ownerId;
     const targetRank = rankFromLow.get(targetOwner) ?? 0;
+    // Pre-attack largest for the defender came from playerScores (eliminated
+    // players show -1 there, but anyone owning the target is alive). Post-
+    // attack we recompute on successMap. Shrinkage = pre − post, ≥ 0.
+    const targetOwnerPre = Math.max(0, playerScores[targetOwner]);
+    const targetOwnerPost = largestComponent(successMap, targetOwner);
+    const enemyLargestShrink = Math.max(0, targetOwnerPre - targetOwnerPost);
+    const myFrontierPost = frontierEdgesForActor(successMap, playerId);
+    const frontierShrink = myFrontierPre - myFrontierPost;
     const bias = archetypeBias(archetype, {
       winProb,
       deltaLargest,
       holdProb,
+      enemyLargestShrink,
+      frontierShrink,
       targetOwner,
       targetRank,
       maxRank,
