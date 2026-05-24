@@ -39,9 +39,34 @@ export function enumerateLegalAttacks(
 }
 
 /**
+ * Per-turn memo of value-network outputs. Within a single actor's turn,
+ * `playerId` and `turnIndex` are invariant — only the board changes. The
+ * cache key encodes the territory ownership + dice configuration; same
+ * board → same V → skip the forward pass.
+ *
+ * Owner: the policy caller. Pass an empty Map for each new actor turn;
+ * stale entries (different actor / different turn) would return wrong
+ * values, so the cache MUST be cleared at every turn boundary.
+ */
+export type ValueCache = Map<string, number>;
+
+/** Pack (ownerId, dice) into a single integer per territory and join.
+ *  Compact enough to be fast to compute and hash via Map's internal
+ *  string interning. */
+function boardCacheKey(map: GameMap): string {
+  const parts = new Array<number>(map.territories.length);
+  for (let i = 0; i < map.territories.length; i++) {
+    const t = map.territories[i];
+    parts[i] = t.ownerId * 16 + t.dice;
+  }
+  return parts.join(",");
+}
+
+/**
  * Logit-domain V(s) for `playerId` on `map` at `turnIndex`. Encodes the
  * board from the actor's POV, runs the forward pass, returns the value
- * head's raw output. Higher = more likely to win.
+ * head's raw output. Higher = more likely to win. Optionally memoized
+ * by `cache` — same board → same V within a turn.
  */
 function valueOf(
   map: GameMap,
@@ -49,7 +74,18 @@ function valueOf(
   turnIndex: number,
   adjacency: EncodedAdjacency,
   weights: ModelWeights,
+  cache?: ValueCache,
 ): number {
+  if (cache) {
+    const key = boardCacheKey(map);
+    const hit = cache.get(key);
+    if (hit !== undefined) return hit;
+    const encoded = encodeBoard(map, playerId, turnIndex);
+    const embeddings = computeEmbeddings(encoded, adjacency, weights);
+    const v = scoreValue(embeddings, adjacency.numTerritories, weights);
+    cache.set(key, v);
+    return v;
+  }
   const encoded = encodeBoard(map, playerId, turnIndex);
   const embeddings = computeEmbeddings(encoded, adjacency, weights);
   return scoreValue(embeddings, adjacency.numTerritories, weights);
@@ -91,6 +127,7 @@ function expectedTurnValueGreedy(
   remainingDepth: number,
   adjacency: EncodedAdjacency,
   weights: ModelWeights,
+  cache?: ValueCache,
 ): number {
   // Pass-now value: end the turn after this seat's reinforcement.
   const passV = valueOf(
@@ -99,6 +136,7 @@ function expectedTurnValueGreedy(
     turnIndex,
     adjacency,
     weights,
+    cache,
   );
 
   if (remainingDepth <= 0) return passV;
@@ -129,6 +167,7 @@ function expectedTurnValueGreedy(
       remainingDepth - 1,
       adjacency,
       weights,
+      cache,
     );
     const vF = expectedTurnValueGreedy(
       fMap,
@@ -137,6 +176,7 @@ function expectedTurnValueGreedy(
       remainingDepth - 1,
       adjacency,
       weights,
+      cache,
     );
     const q = wp * vS + (1 - wp) * vF;
     if (q > best) best = q;
@@ -165,6 +205,7 @@ function qOfAttack(
   adjacency: EncodedAdjacency,
   weights: ModelWeights,
   remainingDepth: number,
+  cache?: ValueCache,
 ): number {
   const wp = winProbability(
     map.territories[move.sourceId].dice,
@@ -179,6 +220,7 @@ function qOfAttack(
     remainingDepth,
     adjacency,
     weights,
+    cache,
   );
   const vFail = expectedTurnValueGreedy(
     fMap,
@@ -187,6 +229,7 @@ function qOfAttack(
     remainingDepth,
     adjacency,
     weights,
+    cache,
   );
   return wp * vSuccess + (1 - wp) * vFail;
 }
@@ -203,9 +246,10 @@ function valueOfPass(
   turnIndex: number,
   adjacency: EncodedAdjacency,
   weights: ModelWeights,
+  cache?: ValueCache,
 ): number {
   const reinforced = simulateReinforcement(map, playerId);
-  return valueOf(reinforced, playerId, turnIndex, adjacency, weights);
+  return valueOf(reinforced, playerId, turnIndex, adjacency, weights, cache);
 }
 
 export type CandidateScore = {
@@ -230,12 +274,13 @@ export function scoreAllActions(
   weights: ModelWeights,
   legalMoves?: ReadonlyArray<AIMove>,
   remainingDepth = 0,
+  cache?: ValueCache,
 ): CandidateScore[] {
   const moves = legalMoves ?? enumerateLegalAttacks(map, playerId);
   const out: CandidateScore[] = [];
   out.push({
     move: null,
-    q: valueOfPass(map, playerId, turnIndex, adjacency, weights),
+    q: valueOfPass(map, playerId, turnIndex, adjacency, weights, cache),
   });
   for (const m of moves) {
     out.push({
@@ -248,6 +293,7 @@ export function scoreAllActions(
         adjacency,
         weights,
         remainingDepth,
+        cache,
       ),
     });
   }
@@ -330,11 +376,12 @@ export function selectBestAttackByValue(
   weights: ModelWeights,
   legalMoves?: ReadonlyArray<AIMove>,
   remainingDepth = 0,
+  cache?: ValueCache,
 ): AIMove | null {
   const moves = legalMoves ?? enumerateLegalAttacks(map, playerId);
   if (moves.length === 0) return null;
 
-  const passQ = valueOfPass(map, playerId, turnIndex, adjacency, weights);
+  const passQ = valueOfPass(map, playerId, turnIndex, adjacency, weights, cache);
 
   let bestMove: AIMove | null = null;
   let bestQ = -Infinity;
@@ -347,6 +394,7 @@ export function selectBestAttackByValue(
       adjacency,
       weights,
       remainingDepth,
+      cache,
     );
     if (q > bestQ) {
       bestQ = q;
@@ -378,6 +426,7 @@ export function sampleAttackByValue(
   rng: () => number = Math.random,
   legalMoves?: ReadonlyArray<AIMove>,
   remainingDepth = 0,
+  cache?: ValueCache,
 ): AIMove | null {
   const scored = scoreAllActions(
     map,
@@ -387,6 +436,7 @@ export function sampleAttackByValue(
     weights,
     legalMoves,
     remainingDepth,
+    cache,
   );
 
   let maxQ = -Infinity;
@@ -530,12 +580,13 @@ export function selectBestAttackForArchetype(
   recentAttackers: ReadonlySet<number>,
   rng: () => number = Math.random,
   legalMoves?: ReadonlyArray<AIMove>,
+  cache?: ValueCache,
 ): AIMove | null {
   const moves = legalMoves ?? enumerateLegalAttacks(map, playerId);
   if (moves.length === 0) return null;
 
   const behavior = ARCHETYPE_BEHAVIOR[archetype];
-  const passQ = valueOfPass(map, playerId, turnIndex, adjacency, weights);
+  const passQ = valueOfPass(map, playerId, turnIndex, adjacency, weights, cache);
 
   // Rank alive enemies by score (low → high), for kingmaker bias.
   const playerScores: number[] = [];
@@ -572,6 +623,7 @@ export function selectBestAttackForArchetype(
       adjacency,
       weights,
       remainingDepth,
+      cache,
     );
     const winProb = winProbability(
       map.territories[m.sourceId].dice,

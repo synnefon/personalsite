@@ -138,6 +138,7 @@ function runGamesSerial(
           ctx.recentAttackers,
           undefined,
           ctx.legalMoves,
+          ctx.cache,
         ),
     );
     const result = runOneGame(policies, undefined, undefined, rng);

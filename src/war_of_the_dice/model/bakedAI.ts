@@ -2,7 +2,7 @@ import type { AIMove } from "../ai.ts";
 import type { GameMap } from "../types.ts";
 import { encodeAdjacency, type EncodedAdjacency } from "./encoding.ts";
 import type { ArchetypeId } from "./personalities.ts";
-import { selectBestAttackForArchetype } from "./policy.ts";
+import { selectBestAttackForArchetype, type ValueCache } from "./policy.ts";
 import { BAKED_WEIGHTS } from "./weights.ts";
 
 // Cache the CSR adjacency per game so the policy doesn't pay for it on every
@@ -13,6 +13,17 @@ let adjCache: {
   key: GameMap["adjacency"];
   encoded: EncodedAdjacency;
 } | null = null;
+
+// Per-turn value-network cache. Same actor's multiple decisions within a
+// turn share board states; this memo skips redundant forward passes.
+// Cleared via `resetBakedTurnCache()` when the actor changes — staleness
+// would be silent and wrong (turnIndex/actor change invalidates entries).
+let turnCache: ValueCache = new Map();
+
+/** Drop the per-turn V cache. Call at every turn boundary. */
+export function resetBakedTurnCache(): void {
+  turnCache = new Map();
+}
 
 /**
  * Drop-in replacement for the linear `selectBestAttack`, backed by the
@@ -49,5 +60,8 @@ export function selectBestAttackBaked(
     BAKED_WEIGHTS,
     archetype,
     recentAttackers,
+    undefined,
+    undefined,
+    turnCache,
   );
 }

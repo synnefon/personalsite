@@ -32,6 +32,7 @@ function buildPolicies(assignment) {
       ctx.recentAttackers,
       undefined,
       ctx.legalMoves,
+      ctx.cache,
     ),
   );
 }

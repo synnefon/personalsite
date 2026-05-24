@@ -19,6 +19,7 @@ import {
   enumerateLegalAttacks,
   sampleAttackByValue,
   selectBestAttackByValue,
+  type ValueCache,
 } from "../model/policy.ts";
 import { reinforcePlayer } from "../reinforcement.ts";
 import type { GameMap } from "../types.ts";
@@ -42,6 +43,13 @@ export type DecisionContext = {
    * Only the Vengeful archetype reads this; other archetypes ignore it.
    */
   recentAttackers: ReadonlySet<number>;
+  /**
+   * Per-turn memo of value-network outputs, shared across every decision
+   * in the current actor's turn. Cleared by the runner when the actor
+   * changes. Policies SHOULD pass this through to the value-network calls
+   * to avoid recomputing V(board) for the same board.
+   */
+  cache: ValueCache;
 };
 
 const ATTACK_HISTORY_LIMIT = 6;
@@ -162,6 +170,9 @@ export function runOneGame(
     const actor = turnOrder[turnIdx];
 
     if (!playerIsEliminated(map, actor)) {
+      // Fresh per-turn V(board) cache. Stale entries across turns would
+      // be wrong (turnIndex/actor changed), so clear it here.
+      const turnCache: ValueCache = new Map();
       let movesThisTurn = 0;
       while (movesThisTurn++ < maxMovesPerTurn) {
         const legal = enumerateLegalAttacks(map, actor);
@@ -179,6 +190,7 @@ export function runOneGame(
           adjacency,
           legalMoves: legal,
           recentAttackers,
+          cache: turnCache,
         });
         assertLegal(legal, action);
         if (!action) break;
@@ -256,6 +268,8 @@ export function greedyValuePolicy(weights: ModelWeights): Policy {
       ctx.adjacency,
       weights,
       ctx.legalMoves,
+      0,
+      ctx.cache,
     );
 }
 
@@ -286,5 +300,6 @@ export function samplingValuePolicy(
       rng,
       ctx.legalMoves,
       remainingDepth,
+      ctx.cache,
     );
 }

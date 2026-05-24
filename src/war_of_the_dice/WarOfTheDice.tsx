@@ -23,7 +23,10 @@ import {
   soleSurvivor,
 } from "./gameLogic.ts";
 import { generateMap } from "./mapGenerator.ts";
-import { selectBestAttackBaked } from "./model/bakedAI.ts";
+import {
+  resetBakedTurnCache,
+  selectBestAttackBaked,
+} from "./model/bakedAI.ts";
 import {
   ARCHETYPE_DESCRIPTIONS,
   ARCHETYPE_IDS,
@@ -547,6 +550,9 @@ export default function WarOfTheDice(): ReactElement {
       setAiAction(null);
       return;
     }
+    // Fresh per-turn V(board) memo for the baked AI. Stale entries from
+    // the prior actor's turn would silently return wrong values.
+    resetBakedTurnCache();
     let cancelled = false;
     const timeouts: number[] = [];
     const wait = (ms: number, fn: () => void): void => {
