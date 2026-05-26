@@ -34,7 +34,7 @@ export const ARCHETYPE_IDS: ReadonlyArray<ArchetypeId> = Object.values(
 export enum LOOKAHEAD {
   SHALLOW = 1,
   MODERATE = 2,
-  DEEP = 3,
+  DEEP = 4,
 }
 
 /**
@@ -59,32 +59,38 @@ export enum LOOKAHEAD {
  *     archetype's total bias is the sum. Omitted fields default to 0
  *     (no contribution). See `policy.ts:archetypeBias` for application.
  */
+/**
+ * One coefficient + an optional winProb gate. When `wpGated` is true,
+ * the bias contribution is `coeff × winProb × signal`; otherwise just
+ * `coeff × signal`. Use `wpGated: true` for "only fires on confident
+ * attacks" semantics — keeps the AI from chasing the bias's reward on
+ * low-success-probability moves.
+ */
+export type BiasValue = {
+  coeff: number;
+  wpGated: boolean;
+};
+
 export type BiasCoeffs = {
-  /** Drive to grow your largest army. Rewards any attack that would
-   *  expand your largest connected territory on success, ignoring how
-   *  likely the attack itself is to land. Positive = expansionist;
-   *  negative = wants to stay small / lay low. */
-  growthDrive?: number;
-  /** Drive for safe-AND-held captures. Rewards confident attacks on
-   *  targets unlikely to be retaken next turn. Positive = cherry-picks
-   *  safe ground; negative = avoids easy captures. */
-  holdDrive?: number;
-  /** Drive for confident expansion only. Same growth signal as
-   *  `growthDrive`, gated by attack-success probability — only fires on
-   *  sure-win link-ups. The patient mass-builder. */
-  safeGrowthDrive?: number;
-  /** Drive to fracture opponents — rewards confident attacks that shrink
-   *  the target owner's largest connected region (their reinforcement
-   *  income). Gated by attack-success probability. */
-  enemyHarmDrive?: number;
-  /** Fear of exposed borders. Rewards attacks that reduce the actor's
-   *  own frontier-edge count (perimeter consolidation). Higher = more
-   *  willing to take captures purely to tighten shape. */
-  exposureFear?: number;
-  /** Drive to hunt the weakest alive opponent. Gated by attack-success
-   *  probability. Positive = predator (hunt weak); negative = kingmaker
-   *  (challenge the leader). */
-  preyOnWeak?: number;
+  /** Drive to grow your largest army. Signal is the post-attack growth
+   *  in your largest connected region. Positive coeff = expansionist;
+   *  negative = stay small / lay low. */
+  growthDrive?: BiasValue;
+  /** Drive for captures that won't be retaken (signal = holdProb). With
+   *  `wpGated: true`, only confident-AND-held captures score. */
+  holdDrive?: BiasValue;
+  /** Drive to fracture opponents — signal is the target owner's largest-
+   *  component shrinkage on attack success. With `wpGated: true`, only
+   *  confident fracture moves score. */
+  enemyHarmDrive?: BiasValue;
+  /** Fear of exposed borders — signal is the actor's frontier-edge
+   *  reduction. Higher coeff = more willing to take captures purely to
+   *  tighten perimeter shape. */
+  exposureFear?: BiasValue;
+  /** Drive to hunt by opponent strength — signal is +1 at the weakest
+   *  alive enemy and -1 at the strongest. Positive coeff = predator (hunt
+   *  weak); negative = kingmaker (challenge leader). */
+  preyOnWeak?: BiasValue;
 };
 
 export type ArchetypeBehavior = {
@@ -108,7 +114,7 @@ export const ARCHETYPE_BEHAVIOR: Record<ArchetypeId, ArchetypeBehavior> = {
     // Conqueror: unconditional growth — rewards any attack that would
     // grow your largest army, including low-winProb gambles. Combined
     // with the lowered attackFear this makes it the aggressive risk-taker.
-    biases: { growthDrive: 0.1 },
+    biases: { growthDrive: { coeff: 0.1, wpGated: false } },
   },
   [ARCHETYPES.builder]: {
     attackFear: 1.0,
@@ -117,14 +123,14 @@ export const ARCHETYPE_BEHAVIOR: Record<ArchetypeId, ArchetypeBehavior> = {
     // Builder: confident growth — same mass-building signal as Conqueror
     // but gated by winProb. Patient construction; only consolidates when
     // the link-up is a clear win.
-    biases: { safeGrowthDrive: 0.1 },
+    biases: { growthDrive: { coeff: 0.1, wpGated: true } },
   },
   [ARCHETYPES.lurker]: {
     attackFear: 1.4,
     samplingTemp: 0,
     lookaheadDepth: LOOKAHEAD.DEEP,
     // Sniper: only confident-AND-safe captures score.
-    biases: { holdDrive: 0.1 },
+    biases: { holdDrive: { coeff: 0.1, wpGated: true } },
   },
   [ARCHETYPES.consolidator]: {
     attackFear: 1.0,
@@ -134,7 +140,7 @@ export const ARCHETYPE_BEHAVIOR: Record<ArchetypeId, ArchetypeBehavior> = {
     // — consolidation by perimeter. Distinct from `growthDrive`, which
     // measures the *size* of your largest piece; this measures how
     // exposed it is.
-    biases: { exposureFear: 0.1 },
+    biases: { exposureFear: { coeff: 0.1, wpGated: false } },
   },
   [ARCHETYPES.predator]: {
     attackFear: 1,
@@ -144,7 +150,7 @@ export const ARCHETYPE_BEHAVIOR: Record<ArchetypeId, ArchetypeBehavior> = {
     // gated so we don't chase fortified spots inside an otherwise-weak
     // player's territory. Positive `preyOnWeak` = hunt weak; a negative
     // coefficient would be kingmaker (challenge the leader).
-    biases: { preyOnWeak: 0.20 },
+    biases: { preyOnWeak: { coeff: 0.20, wpGated: true } },
   },
   [ARCHETYPES.disruptor]: {
     attackFear: 1.0,
@@ -152,7 +158,7 @@ export const ARCHETYPE_BEHAVIOR: Record<ArchetypeId, ArchetypeBehavior> = {
     lookaheadDepth: LOOKAHEAD.DEEP,
     // Disruptor: confident-AND-disruptive captures. winProb gating
     // keeps it from chasing fracture moves it can't actually land.
-    biases: { enemyHarmDrive: 0.20 },
+    biases: { enemyHarmDrive: { coeff: 0.20, wpGated: true } },
   },
 };
 

@@ -1,5 +1,10 @@
 import React, { useMemo, type ReactElement } from "react";
-import { BORDER_COLOR, HEX_SIZE, PLAYER_COLORS } from "./constants.ts";
+import {
+  BORDER_COLOR,
+  COLOR_NAME,
+  HEX_SIZE,
+  PLAYER_COLORS,
+} from "./constants.ts";
 import {
   hexEdgeEndpoints,
   hexEdgeVertexKeys,
@@ -197,17 +202,22 @@ export default function MapView({
       hexesByTerritory[h.territoryId].push(h);
     }
     return territories.map((territory) => {
-      const color = PLAYER_COLORS[territory.ownerId].hex;
+      const owner = PLAYER_COLORS[territory.ownerId];
       const tHexes = hexesByTerritory[territory.id];
       const loops = traceTerritoryPerimeter(tHexes, hexes, positions);
       const label = pickLabelPosition(tHexes, positions);
+      // Light-fill tiles (yellow) need dark dice text for contrast; everything
+      // else stays white-on-dark.
+      const diceTextFill =
+        owner.name === COLOR_NAME.yellow ? "#000000" : "#ffffff";
       return {
         territoryId: territory.id,
-        color,
+        color: owner.hex,
         hexes: tHexes,
         pathD: pathDFromLoops(loops),
         label,
         dice: territory.dice,
+        diceTextFill,
       };
     });
   }, [territories, hexes, positions]);
@@ -224,7 +234,15 @@ export default function MapView({
       onClick={onBackgroundClick}
     >
       {renders.map(
-        ({ territoryId, color, hexes: tHexes, pathD, label, dice }) => (
+        ({
+          territoryId,
+          color,
+          hexes: tHexes,
+          pathD,
+          label,
+          dice,
+          diceTextFill,
+        }) => (
           <g
             key={territoryId}
             className="wotd-territory"
@@ -263,7 +281,7 @@ export default function MapView({
               dominantBaseline="central"
               fontSize={HEX_SIZE * 0.95}
               fontWeight={700}
-              fill="#ffffff"
+              fill={diceTextFill}
               stroke={BORDER_COLOR}
               strokeWidth={2}
               paintOrder="stroke fill"

@@ -11,7 +11,8 @@ import { encodeBoard, type EncodedAdjacency } from "./encoding.ts";
 import { computeEmbeddings, scoreValue, type ModelWeights } from "./forward.ts";
 import {
   ARCHETYPE_BEHAVIOR,
-  type ArchetypeId
+  type ArchetypeId,
+  type BiasValue,
 } from "./personalities.ts";
 
 /**
@@ -605,29 +606,24 @@ function archetypeBias(arch: ArchetypeId, ctx: BiasContext): number {
   const biases = ARCHETYPE_BEHAVIOR[arch].biases;
   if (!biases) return 0;
   let total = 0;
-  if (biases.growthDrive) {
-    total += biases.growthDrive * ctx.deltaLargest;
-  }
-  if (biases.holdDrive) {
-    total += biases.holdDrive * ctx.winProb * ctx.holdProb;
-  }
-  if (biases.safeGrowthDrive) {
-    total += biases.safeGrowthDrive * ctx.winProb * ctx.deltaLargest;
-  }
-  if (biases.enemyHarmDrive) {
-    total += biases.enemyHarmDrive * ctx.winProb * ctx.enemyLargestShrink;
-  }
-  if (biases.exposureFear) {
-    total += biases.exposureFear * ctx.frontierShrink;
-  }
-  if (biases.preyOnWeak && ctx.maxRank > 0) {
+  // Apply each bias: contribution is `coeff × signal`, optionally also
+  // multiplied by winProb if `wpGated` is true.
+  const apply = (b: BiasValue | undefined, signal: number): void => {
+    if (!b) return;
+    const gate = b.wpGated ? ctx.winProb : 1;
+    total += b.coeff * gate * signal;
+  };
+
+  apply(biases.growthDrive, ctx.deltaLargest);
+  apply(biases.holdDrive, ctx.holdProb);
+  apply(biases.enemyHarmDrive, ctx.enemyLargestShrink);
+  apply(biases.exposureFear, ctx.frontierShrink);
+  if (ctx.maxRank > 0) {
     // Rank signal: +1 at weakest alive enemy, -1 at strongest. Positive
     // `preyOnWeak` rewards attacking the weak; negative rewards
     // challenging the leader (kingmaker behavior).
-    total +=
-      biases.preyOnWeak *
-      ctx.winProb *
-      (1 - (2 * ctx.targetRank) / ctx.maxRank);
+    const rankSignal = 1 - (2 * ctx.targetRank) / ctx.maxRank;
+    apply(biases.preyOnWeak, rankSignal);
   }
   return total;
 }
