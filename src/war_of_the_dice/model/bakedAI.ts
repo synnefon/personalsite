@@ -1,8 +1,11 @@
-import type { AIMove } from "../ai.ts";
-import type { GameMap } from "../types.ts";
+import type { AttackMove, GameMap } from "../types.ts";
 import { encodeAdjacency, type EncodedAdjacency } from "./encoding.ts";
 import type { ArchetypeId } from "./personalities.ts";
-import { selectBestAttackForArchetype, type ValueCache } from "./policy.ts";
+import {
+  makeValueCache,
+  selectBestAttackForArchetype,
+  type ValueCache,
+} from "./policy.ts";
 import { BAKED_WEIGHTS } from "./weights.ts";
 
 // Cache the CSR adjacency per game so the policy doesn't pay for it on every
@@ -18,16 +21,16 @@ let adjCache: {
 // turn share board states; this memo skips redundant forward passes.
 // Cleared via `resetBakedTurnCache()` when the actor changes — staleness
 // would be silent and wrong (turnIndex/actor change invalidates entries).
-let turnCache: ValueCache = new Map();
+let turnCache: ValueCache = makeValueCache();
 
 /** Drop the per-turn V cache. Call at every turn boundary. */
 export function resetBakedTurnCache(): void {
-  turnCache = new Map();
+  turnCache = makeValueCache();
 }
 
 /**
- * Drop-in replacement for the linear `selectBestAttack`, backed by the
- * baked value-network weights with per-archetype decision modifiers.
+ * Browser-side AI decision: trained value-network weights + per-archetype
+ * decision modifiers, with a per-turn V(board) cache.
  *
  * Decision rule (see `policy.ts:selectBestAttackForArchetype`):
  *   1. Compute V-network Q for each candidate (1-ply expected value
@@ -48,7 +51,7 @@ export function selectBestAttackBaked(
   turnIndex: number,
   archetype: ArchetypeId,
   recentAttackers: ReadonlySet<number>,
-): AIMove | null {
+): AttackMove | null {
   if (!adjCache || adjCache.key !== map.adjacency) {
     adjCache = { key: map.adjacency, encoded: encodeAdjacency(map) };
   }

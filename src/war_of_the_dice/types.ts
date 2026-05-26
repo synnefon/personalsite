@@ -16,3 +16,6 @@ export type GameMap = {
   territories: Territory[];
   adjacency: Map<number, Set<number>>;
 };
+
+/** A single legal-attack candidate: source territory + target territory. */
+export type AttackMove = { sourceId: number; targetId: number };

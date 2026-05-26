@@ -17,47 +17,35 @@
  *
  * Each distribution is summarized with count / mean / std / quantiles.
  */
-import * as fs from "fs";
 import * as path from "path";
-import { winProbability } from "../ai.ts";
+import { winProbability } from "../diceMath.ts";
 import {
   simulateAttackFail,
   simulateAttackSuccess,
   simulateReinforcement,
 } from "../combat.ts";
 import { NUM_PLAYERS } from "../constants.ts";
-import { largestComponent, playerIsEliminated } from "../gameLogic.ts";
+import { largestComponent } from "../gameLogic.ts";
+import { type ModelWeights } from "../model/forward.ts";
 import {
-  encodeAdjacency,
-  encodeBoard,
-  type EncodedAdjacency,
-} from "../model/encoding.ts";
-import {
-  computeEmbeddings,
-  scoreValue,
-  type ModelWeights,
-} from "../model/forward.ts";
-import {
-  enumerateLegalAttacks,
+  captureHoldProb,
+  rankAliveEnemies,
   selectBestAttackByValue,
+  valueOf,
 } from "../model/policy.ts";
 import {
-  linearPolicy,
   runOneGame,
   type DecisionContext,
   type Policy,
 } from "./selfPlay.ts";
-import { deserializeWeights } from "./tfModel.ts";
 import {
   envNumber,
+  loadCheckpointWeights,
   makeRng,
-  pickRandomSeats,
-  resolveCheckpoint,
   runMain,
 } from "./util.ts";
 
 const DEFAULT_NUM_GAMES = 30;
-const DEFAULT_NN_SEATS = 3;
 
 type Stats = {
   count: number;
@@ -72,7 +60,16 @@ type Stats = {
 
 function summarize(xs: number[]): Stats {
   if (xs.length === 0) {
-    return { count: 0, mean: 0, std: 0, min: 0, p10: 0, p50: 0, p90: 0, max: 0 };
+    return {
+      count: 0,
+      mean: 0,
+      std: 0,
+      min: 0,
+      p10: 0,
+      p50: 0,
+      p90: 0,
+      max: 0,
+    };
   }
   const sorted = [...xs].sort((a, b) => a - b);
   const sum = sorted.reduce((a, b) => a + b, 0);
@@ -104,18 +101,6 @@ function printStats(label: string, s: Stats): void {
   );
 }
 
-function valueOfState(
-  map: ReturnType<typeof simulateAttackSuccess>,
-  playerId: number,
-  turnIndex: number,
-  adjacency: EncodedAdjacency,
-  weights: ModelWeights,
-): number {
-  const board = encodeBoard(map, playerId, turnIndex);
-  const embeddings = computeEmbeddings(board, adjacency, weights);
-  return scoreValue(embeddings, adjacency.numTerritories, weights);
-}
-
 /** Per-decision sample. */
 type DecisionSample = {
   qPass: number;
@@ -130,29 +115,6 @@ type DecisionSample = {
   candidateTargetOwnerRankFromLow: number[]; // 0 = weakest, NUM_PLAYERS-2 = strongest
 };
 
-/**
- * Hold probability for a captured cell: prob nobody takes it back next
- * turn. Approximation: product over enemy neighbors of (1 - their P of
- * winning vs the cell's new dice count). Matches the thesis's STEi hold
- * computation (Eq 5.1).
- */
-function captureHoldProb(
-  map: ReturnType<typeof simulateAttackSuccess>,
-  targetId: number,
-  playerId: number,
-): number {
-  const t = map.territories[targetId];
-  const neighbors = map.adjacency.get(targetId);
-  if (!neighbors) return 1;
-  let p = 1;
-  for (const n of neighbors) {
-    const nT = map.territories[n];
-    if (nT.ownerId === playerId) continue;
-    p *= 1 - winProbability(nT.dice, t.dice);
-  }
-  return p;
-}
-
 function captureStats(
   ctx: DecisionContext,
   weights: ModelWeights,
@@ -162,21 +124,15 @@ function captureStats(
 
   // Q(pass) and Q(attack) — match what policy.ts does
   const reinforcedCurrent = simulateReinforcement(map, playerId);
-  const qPass = valueOfState(reinforcedCurrent, playerId, turnIndex, adjacency, weights);
+  const qPass = valueOf(
+    reinforcedCurrent,
+    playerId,
+    turnIndex,
+    adjacency,
+    weights,
+  );
 
-  // Per-player scores for ranking
-  const playerScores: number[] = [];
-  for (let p = 0; p < NUM_PLAYERS; p++) {
-    playerScores.push(playerIsEliminated(map, p) ? -1 : largestComponent(map, p));
-  }
-  // Rank enemies by score (low to high) — for kingmaker calibration
-  const aliveEnemies: number[] = [];
-  for (let p = 0; p < NUM_PLAYERS; p++) {
-    if (p !== playerId && !playerIsEliminated(map, p)) aliveEnemies.push(p);
-  }
-  aliveEnemies.sort((a, b) => playerScores[a] - playerScores[b]);
-  const rankFromLow = new Map<number, number>();
-  aliveEnemies.forEach((p, idx) => rankFromLow.set(p, idx));
+  const { playerScores, rankFromLow } = rankAliveEnemies(map, playerId);
 
   const myLargestPre = largestComponent(map, playerId);
 
@@ -203,8 +159,20 @@ function captureStats(
       simulateAttackFail(map, m.sourceId, m.targetId),
       playerId,
     );
-    const vSuccess = valueOfState(reinforcedSuccess, playerId, turnIndex, adjacency, weights);
-    const vFail = valueOfState(reinforcedFail, playerId, turnIndex, adjacency, weights);
+    const vSuccess = valueOf(
+      reinforcedSuccess,
+      playerId,
+      turnIndex,
+      adjacency,
+      weights,
+    );
+    const vFail = valueOf(
+      reinforcedFail,
+      playerId,
+      turnIndex,
+      adjacency,
+      weights,
+    );
     const q = wp * vSuccess + (1 - wp) * vFail;
 
     if (q > qBestAttack) {
@@ -259,43 +227,41 @@ function instrumentedValuePolicy(
 
 async function main(): Promise<void> {
   const numGames = envNumber("WOTD_CALIBRATE_GAMES", DEFAULT_NUM_GAMES);
-  const numNNSeats = envNumber("WOTD_NN_SEATS", DEFAULT_NN_SEATS);
   const rng = makeRng(process.env.WOTD_SEED);
 
-  const ckptPath = resolveCheckpoint({
+  const weights: ModelWeights = loadCheckpointWeights({
     override: process.env.WOTD_CKPT,
     ckptDir: path.resolve(__dirname, "checkpoints"),
     candidates: ["value-latest.json"],
   });
-  console.log(`loading weights from ${ckptPath}`);
-  const raw = JSON.parse(fs.readFileSync(ckptPath, "utf8"));
-  const weights: ModelWeights = deserializeWeights(raw);
 
   const samples: DecisionSample[] = [];
   const turnIndexRef = { round: 0 };
 
+  // All seats use the instrumented NN — mirror-match calibration mirrors
+  // the real round-robin setup where every seat is NN.
   for (let g = 0; g < numGames; g++) {
-    const nnSeats = pickRandomSeats(numNNSeats, rng);
-    const policies: Policy[] = [];
-    for (let i = 0; i < NUM_PLAYERS; i++) {
-      policies.push(
-        nnSeats.has(i)
-          ? instrumentedValuePolicy(weights, samples, turnIndexRef)
-          : linearPolicy(),
-      );
-    }
-    // Re-encode adjacency unused outside — runOneGame computes its own.
-    void encodeAdjacency;
+    const policies: Policy[] = Array.from({ length: NUM_PLAYERS }, () =>
+      instrumentedValuePolicy(weights, samples, turnIndexRef),
+    );
     runOneGame(policies, undefined, undefined, rng);
   }
 
-  console.log(`\ncalibration summary: ${samples.length} NN decisions across ${numGames} games\n`);
+  console.log(
+    `\ncalibration summary: ${samples.length} NN decisions across ${numGames} games\n`,
+  );
 
   console.log("== per-decision aggregates ==");
   printStats("q_pass", summarize(samples.map((s) => s.qPass)));
   printStats("q_best_attack", summarize(samples.map((s) => s.qBestAttack)));
-  printStats("q_gap (best_attack - pass)", summarize(samples.map((s) => s.qGap)));
-  printStats("chosen winProb (best attack)", summarize(samples.map((s) => s.chosenWinProb)));
+  printStats(
+    "q_gap (best_attack - pass)",
+    summarize(samples.map((s) => s.qGap)),
+  );
+  printStats(
+    "chosen winProb (best attack)",
+    summarize(samples.map((s) => s.chosenWinProb)),
+  );
 
   // Flatten candidate-level distributions
   const flatWp: number[] = [];

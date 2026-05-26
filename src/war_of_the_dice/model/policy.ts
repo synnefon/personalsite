@@ -1,17 +1,17 @@
-import { winProbability, type AIMove } from "../ai.ts";
 import {
   simulateAttackFail,
   simulateAttackSuccess,
   simulateReinforcement,
 } from "../combat.ts";
 import { MAX_DICE_PER_TERRITORY, NUM_PLAYERS } from "../constants.ts";
+import { winProbability } from "../diceMath.ts";
 import { largestComponent, playerIsEliminated } from "../gameLogic.ts";
-import type { GameMap } from "../types.ts";
+import type { AttackMove, GameMap } from "../types.ts";
 import { encodeBoard, type EncodedAdjacency } from "./encoding.ts";
 import { computeEmbeddings, scoreValue, type ModelWeights } from "./forward.ts";
 import {
   ARCHETYPE_BEHAVIOR,
-  type ArchetypeId,
+  type ArchetypeId
 } from "./personalities.ts";
 
 /**
@@ -21,8 +21,8 @@ import {
 export function enumerateLegalAttacks(
   map: GameMap,
   playerId: number,
-): AIMove[] {
-  const out: AIMove[] = [];
+): AttackMove[] {
+  const out: AttackMove[] = [];
   for (let s = 0; s < map.territories.length; s++) {
     const source = map.territories[s];
     if (source.ownerId !== playerId) continue;
@@ -44,11 +44,21 @@ export function enumerateLegalAttacks(
  * cache key encodes the territory ownership + dice configuration; same
  * board → same V → skip the forward pass.
  *
- * Owner: the policy caller. Pass an empty Map for each new actor turn;
- * stale entries (different actor / different turn) would return wrong
- * values, so the cache MUST be cleared at every turn boundary.
+ * Owner: the policy caller. Construct with `makeValueCache()` and discard
+ * at every turn boundary; stale entries (different actor / different
+ * turn) would return wrong values.
+ *
+ * Tracks `hits` / `misses` so callers can verify the hit rate empirically.
  */
-export type ValueCache = Map<string, number>;
+export type ValueCache = {
+  entries: Map<string, number>;
+  hits: number;
+  misses: number;
+};
+
+export function makeValueCache(): ValueCache {
+  return { entries: new Map(), hits: 0, misses: 0 };
+}
 
 /** Pack (ownerId, dice) into a single integer per territory and join.
  *  Compact enough to be fast to compute and hash via Map's internal
@@ -68,7 +78,7 @@ function boardCacheKey(map: GameMap): string {
  * head's raw output. Higher = more likely to win. Optionally memoized
  * by `cache` — same board → same V within a turn.
  */
-function valueOf(
+export function valueOf(
   map: GameMap,
   playerId: number,
   turnIndex: number,
@@ -78,12 +88,16 @@ function valueOf(
 ): number {
   if (cache) {
     const key = boardCacheKey(map);
-    const hit = cache.get(key);
-    if (hit !== undefined) return hit;
+    const hit = cache.entries.get(key);
+    if (hit !== undefined) {
+      cache.hits++;
+      return hit;
+    }
+    cache.misses++;
     const encoded = encodeBoard(map, playerId, turnIndex);
     const embeddings = computeEmbeddings(encoded, adjacency, weights);
     const v = scoreValue(embeddings, adjacency.numTerritories, weights);
-    cache.set(key, v);
+    cache.entries.set(key, v);
     return v;
   }
   const encoded = encodeBoard(map, playerId, turnIndex);
@@ -201,7 +215,7 @@ function qOfAttack(
   map: GameMap,
   playerId: number,
   turnIndex: number,
-  move: AIMove,
+  move: AttackMove,
   adjacency: EncodedAdjacency,
   weights: ModelWeights,
   remainingDepth: number,
@@ -254,7 +268,7 @@ function valueOfPass(
 
 export type CandidateScore = {
   /** null = the "pass" action. */
-  move: AIMove | null;
+  move: AttackMove | null;
   /** Expected V (logit domain) of the post-reinforcement state. */
   q: number;
 };
@@ -272,7 +286,7 @@ export function scoreAllActions(
   turnIndex: number,
   adjacency: EncodedAdjacency,
   weights: ModelWeights,
-  legalMoves?: ReadonlyArray<AIMove>,
+  legalMoves?: ReadonlyArray<AttackMove>,
   remainingDepth = 0,
   cache?: ValueCache,
 ): CandidateScore[] {
@@ -374,16 +388,23 @@ export function selectBestAttackByValue(
   turnIndex: number,
   adjacency: EncodedAdjacency,
   weights: ModelWeights,
-  legalMoves?: ReadonlyArray<AIMove>,
+  legalMoves?: ReadonlyArray<AttackMove>,
   remainingDepth = 0,
   cache?: ValueCache,
-): AIMove | null {
+): AttackMove | null {
   const moves = legalMoves ?? enumerateLegalAttacks(map, playerId);
   if (moves.length === 0) return null;
 
-  const passQ = valueOfPass(map, playerId, turnIndex, adjacency, weights, cache);
+  const passQ = valueOfPass(
+    map,
+    playerId,
+    turnIndex,
+    adjacency,
+    weights,
+    cache,
+  );
 
-  let bestMove: AIMove | null = null;
+  let bestMove: AttackMove | null = null;
   let bestQ = -Infinity;
   for (const m of moves) {
     const q = qOfAttack(
@@ -424,10 +445,10 @@ export function sampleAttackByValue(
   weights: ModelWeights,
   temp: number,
   rng: () => number = Math.random,
-  legalMoves?: ReadonlyArray<AIMove>,
+  legalMoves?: ReadonlyArray<AttackMove>,
   remainingDepth = 0,
   cache?: ValueCache,
-): AIMove | null {
+): AttackMove | null {
   const scored = scoreAllActions(
     map,
     playerId,
@@ -438,23 +459,37 @@ export function sampleAttackByValue(
     remainingDepth,
     cache,
   );
+  return softmaxSample(scored, (c) => c.q, temp, rng).move;
+}
 
+/**
+ * Softmax-sample one item from `items` according to `q(item)` at temperature
+ * `temp`. `temp` floored at 1e-6 to avoid div-by-zero with a hard argmax
+ * input. Numerically stable (subtracts the max Q before exponentiating).
+ */
+function softmaxSample<T>(
+  items: ReadonlyArray<T>,
+  q: (item: T) => number,
+  temp: number,
+  rng: () => number,
+): T {
+  const qs = items.map(q);
   let maxQ = -Infinity;
-  for (const c of scored) if (c.q > maxQ) maxQ = c.q;
+  for (const v of qs) if (v > maxQ) maxQ = v;
   const safeTemp = Math.max(temp, 1e-6);
   let sum = 0;
   const exps: number[] = [];
-  for (const c of scored) {
-    const e = Math.exp((c.q - maxQ) / safeTemp);
+  for (const v of qs) {
+    const e = Math.exp((v - maxQ) / safeTemp);
     exps.push(e);
     sum += e;
   }
   let r = rng() * sum;
   for (let i = 0; i < exps.length; i++) {
     r -= exps[i];
-    if (r <= 0) return scored[i].move;
+    if (r <= 0) return items[i];
   }
-  return scored[scored.length - 1].move;
+  return items[items.length - 1];
 }
 
 // ===== Archetype-aware decision rule (browser inference only) =============
@@ -491,7 +526,7 @@ function frontierEdgesForActor(map: GameMap, playerId: number): number {
  * next turn — product over enemy neighbors of (1 − their P of winning
  * back). Matches the thesis's STEi hold-probability formula (Eq 5.1).
  */
-function captureHoldProb(
+export function captureHoldProb(
   map: GameMap,
   targetId: number,
   playerId: number,
@@ -506,6 +541,39 @@ function captureHoldProb(
     p *= 1 - winProbability(nT.dice, t.dice);
   }
   return p;
+}
+
+/**
+ * Rank alive enemy players by largest-component score, low → high. Returns
+ * a per-player score array (eliminated → -1), and a Map from each alive
+ * enemy's ID to its rank (0 = weakest alive enemy). `maxRank` is the
+ * largest possible rank value (`max(1, aliveEnemies.length - 1)`).
+ *
+ * Used for kingmaker / predator bias signals (and matched in calibrate.ts).
+ */
+export function rankAliveEnemies(
+  map: GameMap,
+  playerId: number,
+): {
+  playerScores: number[];
+  rankFromLow: Map<number, number>;
+  maxRank: number;
+} {
+  const playerScores: number[] = [];
+  for (let p = 0; p < NUM_PLAYERS; p++) {
+    playerScores.push(
+      playerIsEliminated(map, p) ? -1 : largestComponent(map, p),
+    );
+  }
+  const aliveEnemies: number[] = [];
+  for (let p = 0; p < NUM_PLAYERS; p++) {
+    if (p !== playerId && !playerIsEliminated(map, p)) aliveEnemies.push(p);
+  }
+  aliveEnemies.sort((a, b) => playerScores[a] - playerScores[b]);
+  const rankFromLow = new Map<number, number>();
+  aliveEnemies.forEach((p, idx) => rankFromLow.set(p, idx));
+  const maxRank = Math.max(1, aliveEnemies.length - 1);
+  return { playerScores, rankFromLow, maxRank };
 }
 
 type BiasContext = {
@@ -540,9 +608,15 @@ function archetypeBias(arch: ArchetypeId, ctx: BiasContext): number {
   const biases = ARCHETYPE_BEHAVIOR[arch].biases;
   if (!biases) return 0;
   let total = 0;
-  if (biases.winProb) total += biases.winProb * ctx.winProb;
-  if (biases.deltaLargest) total += biases.deltaLargest * ctx.deltaLargest;
-  if (biases.holdProb) total += biases.holdProb * ctx.holdProb;
+  if (biases.winProb) {
+    total += biases.winProb * ctx.winProb;
+  }
+  if (biases.deltaLargest) {
+    total += biases.deltaLargest * ctx.deltaLargest;
+  }
+  if (biases.holdProb) {
+    total += biases.holdProb * ctx.holdProb;
+  }
   if (biases.rankSpread && ctx.maxRank > 0) {
     total += biases.rankSpread * ((2 * ctx.targetRank) / ctx.maxRank - 1);
   }
@@ -579,30 +653,26 @@ export function selectBestAttackForArchetype(
   archetype: ArchetypeId,
   recentAttackers: ReadonlySet<number>,
   rng: () => number = Math.random,
-  legalMoves?: ReadonlyArray<AIMove>,
+  legalMoves?: ReadonlyArray<AttackMove>,
   cache?: ValueCache,
-): AIMove | null {
+): AttackMove | null {
   const moves = legalMoves ?? enumerateLegalAttacks(map, playerId);
   if (moves.length === 0) return null;
 
   const behavior = ARCHETYPE_BEHAVIOR[archetype];
-  const passQ = valueOfPass(map, playerId, turnIndex, adjacency, weights, cache);
+  const passQ = valueOfPass(
+    map,
+    playerId,
+    turnIndex,
+    adjacency,
+    weights,
+    cache,
+  );
 
-  // Rank alive enemies by score (low → high), for kingmaker bias.
-  const playerScores: number[] = [];
-  for (let p = 0; p < NUM_PLAYERS; p++) {
-    playerScores.push(
-      playerIsEliminated(map, p) ? -1 : largestComponent(map, p),
-    );
-  }
-  const aliveEnemies: number[] = [];
-  for (let p = 0; p < NUM_PLAYERS; p++) {
-    if (p !== playerId && !playerIsEliminated(map, p)) aliveEnemies.push(p);
-  }
-  aliveEnemies.sort((a, b) => playerScores[a] - playerScores[b]);
-  const rankFromLow = new Map<number, number>();
-  aliveEnemies.forEach((p, idx) => rankFromLow.set(p, idx));
-  const maxRank = Math.max(1, aliveEnemies.length - 1);
+  const { playerScores, rankFromLow, maxRank } = rankAliveEnemies(
+    map,
+    playerId,
+  );
 
   const myLargestPre = largestComponent(map, playerId);
   const myFrontierPre = frontierEdgesForActor(map, playerId);
@@ -612,7 +682,7 @@ export function selectBestAttackForArchetype(
   // for the remaining `lookaheadDepth - 1` decisions of this turn".
   const remainingDepth = Math.max(0, behavior.lookaheadDepth - 1);
 
-  type Scored = { move: AIMove; q: number };
+  type Scored = { move: AttackMove; q: number };
   const scored: Scored[] = [];
   for (const m of moves) {
     const baseQ = qOfAttack(
@@ -658,30 +728,15 @@ export function selectBestAttackForArchetype(
 
   // Chaos: softmax-sample over biased Qs including pass.
   if (behavior.samplingTemp > 0) {
-    const all: { move: AIMove | null; q: number }[] = [
+    const all: { move: AttackMove | null; q: number }[] = [
       { move: null, q: passQ },
       ...scored,
     ];
-    let maxQ = -Infinity;
-    for (const a of all) if (a.q > maxQ) maxQ = a.q;
-    const safeTemp = Math.max(behavior.samplingTemp, 1e-6);
-    let sum = 0;
-    const exps: number[] = [];
-    for (const a of all) {
-      const e = Math.exp((a.q - maxQ) / safeTemp);
-      exps.push(e);
-      sum += e;
-    }
-    let r = rng() * sum;
-    for (let i = 0; i < exps.length; i++) {
-      r -= exps[i];
-      if (r <= 0) return all[i].move;
-    }
-    return all[all.length - 1].move;
+    return softmaxSample(all, (a) => a.q, behavior.samplingTemp, rng).move;
   }
 
   // Greedy with archetype-scaled threshold + all-cells-at-8 override.
-  let bestMove: AIMove | null = null;
+  let bestMove: AttackMove | null = null;
   let bestQ = -Infinity;
   for (const s of scored) {
     if (s.q > bestQ) {

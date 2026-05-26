@@ -1,9 +1,3 @@
-import {
-  makePersonality,
-  selectBestAttack,
-  type AIMove,
-  type AIPersonality,
-} from "../ai.ts";
 import { resolveAttack } from "../combat.ts";
 import { NUM_PLAYERS } from "../constants.ts";
 import { playerIsEliminated, soleSurvivor } from "../gameLogic.ts";
@@ -15,14 +9,16 @@ import {
   type EncodedBoard,
 } from "../model/encoding.ts";
 import type { ModelWeights } from "../model/forward.ts";
+import type { ArchetypeId } from "../model/personalities.ts";
 import {
   enumerateLegalAttacks,
+  makeValueCache,
   sampleAttackByValue,
-  selectBestAttackByValue,
+  selectBestAttackForArchetype,
   type ValueCache,
 } from "../model/policy.ts";
 import { reinforcePlayer } from "../reinforcement.ts";
-import type { GameMap } from "../types.ts";
+import type { AttackMove, GameMap } from "../types.ts";
 import { shuffleInPlace } from "./util.ts";
 
 /**
@@ -35,7 +31,7 @@ export type DecisionContext = {
   turnIndex: number;
   encodedBoard: EncodedBoard;
   adjacency: EncodedAdjacency;
-  legalMoves: ReadonlyArray<AIMove>;
+  legalMoves: ReadonlyArray<AttackMove>;
   /**
    * Opponent player IDs who have successfully captured one of `playerId`'s
    * territories in the recent past (last `ATTACK_HISTORY_LIMIT` events,
@@ -58,7 +54,7 @@ const ATTACK_HISTORY_LIMIT = 6;
  * Decision rule for one player at one step. Returning null = pass the turn.
  * Must return either null or a move present in `ctx.legalMoves`.
  */
-export type Policy = (ctx: DecisionContext) => AIMove | null;
+export type Policy = (ctx: DecisionContext) => AttackMove | null;
 
 /**
  * One state visited during a game, recorded for value-network training.
@@ -77,6 +73,10 @@ export type GameResult = {
   completed: boolean;
   adjacency: EncodedAdjacency;
   samples: ValueSample[];
+  /** Aggregate V-cache hit/miss totals across every actor turn in the
+   *  game. `hits + misses` = total V(board) lookups during the game. */
+  cacheHits: number;
+  cacheMisses: number;
 };
 
 const DEFAULT_MAX_MOVES_PER_TURN = 250;
@@ -96,8 +96,8 @@ function freshTurnOrder(rng: () => number = Math.random): number[] {
  * legal set — a misbehaving policy must fail loudly.
  */
 function assertLegal(
-  candidates: ReadonlyArray<AIMove>,
-  chosen: AIMove | null,
+  candidates: ReadonlyArray<AttackMove>,
+  chosen: AttackMove | null,
 ): void {
   if (!chosen) return;
   for (const c of candidates) {
@@ -146,6 +146,14 @@ export function runOneGame(
   maxRounds: number = DEFAULT_MAX_ROUNDS,
   maxMovesPerTurn: number = DEFAULT_MAX_MOVES_PER_TURN,
   rng: () => number = Math.random,
+  /**
+   * When false, skip storing per-decision encoded boards in
+   * `pendingSamples`. The returned `samples` array is empty. Use this for
+   * pure simulation (round-robin, evaluation) where you don't need value-
+   * network training samples — saves ~tens of MB per game in Float32Array
+   * allocations that would otherwise live until game end.
+   */
+  recordSamples = true,
 ): GameResult {
   let map = generateMap();
   const adjacency = encodeAdjacency(map);
@@ -165,6 +173,8 @@ export function runOneGame(
   let round = 0;
   let winner: number | null = null;
   let completed = false;
+  let cacheHits = 0;
+  let cacheMisses = 0;
 
   outer: while (round < maxRounds) {
     const actor = turnOrder[turnIdx];
@@ -172,14 +182,16 @@ export function runOneGame(
     if (!playerIsEliminated(map, actor)) {
       // Fresh per-turn V(board) cache. Stale entries across turns would
       // be wrong (turnIndex/actor changed), so clear it here.
-      const turnCache: ValueCache = new Map();
+      const turnCache: ValueCache = makeValueCache();
       let movesThisTurn = 0;
       while (movesThisTurn++ < maxMovesPerTurn) {
         const legal = enumerateLegalAttacks(map, actor);
         if (legal.length === 0) break;
 
         const encodedBoard = encodeBoard(map, actor, round);
-        pendingSamples.push({ playerId: actor, board: encodedBoard });
+        if (recordSamples) {
+          pendingSamples.push({ playerId: actor, board: encodedBoard });
+        }
 
         const recentAttackers = new Set(attackHistory.get(actor) ?? []);
         const action = policies[actor]({
@@ -216,6 +228,8 @@ export function runOneGame(
           break outer;
         }
       }
+      cacheHits += turnCache.hits;
+      cacheMisses += turnCache.misses;
       const r = reinforcePlayer(map, actor, bank[actor]);
       map = r.map;
       bank[actor] = r.bank;
@@ -242,35 +256,15 @@ export function runOneGame(
     win: p.playerId === winner,
   }));
 
-  return { winner, rounds: round, completed, adjacency, samples };
-}
-
-/**
- * Build a Policy that uses the linear `selectBestAttack` with a (possibly
- * fixed) AI personality. Default: fresh random personality per call.
- */
-export function linearPolicy(
-  personality: AIPersonality = makePersonality(),
-): Policy {
-  return (ctx) => selectBestAttack(ctx.map, ctx.playerId, personality);
-}
-
-/**
- * Build a value-network Policy with 1-ply expected-V argmax decision
- * rule. Reuses the pre-encoded adjacency the runner already holds.
- */
-export function greedyValuePolicy(weights: ModelWeights): Policy {
-  return (ctx) =>
-    selectBestAttackByValue(
-      ctx.map,
-      ctx.playerId,
-      ctx.turnIndex,
-      ctx.adjacency,
-      weights,
-      ctx.legalMoves,
-      0,
-      ctx.cache,
-    );
+  return {
+    winner,
+    rounds: round,
+    completed,
+    adjacency,
+    samples,
+    cacheHits,
+    cacheMisses,
+  };
 }
 
 /**
@@ -282,6 +276,31 @@ export function greedyValuePolicy(weights: ModelWeights): Policy {
  * play data quality benefits from deeper search (AlphaZero-style — better
  * data → better training signal), at the cost of per-decision wall time.
  */
+/**
+ * Build a Policy that uses `selectBestAttackForArchetype` for a single fixed
+ * archetype, threading `ctx.cache` and `ctx.recentAttackers` through. Use
+ * this whenever you'd otherwise inline the same 10-arg call (round-robin
+ * runner, browser AI dispatcher, etc).
+ */
+export function policyFromArchetype(
+  weights: ModelWeights,
+  archetype: ArchetypeId,
+): Policy {
+  return (ctx) =>
+    selectBestAttackForArchetype(
+      ctx.map,
+      ctx.playerId,
+      ctx.turnIndex,
+      ctx.adjacency,
+      weights,
+      archetype,
+      ctx.recentAttackers,
+      undefined,
+      ctx.legalMoves,
+      ctx.cache,
+    );
+}
+
 export function samplingValuePolicy(
   weights: ModelWeights,
   temp: number,

@@ -27,7 +27,6 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "wotd:train": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/war_of_the_dice/training/train.ts",
-    "wotd:evaluate": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/war_of_the_dice/training/evaluate.ts",
     "wotd:bake": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/war_of_the_dice/training/bake.ts",
     "wotd:calibrate": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/war_of_the_dice/training/calibrate.ts",
     "wotd:roundrobin": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/war_of_the_dice/training/roundRobin.ts"

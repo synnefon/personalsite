@@ -112,13 +112,13 @@ export const ARCHETYPE_BEHAVIOR: Record<ArchetypeId, ArchetypeBehavior> = {
     // Opportunist: rewards attacks that are both high-confidence AND
     // growth-positive. Filters the self-play model's positional choices
     // through "is this also a clear win?".
-    biases: { winProbLargest: 0.10 },
+    biases: { winProbLargest: 0.1 },
   },
   [ARCHETYPES.builder]: {
     thresholdMultiplier: 1.0,
     samplingTemp: 0,
     lookaheadDepth: LOOKAHEAD.DEEP,
-    biases: { deltaLargest: 0.10 },
+    biases: { deltaLargest: 0.1 },
   },
   [ARCHETYPES.coward]: {
     thresholdMultiplier: 1.0,
@@ -126,8 +126,10 @@ export const ARCHETYPE_BEHAVIOR: Record<ArchetypeId, ArchetypeBehavior> = {
     lookaheadDepth: LOOKAHEAD.DEEP,
     // Sniper: only confident-AND-safe captures score. Stacks two filters
     // multiplicatively — a 0.6 winProb × 0.6 holdProb capture only gets
-    // 0.07 boost, but a 0.9×0.9 capture gets 0.16. Strongly selective.
-    biases: { winProbHold: 0.20 },
+    // 0.04 boost, but a 0.9×0.9 capture gets 0.08. Selective but not so
+    // restrictive that it suppresses moves the baseline V already likes
+    // (n=100 round-robin showed 0.20 dropped Coward below baseline).
+    biases: { winProbHold: 0.1 },
   },
   [ARCHETYPES.expander]: {
     thresholdMultiplier: 1.0,
@@ -137,7 +139,7 @@ export const ARCHETYPE_BEHAVIOR: Record<ArchetypeId, ArchetypeBehavior> = {
     // — consolidation by perimeter. Distinct from `deltaLargest`, which
     // measures the *size* of your largest piece; this measures how
     // exposed it is.
-    biases: { frontierShrink: 0.10 },
+    biases: { frontierShrink: 0.1 },
   },
   [ARCHETYPES.predator]: {
     thresholdMultiplier: 1.0,

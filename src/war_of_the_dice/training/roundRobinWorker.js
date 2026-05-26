@@ -4,10 +4,7 @@
 // wins by archetype.
 require("ts-node/register/transpile-only");
 const { parentPort, workerData } = require("worker_threads");
-const { runOneGame } = require("./selfPlay.ts");
-const {
-  selectBestAttackForArchetype,
-} = require("../model/policy.ts");
+const { policyFromArchetype, runOneGame } = require("./selfPlay.ts");
 const { ARCHETYPE_IDS } = require("../model/personalities.ts");
 const { NUM_PLAYERS } = require("../constants.ts");
 
@@ -18,23 +15,6 @@ function shuffleInPlace(arr) {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-}
-
-function buildPolicies(assignment) {
-  return assignment.map((archetype) => (ctx) =>
-    selectBestAttackForArchetype(
-      ctx.map,
-      ctx.playerId,
-      ctx.turnIndex,
-      ctx.adjacency,
-      weights,
-      archetype,
-      ctx.recentAttackers,
-      undefined,
-      ctx.legalMoves,
-      ctx.cache,
-    ),
-  );
 }
 
 parentPort.on("message", (msg) => {
@@ -48,11 +28,23 @@ parentPort.on("message", (msg) => {
       });
       return;
     }
-    const result = runOneGame(buildPolicies(assignment));
+    const policies = assignment.map((a) => policyFromArchetype(weights, a));
+    const result = runOneGame(
+      policies,
+      undefined,
+      undefined,
+      undefined,
+      /* recordSamples */ false,
+    );
+    // Opt-in major GC between jobs. Active only when the worker was
+    // launched with `--expose-gc`; otherwise `global.gc` is undefined.
+    if (typeof global.gc === "function") global.gc();
     parentPort.postMessage({
       type: "done",
       winnerArch: assignment[result.winner],
       rounds: result.rounds,
+      cacheHits: result.cacheHits,
+      cacheMisses: result.cacheMisses,
     });
   } else if (msg && msg.type === "shutdown") {
     process.exit(0);

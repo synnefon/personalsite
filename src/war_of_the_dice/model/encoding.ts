@@ -1,4 +1,4 @@
-import { winProbability } from "../ai.ts";
+import { winProbability } from "../diceMath.ts";
 import { MAX_DICE_PER_TERRITORY, NUM_PLAYERS } from "../constants.ts";
 import type { GameMap } from "../types.ts";
 

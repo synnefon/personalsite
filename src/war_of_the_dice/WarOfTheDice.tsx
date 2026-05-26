@@ -6,11 +6,6 @@ import React, {
   type ReactElement,
 } from "react";
 import MapView from "./MapView.tsx";
-import {
-  makePersonality,
-  selectBestAttack,
-  type AIPersonality,
-} from "./ai.ts";
 import { canAttack, resolveAttack, type AttackOutcome } from "./combat.ts";
 import {
   NUM_PLAYERS,
@@ -37,8 +32,6 @@ import { reinforcePlayer } from "./reinforcement.ts";
 import type { GameMap } from "./types.ts";
 
 import "../styles/warofthedice.css";
-
-const USE_NN_AI = true;
 
 // Sentinel for "observer" mode — playerColorId === OBSERVER_ID means no
 // human seat; all 7 colors play as AI and the game runs autonomously.
@@ -267,8 +260,8 @@ function SetupScreen({
         <MapView
           map={map}
           highlightedTerritoryIds={[]}
-          onTerritoryClick={() => {}}
-          onBackgroundClick={() => {}}
+          onTerritoryClick={() => { }}
+          onBackgroundClick={() => { }}
         />
       </div>
       <div className="wotd-setup-controls">
@@ -339,9 +332,6 @@ export default function WarOfTheDice(): ReactElement {
   );
   const [bankedDice, setBankedDice] = useState<number[]>(() =>
     new Array(NUM_PLAYERS).fill(0)
-  );
-  const [personalities, setPersonalities] = useState<AIPersonality[]>(() =>
-    Array.from({ length: NUM_PLAYERS }, () => makePersonality(Math.random))
   );
   const [aiAction, setAiAction] = useState<AIAction | null>(null);
   const [lastBattle, setLastBattle] = useState<BattleDisplay | null>(null);
@@ -568,19 +558,13 @@ export default function WarOfTheDice(): ReactElement {
       const recentAttackers = new Set(
         attackHistoryRef.current.get(currentActor) ?? [],
       );
-      const move = USE_NN_AI
-        ? selectBestAttackBaked(
-            mapRef.current,
-            currentActor,
-            roundRef.current,
-            arch,
-            recentAttackers,
-          )
-        : selectBestAttack(
-            mapRef.current,
-            currentActor,
-            personalities[currentActor],
-          );
+      const move = selectBestAttackBaked(
+        mapRef.current,
+        currentActor,
+        roundRef.current,
+        arch,
+        recentAttackers,
+      );
       if (!move) {
         advanceTurn(mapRef.current, currentTurnIdx);
         return;
@@ -628,9 +612,6 @@ export default function WarOfTheDice(): ReactElement {
     setCurrentTurnIdx(0);
     setSelectedTerritoryId(null);
     setBankedDice(new Array(NUM_PLAYERS).fill(0));
-    setPersonalities(
-      Array.from({ length: NUM_PLAYERS }, () => makePersonality(Math.random)),
-    );
     setAiAction(null);
     setLastBattle(null);
     setRound(0);
@@ -747,110 +728,110 @@ export default function WarOfTheDice(): ReactElement {
         />
       )}
       {gamePhase !== "setup" && (
-      <div className="wotd-body">
-        <aside className="wotd-sidebar">
-          <div className="wotd-scores">
-            {turnOrder
-              .map((id) => stats[id])
-              .filter((s) => s.territories > 0)
-              .map((s) => {
-                const classes = [
-                  "wotd-score",
-                  s.playerId === playerColorId ? "you" : "",
-                  s.playerId === currentActor && !isGameOver ? "active" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ");
-                const isHuman = s.playerId === playerColorId;
-                const archetype = colorArchetypes[s.playerId];
-                const tooltip = isHuman
-                  ? undefined
-                  : ARCHETYPE_DESCRIPTIONS[archetype];
-                return (
-                  <div
-                    key={s.playerId}
-                    className={
-                      tooltip ? `${classes} wotd-tip` : classes
-                    }
-                    data-tip={tooltip}
-                  >
-                    <span
-                      className="wotd-swatch"
-                      style={{
-                        backgroundColor: PLAYER_COLORS[s.playerId].hex,
-                      }}
-                    />
-                    <span className="wotd-score-arch">
-                      {isHuman ? "you" : archetype}
-                    </span>
-                    <span className="wotd-score-dice">{s.largest}</span>
-                    <span className="wotd-score-bank">
-                      ({bankedDice[s.playerId]})
-                    </span>
-                  </div>
-                );
-              })}
-          </div>
-          <button
-            className="wotd-end-turn"
-            disabled={!isPlayerTurn || attackInProgress}
-            onClick={endTurn}
-          >
-            end turn
-          </button>
-          <div className="wotd-status">{statusText}</div>
-        </aside>
-        <div className="wotd-map-column">
-          <div className="wotd-map-wrapper">
-            <MapView
-              map={map}
-              highlightedTerritoryIds={highlightedIds}
-              onTerritoryClick={handleTerritoryClick}
-              onBackgroundClick={() => setSelectedTerritoryId(null)}
-            />
-          </div>
-          <div className="wotd-battle-row">
-            <div className="wotd-battle-pane left">
-              {lastBattle && (
-                <div key={`l-${lastBattle.key}`}>
-                  <BattleSide
-                    color={PLAYER_COLORS[lastBattle.attackerId].hex}
-                    rolls={lastBattle.attackerRolls}
-                    sum={lastBattle.attackerSum}
-                    won={lastBattle.attackerWon}
-                    side="left"
-                    totalDelayMs={
-                      Math.max(
-                        lastBattle.attackerRolls.length,
-                        lastBattle.defenderRolls.length
-                      ) * STACK_STAGGER_MS
-                    }
-                  />
-                </div>
-              )}
+        <div className="wotd-body">
+          <aside className="wotd-sidebar">
+            <div className="wotd-scores">
+              {turnOrder
+                .map((id) => stats[id])
+                .filter((s) => s.territories > 0)
+                .map((s) => {
+                  const classes = [
+                    "wotd-score",
+                    s.playerId === playerColorId ? "you" : "",
+                    s.playerId === currentActor && !isGameOver ? "active" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ");
+                  const isHuman = s.playerId === playerColorId;
+                  const archetype = colorArchetypes[s.playerId];
+                  const tooltip = isHuman
+                    ? undefined
+                    : ARCHETYPE_DESCRIPTIONS[archetype];
+                  return (
+                    <div
+                      key={s.playerId}
+                      className={
+                        tooltip ? `${classes} wotd-tip` : classes
+                      }
+                      data-tip={tooltip}
+                    >
+                      <span
+                        className="wotd-swatch"
+                        style={{
+                          backgroundColor: PLAYER_COLORS[s.playerId].hex,
+                        }}
+                      />
+                      <span className="wotd-score-arch">
+                        {isHuman ? "you" : archetype}
+                      </span>
+                      <span className="wotd-score-dice">{s.largest}</span>
+                      <span className="wotd-score-bank">
+                        ({bankedDice[s.playerId]})
+                      </span>
+                    </div>
+                  );
+                })}
             </div>
-            <div className="wotd-battle-pane right">
-              {lastBattle && (
-                <div key={`r-${lastBattle.key}`}>
-                  <BattleSide
-                    color={PLAYER_COLORS[lastBattle.defenderId].hex}
-                    rolls={lastBattle.defenderRolls}
-                    sum={lastBattle.defenderSum}
-                    won={!lastBattle.attackerWon}
-                    side="right"
-                    totalDelayMs={
-                      Math.max(
-                        lastBattle.attackerRolls.length,
-                        lastBattle.defenderRolls.length
-                      ) * STACK_STAGGER_MS
-                    }
-                  />
-                </div>
-              )}
+            <button
+              className="wotd-end-turn"
+              disabled={!isPlayerTurn || attackInProgress}
+              onClick={endTurn}
+            >
+              end turn
+            </button>
+            <div className="wotd-status">{statusText}</div>
+          </aside>
+          <div className="wotd-map-column">
+            <div className="wotd-map-wrapper">
+              <MapView
+                map={map}
+                highlightedTerritoryIds={highlightedIds}
+                onTerritoryClick={handleTerritoryClick}
+                onBackgroundClick={() => setSelectedTerritoryId(null)}
+              />
+            </div>
+            <div className="wotd-battle-row">
+              <div className="wotd-battle-pane left">
+                {lastBattle && (
+                  <div key={`l-${lastBattle.key}`}>
+                    <BattleSide
+                      color={PLAYER_COLORS[lastBattle.attackerId].hex}
+                      rolls={lastBattle.attackerRolls}
+                      sum={lastBattle.attackerSum}
+                      won={lastBattle.attackerWon}
+                      side="left"
+                      totalDelayMs={
+                        Math.max(
+                          lastBattle.attackerRolls.length,
+                          lastBattle.defenderRolls.length
+                        ) * STACK_STAGGER_MS
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="wotd-battle-pane right">
+                {lastBattle && (
+                  <div key={`r-${lastBattle.key}`}>
+                    <BattleSide
+                      color={PLAYER_COLORS[lastBattle.defenderId].hex}
+                      rolls={lastBattle.defenderRolls}
+                      sum={lastBattle.defenderSum}
+                      won={!lastBattle.attackerWon}
+                      side="right"
+                      totalDelayMs={
+                        Math.max(
+                          lastBattle.attackerRolls.length,
+                          lastBattle.defenderRolls.length
+                        ) * STACK_STAGGER_MS
+                      }
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
       )}
     </div>
   );

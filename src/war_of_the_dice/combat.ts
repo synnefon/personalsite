@@ -1,6 +1,42 @@
 import { MAX_DICE_PER_TERRITORY } from "./constants.ts";
 import { largestComponent } from "./gameLogic.ts";
-import type { GameMap } from "./types.ts";
+import type { GameMap, Territory } from "./types.ts";
+
+/**
+ * Return a new GameMap with `territories` replaced. Other map fields
+ * (hexes, adjacency) share refs with the parent. Shell-only clone — the
+ * caller is responsible for any per-territory cloning before passing
+ * `territories` in.
+ */
+function withTerritories(map: GameMap, territories: Territory[]): GameMap {
+  return { ...map, territories };
+}
+
+/**
+ * Apply an attack outcome to a board without rolling dice. Always drops
+ * the source to 1 die; on success, also moves ownership and the surviving
+ * dice to the target. Only the 1-2 modified territory objects are cloned
+ * — the other ~50 keep their parent references, which is what keeps
+ * allocation cheap on the expectimax hot path.
+ */
+function applyAttackOutcome(
+  map: GameMap,
+  sourceId: number,
+  targetId: number,
+  attackerWon: boolean,
+): GameMap {
+  const newTerritories = map.territories.slice();
+  const source = newTerritories[sourceId];
+  newTerritories[sourceId] = { ...source, dice: 1 };
+  if (attackerWon) {
+    newTerritories[targetId] = {
+      ...newTerritories[targetId],
+      ownerId: source.ownerId,
+      dice: source.dice - 1,
+    };
+  }
+  return withTerritories(map, newTerritories);
+}
 
 /**
  * Whether the source territory can launch an attack on the target. Requires
@@ -9,7 +45,7 @@ import type { GameMap } from "./types.ts";
 export function canAttack(
   map: GameMap,
   sourceId: number,
-  targetId: number
+  targetId: number,
 ): boolean {
   if (sourceId === targetId) return false;
   const source = map.territories[sourceId];
@@ -57,7 +93,7 @@ export function resolveAttack(
   map: GameMap,
   sourceId: number,
   targetId: number,
-  rng: () => number = Math.random
+  rng: () => number = Math.random,
 ): AttackResult {
   const source = map.territories[sourceId];
   const target = map.territories[targetId];
@@ -68,17 +104,8 @@ export function resolveAttack(
   const defenderSum = sum(defenderRolls);
   const attackerWon = attackerSum >= defenderSum;
 
-  const newTerritories = map.territories.map((t) => ({ ...t }));
-  if (attackerWon) {
-    newTerritories[targetId].ownerId = source.ownerId;
-    newTerritories[targetId].dice = source.dice - 1;
-    newTerritories[sourceId].dice = 1;
-  } else {
-    newTerritories[sourceId].dice = 1;
-  }
-
   return {
-    map: { ...map, territories: newTerritories },
+    map: applyAttackOutcome(map, sourceId, targetId, attackerWon),
     outcome: {
       attackerRolls,
       defenderRolls,
@@ -100,12 +127,7 @@ export function simulateAttackSuccess(
   sourceId: number,
   targetId: number,
 ): GameMap {
-  const newTerritories = map.territories.map((t) => ({ ...t }));
-  const source = newTerritories[sourceId];
-  newTerritories[targetId].ownerId = source.ownerId;
-  newTerritories[targetId].dice = source.dice - 1;
-  source.dice = 1;
-  return { ...map, territories: newTerritories };
+  return applyAttackOutcome(map, sourceId, targetId, true);
 }
 
 /**
@@ -116,11 +138,9 @@ export function simulateAttackSuccess(
 export function simulateAttackFail(
   map: GameMap,
   sourceId: number,
-  _targetId: number,
+  targetId: number,
 ): GameMap {
-  const newTerritories = map.territories.map((t) => ({ ...t }));
-  newTerritories[sourceId].dice = 1;
-  return { ...map, territories: newTerritories };
+  return applyAttackOutcome(map, sourceId, targetId, false);
 }
 
 /**
@@ -137,10 +157,7 @@ export function simulateAttackFail(
  * every attack looks locally net-negative and the policy collapses to
  * pass.
  */
-export function simulateReinforcement(
-  map: GameMap,
-  playerId: number,
-): GameMap {
+export function simulateReinforcement(map: GameMap, playerId: number): GameMap {
   const score = largestComponent(map, playerId);
   if (score === 0) return map;
 
@@ -150,7 +167,13 @@ export function simulateReinforcement(
   }
   if (owned.length === 0) return map;
 
-  const newTerritories = map.territories.map((t) => ({ ...t }));
+  // Shallow-copy the array, clone only the owned territories we'll mutate.
+  // The other ~35-45 territories (enemy-owned) keep their parent object
+  // references, eliminating ~80% of per-call allocation overhead.
+  const newTerritories = map.territories.slice();
+  for (const idx of owned) {
+    newTerritories[idx] = { ...newTerritories[idx] };
+  }
   let remaining = score;
   let madeProgress = true;
   while (remaining > 0 && madeProgress) {
@@ -165,5 +188,5 @@ export function simulateReinforcement(
     }
   }
 
-  return { ...map, territories: newTerritories };
+  return withTerritories(map, newTerritories);
 }

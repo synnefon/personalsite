@@ -1,7 +1,8 @@
 /* eslint-disable no-console */
 import * as fs from "fs";
 import * as path from "path";
-import { NUM_PLAYERS } from "../constants.ts";
+import type { ModelWeights } from "../model/forward.ts";
+import { deserializeWeights } from "./tfModel.ts";
 
 /** Fisher–Yates shuffle in place. Pass an `rng` for determinism. */
 export function shuffleInPlace<T>(
@@ -106,17 +107,34 @@ export function makeRng(seed: string | undefined): () => number {
   return mulberry32(hashSeed(seed));
 }
 
+
 /**
- * Pick `count` distinct seat indices from [0, NUM_PLAYERS) without
- * replacement. Used by eval / diagnose / in-training quick-eval to assign
- * NN seats randomly each game.
+ * Wilson 95% binomial confidence interval for `k` successes out of `n`
+ * trials. Returns `[low, high]` clamped to `[0, 1]`. Returns `[0, 0]`
+ * when `n === 0` to keep the caller from dividing by zero.
  */
-export function pickRandomSeats(
-  count: number,
-  rng: () => number,
-): Set<number> {
-  const pool: number[] = [];
-  for (let i = 0; i < NUM_PLAYERS; i++) pool.push(i);
-  shuffleInPlace(pool, rng);
-  return new Set(pool.slice(0, count));
+export function wilson95(k: number, n: number): [number, number] {
+  if (n === 0) return [0, 0];
+  const z = 1.96;
+  const p = k / n;
+  const denom = 1 + (z * z) / n;
+  const center = (p + (z * z) / (2 * n)) / denom;
+  const margin =
+    (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / denom;
+  return [Math.max(0, center - margin), Math.min(1, center + margin)];
+}
+
+/**
+ * Resolve + load + deserialize a value-network checkpoint. Logs the
+ * resolved path. Used by evaluate / roundRobin / calibrate.
+ */
+export function loadCheckpointWeights(opts: {
+  override?: string;
+  ckptDir: string;
+  candidates: ReadonlyArray<string>;
+}): ModelWeights {
+  const ckptPath = resolveCheckpoint(opts);
+  console.log(`loading weights from ${ckptPath}`);
+  const raw = JSON.parse(fs.readFileSync(ckptPath, "utf8"));
+  return deserializeWeights(raw);
 }

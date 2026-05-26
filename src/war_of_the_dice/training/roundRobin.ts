@@ -7,43 +7,53 @@
  * Parallelized via worker pool — same pattern as data collection in
  * train.ts. Use `WOTD_WORKERS=1` to force single-threaded for debugging.
  */
-import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { Worker } from "worker_threads";
 import { NUM_PLAYERS } from "../constants.ts";
 import type { ModelWeights } from "../model/forward.ts";
 import { ARCHETYPE_IDS, type ArchetypeId } from "../model/personalities.ts";
-import { selectBestAttackForArchetype } from "../model/policy.ts";
-import { runOneGame, type Policy } from "./selfPlay.ts";
-import { deserializeWeights } from "./tfModel.ts";
+import {
+  policyFromArchetype,
+  runOneGame,
+  type Policy,
+} from "./selfPlay.ts";
 import {
   envNumber,
+  loadCheckpointWeights,
   makeRng,
-  resolveCheckpoint,
   runMain,
   shuffleInPlace,
+  wilson95,
 } from "./util.ts";
 
 const DEFAULT_NUM_GAMES = 100;
 
-/** Wilson 95% binomial CI. */
-function wilson95(k: number, n: number): [number, number] {
-  if (n === 0) return [0, 0];
-  const z = 1.96;
-  const p = k / n;
-  const denom = 1 + (z * z) / n;
-  const center = (p + (z * z) / (2 * n)) / denom;
-  const margin =
-    (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / denom;
-  return [Math.max(0, center - margin), Math.min(1, center + margin)];
-}
+/**
+ * Hard cap on each worker isolate's V8 old-generation size. Under high
+ * allocation rate V8 hoards old-space pages and won't release them; this
+ * cap forces aggressive GC and keeps total RSS bounded at roughly
+ * `WORKER_MAX_OLD_GEN_MB × WOTD_WORKERS`. Tune down to use less memory
+ * (at the cost of more GC pauses), up for fewer pauses at higher RSS.
+ */
+const WORKER_MAX_OLD_GEN_MB = 384;
 
-type GameOutcome = { winnerArch: ArchetypeId; rounds: number };
+type GameOutcome = {
+  winnerArch: ArchetypeId;
+  rounds: number;
+  cacheHits: number;
+  cacheMisses: number;
+};
 
 type WorkerMessage =
   | { type: "ready" }
-  | { type: "done"; winnerArch: ArchetypeId; rounds: number }
+  | {
+      type: "done";
+      winnerArch: ArchetypeId;
+      rounds: number;
+      cacheHits: number;
+      cacheMisses: number;
+    }
   | { type: "error"; error: string };
 
 /** Parallel execution via worker pool. Drains numGames across numWorkers. */
@@ -79,8 +89,14 @@ function runGamesParallel(
       }
     };
 
+    // `--expose-gc` (for global.gc() between games) must be passed at the
+    // parent-process level via NODE_OPTIONS — not allowed in execArgv.
+    // Memory cap (`WORKER_MAX_OLD_GEN_MB`) goes via resourceLimits.
     for (let w = 0; w < effectiveWorkers; w++) {
-      const worker = new Worker(workerPath, { workerData: { weights } });
+      const worker = new Worker(workerPath, {
+        workerData: { weights },
+        resourceLimits: { maxOldGenerationSizeMb: WORKER_MAX_OLD_GEN_MB },
+      });
       workers.push(worker);
       worker.on("message", (msg: WorkerMessage) => {
         if (msg.type === "ready") {
@@ -92,7 +108,12 @@ function runGamesParallel(
           return;
         }
         if (msg.type === "done") {
-          outcomes.push({ winnerArch: msg.winnerArch, rounds: msg.rounds });
+          outcomes.push({
+            winnerArch: msg.winnerArch,
+            rounds: msg.rounds,
+            cacheHits: msg.cacheHits,
+            cacheMisses: msg.cacheMisses,
+          });
           completed++;
           onGameDone(completed);
           if (completed === numGames) {
@@ -127,24 +148,20 @@ function runGamesSerial(
     const assignment = ARCHETYPE_IDS.slice();
     shuffleInPlace(assignment as ArchetypeId[], rng);
     const policies: Policy[] = assignment.map(
-      (archetype): Policy => (ctx) =>
-        selectBestAttackForArchetype(
-          ctx.map,
-          ctx.playerId,
-          ctx.turnIndex,
-          ctx.adjacency,
-          weights,
-          archetype,
-          ctx.recentAttackers,
-          undefined,
-          ctx.legalMoves,
-          ctx.cache,
-        ),
+      (a): Policy => policyFromArchetype(weights, a),
     );
-    const result = runOneGame(policies, undefined, undefined, rng);
+    const result = runOneGame(
+      policies,
+      undefined,
+      undefined,
+      rng,
+      /* recordSamples */ false,
+    );
     outcomes.push({
       winnerArch: assignment[result.winner],
       rounds: result.rounds,
+      cacheHits: result.cacheHits,
+      cacheMisses: result.cacheMisses,
     });
     onGameDone(g + 1);
   }
@@ -165,14 +182,11 @@ async function main(): Promise<void> {
     );
   }
 
-  const ckptPath = resolveCheckpoint({
+  const weights: ModelWeights = loadCheckpointWeights({
     override: process.env.WOTD_CKPT,
     ckptDir: path.resolve(__dirname, "checkpoints"),
     candidates: ["value-latest.json"],
   });
-  console.log(`loading weights from ${ckptPath}`);
-  const raw = JSON.parse(fs.readFileSync(ckptPath, "utf8"));
-  const weights: ModelWeights = deserializeWeights(raw);
 
   const parallel = numWorkers > 1;
   console.log(
@@ -194,9 +208,13 @@ async function main(): Promise<void> {
   const wins = new Map<ArchetypeId, number>();
   for (const a of ARCHETYPE_IDS) wins.set(a, 0);
   let totalRounds = 0;
+  let totalHits = 0;
+  let totalMisses = 0;
   for (const o of outcomes) {
     wins.set(o.winnerArch, (wins.get(o.winnerArch) ?? 0) + 1);
     totalRounds += o.rounds;
+    totalHits += o.cacheHits;
+    totalMisses += o.cacheMisses;
   }
 
   const ranked = [...ARCHETYPE_IDS].sort(
@@ -220,6 +238,13 @@ async function main(): Promise<void> {
   console.log(
     `  baseline 1/${NUM_PLAYERS}:    ${(baselineRate * 100).toFixed(1)}%`,
   );
+  const lookups = totalHits + totalMisses;
+  if (lookups > 0) {
+    const hitRate = (totalHits / lookups) * 100;
+    console.log(
+      `\nV-cache: ${totalHits.toLocaleString()} hits / ${lookups.toLocaleString()} lookups (${hitRate.toFixed(1)}%)`,
+    );
+  }
 }
 
 runMain(main);
