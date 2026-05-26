@@ -247,11 +247,11 @@ function disposeAdjacencies(samples: ReadonlyArray<SampleWithAdj>): void {
 /**
  * One pass over samples with BCE-on-value loss. Effective batch size = 1
  * per gradient step (per-sample forward pass), but `batchSize` samples are
- * accumulated into a single optimizer.minimize call.
+ * accumulated into a single baseline.minimize call.
  */
 async function trainOneEpoch(
   model: TfModel,
-  optimizer: tf.Optimizer,
+  baseline: tf.baseline,
   samples: SampleWithAdj[],
   batchSize: number,
   rng: () => number,
@@ -262,7 +262,7 @@ async function trainOneEpoch(
   let totalSamples = 0;
   for (let start = 0; start < samples.length; start += batchSize) {
     const batch = samples.slice(start, start + batchSize);
-    const lossTensor = optimizer.minimize(() => {
+    const lossTensor = baseline.minimize(() => {
       let sumLoss: tf.Tensor | null = null;
       for (const { sample, adjMatrix } of batch) {
         const sampleLoss = valueLoss(
@@ -336,7 +336,7 @@ async function main(): Promise<void> {
   applyWeights(model, deserializeWeights(raw));
   milestone(`warm-started from ${path.basename(baseline)}`);
 
-  const optimizer = tf.train.adam(lr);
+  const baseline = tf.train.adam(lr);
 
   // Initial empty bars for round 1. Training total is unknown until
   // first collection finishes, so it starts as 0/0 (renders empty).
@@ -389,7 +389,7 @@ async function main(): Promise<void> {
     for (let ep = 0; ep < epochsPerRound; ep++) {
       lastLoss = await trainOneEpoch(
         model,
-        optimizer,
+        baseline,
         samples,
         batchSize,
         rng,

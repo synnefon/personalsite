@@ -16,11 +16,11 @@ import { COLOR_NAME, PLAYER_COLORS } from "../constants.ts";
  * archetype: change the value here and everything downstream picks it up.
  */
 export enum ARCHETYPES {
-  optimizer = "Optimizer",
-  berserker = "Berserker",
+  baseline = "Baseline",
+  conqueror = "Conqueror",
   builder = "Builder",
-  coward = "Coward",
-  expander = "Expander",
+  lurker = "Lurker",
+  consolidator = "Consolidator",
   predator = "Predator",
   disruptor = "Disruptor",
 }
@@ -43,7 +43,7 @@ export enum LOOKAHEAD {
  * decision-margin (Q gap between best attack and pass) has mean ≈ 0.26,
  * std ≈ 0.26 — biases at 0.05–0.25 are "visible but not overwhelming".
  *
- *   thresholdMultiplier — scales the base threshold from `policy.ts:
+ *   attackFear — scales the base threshold from `policy.ts:
  *     decisionThreshold` (lerps 0.15 → 0.05 as players are eliminated).
  *     Lower = more aggressive; higher = more passive.
  *
@@ -60,107 +60,99 @@ export enum LOOKAHEAD {
  *     (no contribution). See `policy.ts:archetypeBias` for application.
  */
 export type BiasCoeffs = {
-  /** Coefficient on candidate's win probability ∈ [0, 1]. */
-  winProb?: number;
-  /** Coefficient on Δ-largest-component (actor's largest-component growth
-   *  on attack success). Roughly ∈ [0, 8] in practice. */
-  deltaLargest?: number;
-  /** Coefficient on capture hold probability ∈ [0, 1]. */
-  holdProb?: number;
-  /** Coefficient applied to a [-1, +1] target-rank signal: -c for
-   *  attacking the weakest alive enemy, +c for the strongest, linear in
-   *  between. Encodes kingmaker-style "spare the weak, hit the leader". */
-  rankSpread?: number;
-  /** Flat coefficient added when target's owner is in `recentAttackers`
-   *  (Vengeful retaliation). */
-  retaliation?: number;
-  /** Coefficient on `winProb × holdProb` — only confident-AND-safe
-   *  captures score high. Sniper signal. */
-  winProbHold?: number;
-  /** Coefficient on `winProb × deltaLargest` — only confident-AND-
-   *  consolidating captures score high. Opportunist signal. */
-  winProbLargest?: number;
-  /** Coefficient on the target owner's largest-component shrinkage on
-   *  attack success — rewards attacks that fracture an opponent's
-   *  reinforcement income. Disruptor signal. */
-  enemyLargestShrink?: number;
-  /** Coefficient on actor's own frontier-edge reduction on attack
-   *  success — rewards attacks that consolidate territory by removing
-   *  border length. Expander signal; complements `deltaLargest` but
-   *  measures perimeter rather than mass. */
-  frontierShrink?: number;
+  /** Drive to grow your largest army. Rewards any attack that would
+   *  expand your largest connected territory on success, ignoring how
+   *  likely the attack itself is to land. Positive = expansionist;
+   *  negative = wants to stay small / lay low. */
+  growthDrive?: number;
+  /** Drive for safe-AND-held captures. Rewards confident attacks on
+   *  targets unlikely to be retaken next turn. Positive = cherry-picks
+   *  safe ground; negative = avoids easy captures. */
+  holdDrive?: number;
+  /** Drive for confident expansion only. Same growth signal as
+   *  `growthDrive`, gated by attack-success probability — only fires on
+   *  sure-win link-ups. The patient mass-builder. */
+  safeGrowthDrive?: number;
+  /** Drive to fracture opponents — rewards confident attacks that shrink
+   *  the target owner's largest connected region (their reinforcement
+   *  income). Gated by attack-success probability. */
+  enemyHarmDrive?: number;
+  /** Fear of exposed borders. Rewards attacks that reduce the actor's
+   *  own frontier-edge count (perimeter consolidation). Higher = more
+   *  willing to take captures purely to tighten shape. */
+  exposureFear?: number;
+  /** Drive to hunt the weakest alive opponent. Gated by attack-success
+   *  probability. Positive = predator (hunt weak); negative = kingmaker
+   *  (challenge the leader). */
+  preyOnWeak?: number;
 };
 
 export type ArchetypeBehavior = {
-  thresholdMultiplier: number;
+  attackFear: number;
   samplingTemp: number;
   lookaheadDepth: LOOKAHEAD;
   biases?: BiasCoeffs;
 };
 
 export const ARCHETYPE_BEHAVIOR: Record<ArchetypeId, ArchetypeBehavior> = {
-  [ARCHETYPES.optimizer]: {
-    thresholdMultiplier: 1.0,
+  [ARCHETYPES.baseline]: {
+    attackFear: 1.0,
     samplingTemp: 0,
     lookaheadDepth: LOOKAHEAD.DEEP,
-    // No biases — the baseline trained V is what optimizer is.
+    // No biases — the baseline trained V is what baseline is.
   },
-  [ARCHETYPES.berserker]: {
-    thresholdMultiplier: 0.6,
+  [ARCHETYPES.conqueror]: {
+    attackFear: 0.6,
     samplingTemp: 0,
     lookaheadDepth: LOOKAHEAD.DEEP,
-    // Opportunist: rewards attacks that are both high-confidence AND
-    // growth-positive. Filters the self-play model's positional choices
-    // through "is this also a clear win?".
-    biases: { winProbLargest: 0.1 },
+    // Conqueror: unconditional growth — rewards any attack that would
+    // grow your largest army, including low-winProb gambles. Combined
+    // with the lowered attackFear this makes it the aggressive risk-taker.
+    biases: { growthDrive: 0.1 },
   },
   [ARCHETYPES.builder]: {
-    thresholdMultiplier: 1.0,
+    attackFear: 1.0,
     samplingTemp: 0,
     lookaheadDepth: LOOKAHEAD.DEEP,
-    biases: { deltaLargest: 0.1 },
+    // Builder: confident growth — same mass-building signal as Conqueror
+    // but gated by winProb. Patient construction; only consolidates when
+    // the link-up is a clear win.
+    biases: { safeGrowthDrive: 0.1 },
   },
-  [ARCHETYPES.coward]: {
-    thresholdMultiplier: 1.0,
+  [ARCHETYPES.lurker]: {
+    attackFear: 1.4,
     samplingTemp: 0,
     lookaheadDepth: LOOKAHEAD.DEEP,
-    // Sniper: only confident-AND-safe captures score. Stacks two filters
-    // multiplicatively — a 0.6 winProb × 0.6 holdProb capture only gets
-    // 0.04 boost, but a 0.9×0.9 capture gets 0.08. Selective but not so
-    // restrictive that it suppresses moves the baseline V already likes
-    // (n=100 round-robin showed 0.20 dropped Coward below baseline).
-    biases: { winProbHold: 0.1 },
+    // Sniper: only confident-AND-safe captures score.
+    biases: { holdDrive: 0.1 },
   },
-  [ARCHETYPES.expander]: {
-    thresholdMultiplier: 1.0,
+  [ARCHETYPES.consolidator]: {
+    attackFear: 1.0,
     samplingTemp: 0,
     lookaheadDepth: LOOKAHEAD.DEEP,
     // Rewards attacks that reduce the actor's own frontier-edge count
-    // — consolidation by perimeter. Distinct from `deltaLargest`, which
+    // — consolidation by perimeter. Distinct from `growthDrive`, which
     // measures the *size* of your largest piece; this measures how
     // exposed it is.
-    biases: { frontierShrink: 0.1 },
+    biases: { exposureFear: 0.1 },
   },
   [ARCHETYPES.predator]: {
-    thresholdMultiplier: 1.0,
+    attackFear: 1,
     samplingTemp: 0,
     lookaheadDepth: LOOKAHEAD.DEEP,
-    // Anti-Kingmaker: rankSpread is negative, so attacking the weakest
-    // alive enemy gets +0.15 and attacking the strongest gets −0.15.
-    // Round-robin hypothesis: eating weak opponents converts to wins
-    // more cleanly than pressuring the leader.
-    biases: { rankSpread: -0.15 },
+    // Predator: hunt the weakest alive enemy, avoid the leader. winProb-
+    // gated so we don't chase fortified spots inside an otherwise-weak
+    // player's territory. Positive `preyOnWeak` = hunt weak; a negative
+    // coefficient would be kingmaker (challenge the leader).
+    biases: { preyOnWeak: 0.20 },
   },
   [ARCHETYPES.disruptor]: {
-    thresholdMultiplier: 1.0,
+    attackFear: 1.0,
     samplingTemp: 0,
     lookaheadDepth: LOOKAHEAD.DEEP,
-    // Disruptor: rewards attacks that fracture an opponent's largest
-    // connected region — each die of shrinkage in their score reduces
-    // their next-turn reinforcement. Typical value 0-3, with rare merger-
-    // cleaving moves landing 5+. Coefficient 0.15 makes typical fracture
-    // contribute 0.15-0.45.
-    biases: { enemyLargestShrink: 0.15 },
+    // Disruptor: confident-AND-disruptive captures. winProb gating
+    // keeps it from chasing fracture moves it can't actually land.
+    biases: { enemyHarmDrive: 0.20 },
   },
 };
 
@@ -169,14 +161,14 @@ export const ARCHETYPE_BEHAVIOR: Record<ArchetypeId, ArchetypeBehavior> = {
  * Used as tooltip text in the UI (score panel & setup dropdown).
  */
 export const ARCHETYPE_DESCRIPTIONS: Record<ArchetypeId, string> = {
-  [ARCHETYPES.optimizer]: "Plays the trained value network straight — no bias.",
-  [ARCHETYPES.berserker]:
-    "Favors confident attacks that also grow the largest army.",
+  [ARCHETYPES.baseline]: "Plays the trained value network straight — no bias.",
+  [ARCHETYPES.conqueror]:
+    "Aggressive empire-builder; takes risky link-ups to grow the largest army.",
   [ARCHETYPES.builder]:
-    "Favors attacks that grow the largest connected territory.",
-  [ARCHETYPES.coward]:
+    "Patient empire-builder; only consolidates on confident captures.",
+  [ARCHETYPES.lurker]:
     "Only strikes when both the attack and the hold are very likely.",
-  [ARCHETYPES.expander]:
+  [ARCHETYPES.consolidator]:
     "Favors attacks that shrink the actor's exposed border.",
   [ARCHETYPES.predator]:
     "Picks on the weakest opponent; avoids confronting the leader.",
@@ -188,12 +180,12 @@ export const ARCHETYPE_DESCRIPTIONS: Record<ArchetypeId, string> = {
  * Per-color default archetype. UI dropdowns initialize to these.
  */
 export const COLOR_DEFAULT_ARCHETYPE: Record<COLOR_NAME, ArchetypeId> = {
-  [COLOR_NAME.red]: ARCHETYPES.berserker,
+  [COLOR_NAME.red]: ARCHETYPES.conqueror,
   [COLOR_NAME.green]: ARCHETYPES.builder,
-  [COLOR_NAME.yellow]: ARCHETYPES.coward,
-  [COLOR_NAME.blue]: ARCHETYPES.optimizer,
+  [COLOR_NAME.yellow]: ARCHETYPES.lurker,
+  [COLOR_NAME.blue]: ARCHETYPES.baseline,
   [COLOR_NAME.orange]: ARCHETYPES.disruptor,
-  [COLOR_NAME.purple]: ARCHETYPES.expander,
+  [COLOR_NAME.purple]: ARCHETYPES.consolidator,
   [COLOR_NAME.cyan]: ARCHETYPES.predator,
 };
 

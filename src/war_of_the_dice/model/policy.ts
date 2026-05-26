@@ -329,7 +329,7 @@ function countAlivePlayers(map: GameMap): number {
  * `THRESHOLD_MIN` (with 2 players alive) as the game narrows.
  *
  * Combined with the per-archetype multipliers in `personalities.ts`, this
- * gives a spread from berserker (effective ~0.10) → coward (effective
+ * gives a spread from conqueror (effective ~0.10) → lurker (effective
  * ~0.55), which is what makes the archetypes feel distinct in play.
  */
 const THRESHOLD_MAX = 0.15;
@@ -505,7 +505,7 @@ function softmaxSample<T>(
 
 /**
  * Count of edges where `playerId` borders a non-`playerId` territory.
- * Used by the Expander archetype to reward attacks that shrink the
+ * Used by the consolidator archetype to reward attacks that shrink the
  * actor's exposed perimeter.
  */
 function frontierEdgesForActor(map: GameMap, playerId: number): number {
@@ -588,13 +588,10 @@ type BiasContext = {
    *  Positive = consolidating (border length shrinks); negative = capture
    *  added more frontier than it absorbed. Range typically [-3, +3]. */
   frontierShrink: number;
-  targetOwner: number;
   /** 0 = weakest alive enemy, maxRank = strongest. */
   targetRank: number;
   /** Largest possible value of targetRank for this state. */
   maxRank: number;
-  /** Opponents who recently captured one of `playerId`'s territories. */
-  recentAttackers: ReadonlySet<number>;
 };
 
 /**
@@ -608,32 +605,29 @@ function archetypeBias(arch: ArchetypeId, ctx: BiasContext): number {
   const biases = ARCHETYPE_BEHAVIOR[arch].biases;
   if (!biases) return 0;
   let total = 0;
-  if (biases.winProb) {
-    total += biases.winProb * ctx.winProb;
+  if (biases.growthDrive) {
+    total += biases.growthDrive * ctx.deltaLargest;
   }
-  if (biases.deltaLargest) {
-    total += biases.deltaLargest * ctx.deltaLargest;
+  if (biases.holdDrive) {
+    total += biases.holdDrive * ctx.winProb * ctx.holdProb;
   }
-  if (biases.holdProb) {
-    total += biases.holdProb * ctx.holdProb;
+  if (biases.safeGrowthDrive) {
+    total += biases.safeGrowthDrive * ctx.winProb * ctx.deltaLargest;
   }
-  if (biases.rankSpread && ctx.maxRank > 0) {
-    total += biases.rankSpread * ((2 * ctx.targetRank) / ctx.maxRank - 1);
+  if (biases.enemyHarmDrive) {
+    total += biases.enemyHarmDrive * ctx.winProb * ctx.enemyLargestShrink;
   }
-  if (biases.retaliation && ctx.recentAttackers.has(ctx.targetOwner)) {
-    total += biases.retaliation;
+  if (biases.exposureFear) {
+    total += biases.exposureFear * ctx.frontierShrink;
   }
-  if (biases.winProbHold) {
-    total += biases.winProbHold * ctx.winProb * ctx.holdProb;
-  }
-  if (biases.winProbLargest) {
-    total += biases.winProbLargest * ctx.winProb * ctx.deltaLargest;
-  }
-  if (biases.enemyLargestShrink) {
-    total += biases.enemyLargestShrink * ctx.enemyLargestShrink;
-  }
-  if (biases.frontierShrink) {
-    total += biases.frontierShrink * ctx.frontierShrink;
+  if (biases.preyOnWeak && ctx.maxRank > 0) {
+    // Rank signal: +1 at weakest alive enemy, -1 at strongest. Positive
+    // `preyOnWeak` rewards attacking the weak; negative rewards
+    // challenging the leader (kingmaker behavior).
+    total +=
+      biases.preyOnWeak *
+      ctx.winProb *
+      (1 - (2 * ctx.targetRank) / ctx.maxRank);
   }
   return total;
 }
@@ -651,7 +645,6 @@ export function selectBestAttackForArchetype(
   adjacency: EncodedAdjacency,
   weights: ModelWeights,
   archetype: ArchetypeId,
-  recentAttackers: ReadonlySet<number>,
   rng: () => number = Math.random,
   legalMoves?: ReadonlyArray<AttackMove>,
   cache?: ValueCache,
@@ -718,10 +711,8 @@ export function selectBestAttackForArchetype(
       holdProb,
       enemyLargestShrink,
       frontierShrink,
-      targetOwner,
       targetRank,
       maxRank,
-      recentAttackers,
     });
     scored.push({ move: m, q: baseQ + bias });
   }
@@ -744,7 +735,7 @@ export function selectBestAttackForArchetype(
       bestMove = s.move;
     }
   }
-  const threshold = decisionThreshold(map) * behavior.thresholdMultiplier;
+  const threshold = decisionThreshold(map) * behavior.attackFear;
   if (bestMove !== null && bestQ - passQ > threshold) return bestMove;
   if (bestMove !== null && allOwnedAtMax(map, playerId)) return bestMove;
   return null;

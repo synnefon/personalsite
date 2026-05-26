@@ -35,22 +35,16 @@ export function resetBakedTurnCache(): void {
  * Decision rule (see `policy.ts:selectBestAttackForArchetype`):
  *   1. Compute V-network Q for each candidate (1-ply expected value
  *      through end-of-turn reinforcement).
- *   2. Add the archetype's per-candidate Q bias (e.g., builder rewards
- *      attacks growing largest component; vengeful rewards retaliation).
+ *   2. Add the archetype's per-candidate Q bias.
  *   3. Apply the archetype's threshold multiplier to the players-remaining
  *      base threshold, then take the best attack if it clears, else pass.
- *      Chaos archetype softmax-samples instead.
- *
- * `recentAttackers` is the set of opponent player IDs who have captured
- * one of `playerId`'s territories recently; only the Vengeful archetype
- * reads it, but the signature stays uniform across archetypes.
+ *      Sampling archetypes softmax-sample instead.
  */
 export function selectBestAttackBaked(
   map: GameMap,
   playerId: number,
   turnIndex: number,
   archetype: ArchetypeId,
-  recentAttackers: ReadonlySet<number>,
 ): AttackMove | null {
   if (!adjCache || adjCache.key !== map.adjacency) {
     adjCache = { key: map.adjacency, encoded: encodeAdjacency(map) };
@@ -62,7 +56,6 @@ export function selectBestAttackBaked(
     adjCache.encoded,
     BAKED_WEIGHTS,
     archetype,
-    recentAttackers,
     undefined,
     undefined,
     turnCache,

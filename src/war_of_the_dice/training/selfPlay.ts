@@ -33,13 +33,6 @@ export type DecisionContext = {
   adjacency: EncodedAdjacency;
   legalMoves: ReadonlyArray<AttackMove>;
   /**
-   * Opponent player IDs who have successfully captured one of `playerId`'s
-   * territories in the recent past (last `ATTACK_HISTORY_LIMIT` events,
-   * most-recent first). Maintained by `runOneGame`. Empty at game start.
-   * Only the Vengeful archetype reads this; other archetypes ignore it.
-   */
-  recentAttackers: ReadonlySet<number>;
-  /**
    * Per-turn memo of value-network outputs, shared across every decision
    * in the current actor's turn. Cleared by the runner when the actor
    * changes. Policies SHOULD pass this through to the value-network calls
@@ -47,8 +40,6 @@ export type DecisionContext = {
    */
   cache: ValueCache;
 };
-
-const ATTACK_HISTORY_LIMIT = 6;
 
 /**
  * Decision rule for one player at one step. Returning null = pass the turn.
@@ -163,12 +154,6 @@ export function runOneGame(
   const turnOrder = freshTurnOrder(rng);
   const isAlive = new Array<boolean>(NUM_PLAYERS).fill(true);
 
-  // Per-defender sliding window of recent attackers (most-recent first,
-  // capped at ATTACK_HISTORY_LIMIT). Updated on every successful capture
-  // and exposed to policies via DecisionContext.recentAttackers. Only
-  // the Vengeful archetype reads it.
-  const attackHistory = new Map<number, number[]>();
-
   let turnIdx = 0;
   let round = 0;
   let winner: number | null = null;
@@ -193,7 +178,6 @@ export function runOneGame(
           pendingSamples.push({ playerId: actor, board: encodedBoard });
         }
 
-        const recentAttackers = new Set(attackHistory.get(actor) ?? []);
         const action = policies[actor]({
           map,
           playerId: actor,
@@ -201,23 +185,13 @@ export function runOneGame(
           encodedBoard,
           adjacency,
           legalMoves: legal,
-          recentAttackers,
           cache: turnCache,
         });
         assertLegal(legal, action);
         if (!action) break;
 
-        const defenderId = map.territories[action.targetId].ownerId;
         const result = resolveAttack(map, action.sourceId, action.targetId);
         map = result.map;
-        if (result.outcome.attackerWon) {
-          const prior = attackHistory.get(defenderId) ?? [];
-          const next = [actor, ...prior.filter((a) => a !== actor)].slice(
-            0,
-            ATTACK_HISTORY_LIMIT,
-          );
-          attackHistory.set(defenderId, next);
-        }
         for (let p = 0; p < NUM_PLAYERS; p++) {
           if (isAlive[p] && playerIsEliminated(map, p)) isAlive[p] = false;
         }
@@ -278,9 +252,9 @@ export function runOneGame(
  */
 /**
  * Build a Policy that uses `selectBestAttackForArchetype` for a single fixed
- * archetype, threading `ctx.cache` and `ctx.recentAttackers` through. Use
- * this whenever you'd otherwise inline the same 10-arg call (round-robin
- * runner, browser AI dispatcher, etc).
+ * archetype, threading `ctx.cache` through. Use this whenever you'd
+ * otherwise inline the same call shape (round-robin runner, browser AI
+ * dispatcher, etc).
  */
 export function policyFromArchetype(
   weights: ModelWeights,
@@ -294,7 +268,6 @@ export function policyFromArchetype(
       ctx.adjacency,
       weights,
       archetype,
-      ctx.recentAttackers,
       undefined,
       ctx.legalMoves,
       ctx.cache,
