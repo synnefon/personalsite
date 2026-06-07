@@ -266,7 +266,7 @@ export function applyInteractions(
     }
     sim.free.push(
       createBall(width, height, false, true, {
-        x: 0 - newlyStuck[i].x,
+        x: 0 - (width - newlyStuck[i].x),
         y: randRange(0, height),
       }),
     );
