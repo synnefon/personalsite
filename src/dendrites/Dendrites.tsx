@@ -1,6 +1,5 @@
 import { ReactElement, useEffect, useRef } from "react";
-import { CONFIG } from "./config.ts";
-import { createBalls, drawBalls, stepBalls } from "./engine.ts";
+import { createSim, drawSim, resizeSim, stepSim } from "./engine.ts";
 import { applyInteractions } from "./interactions.ts";
 
 import React from "react";
@@ -10,7 +9,7 @@ import "../styles/dendrites.css";
  * Dendrites — balls zooming around a full-screen canvas, with a programmable
  * interaction layer (see interactions.ts).
  *
- * Simulation state lives in a plain array inside the effect, not React state:
+ * Simulation state lives in a plain object inside the effect, not React state:
  * the loop mutates it ~60x/second and draws straight to the canvas, so React
  * never needs to re-render.
  */
@@ -27,6 +26,8 @@ export default function Dendrites(): ReactElement {
     let width = window.innerWidth;
     let height = window.innerHeight;
 
+    const sim = createSim(width, height, window.devicePixelRatio || 1);
+
     // Size the backing store for crisp rendering on retina displays, then
     // draw in CSS pixels by scaling the context by the device pixel ratio.
     const resize = (): void => {
@@ -38,10 +39,9 @@ export default function Dendrites(): ReactElement {
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      resizeSim(sim, width, height, dpr);
     };
     resize();
-
-    const balls = createBalls(width, height);
 
     let rafId = 0;
     let lastTime = performance.now();
@@ -52,13 +52,9 @@ export default function Dendrites(): ReactElement {
       const dt = Math.min(2, (now - lastTime) / (1000 / 60));
       lastTime = now;
 
-      stepBalls(balls, width, height, dt);
-
-      ctx.fillStyle = CONFIG.background;
-      ctx.fillRect(0, 0, width, height);
-
-      applyInteractions(balls, width, height);
-      drawBalls(ctx, balls);
+      stepSim(sim, width, height, dt);
+      applyInteractions(sim, width, height);
+      drawSim(ctx, sim, width, height);
 
       rafId = requestAnimationFrame(frame);
     };
