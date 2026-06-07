@@ -1,6 +1,5 @@
 import { ReactElement, useEffect, useRef } from "react";
-import { createSim, drawSim, resizeSim, stepSim } from "./engine.ts";
-import { applyInteractions } from "./interactions.ts";
+import { applyInteractions, createSim, drawSim, resizeSim, stepSim } from "./engine.ts";
 
 import React from "react";
 import "../styles/dendrites.css";
