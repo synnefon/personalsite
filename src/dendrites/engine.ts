@@ -88,7 +88,7 @@ export function createBalls(width: number, height: number): Ball[] {
         x: width - width / 10,
         y: height / 2,
       },
-      7,
+      CONFIG.sourceBallRadius,
     ),
   );
   for (let i = 1; i < CONFIG.ballCount; i++) {
