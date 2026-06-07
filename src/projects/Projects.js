@@ -235,6 +235,12 @@ export default function Projects() {
               lava lamp + radio
             </p>
           </Link>
+          <Link className="link proj-colors" to="/dendrites" rel="noreferrer">
+            <p className="link-text proj-colors">dendrites</p>
+            <p className="tooltip-text proj-colors">
+              drifting nodes that wire themselves up
+            </p>
+          </Link>
           <Link className="link proj-colors" to="/shavianator" rel="noreferrer">
             <p className="link-text proj-colors">shavian transliterator</p>
             <p className="tooltip-text proj-colors">english → shavian</p>
