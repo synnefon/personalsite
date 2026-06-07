@@ -168,7 +168,7 @@ p.link-text {
 
 .tooltip-text {
   margin: 0;
-  margin-right: 10px;
+  margin-right: 25px;
   padding: 0;
   font-size: calc(9px + 0.75vmin);
   color: var(--color-purple-primary-light);

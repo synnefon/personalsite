@@ -13,11 +13,11 @@ function randRange(min: number, max: number): number {
 
 function randStartVelocity(): { vx: number; vy: number } {
   // always move towards the center of the canvas, plus or minus a random angle
-  const dx = 1;
-  const dy = 0;
-  const angle = Math.atan2(dy, dx);
-  const speed = randRange(CONFIG.minSpeed, CONFIG.maxSpeed);
-  return { vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed };
+  // const dx = 1;
+  // const dy = 0;
+  // const angle = Math.atan2(dy, dx);
+  // const speed = randRange(CONFIG.minSpeed, CONFIG.maxSpeed);
+  return { vx: CONFIG.ballSpeed, vy: 0 };
 }
 
 function randStartPosition(
@@ -53,10 +53,17 @@ export function createBall(
 export function createBalls(width: number, height: number): Ball[] {
   const balls: Ball[] = [];
   balls.push(
-    createBall(width, height, true, false, {
-      x: width - width / 10,
-      y: height / 2,
-    }, 7),
+    createBall(
+      width,
+      height,
+      true,
+      false,
+      {
+        x: width - width / 10,
+        y: height / 2,
+      },
+      7,
+    ),
   );
   for (let i = 1; i < CONFIG.ballCount; i++) {
     balls.push(createBall(width, height, false, false));

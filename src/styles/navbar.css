@@ -97,7 +97,7 @@ body.lava-lamp-fullscreen .navbar {
    ============================================ */
 
 body:has(#app-base.shavianator-colors) .nav-icon {
-  filter: brightness(0) saturate(100%) invert(0%);
+  filter: brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(100%) hue-rotate(360deg) brightness(100%) contrast(100%);
 }
 
 body:has(#app-base.shavianator-colors) .nav-icon.active,
@@ -110,7 +110,7 @@ body:has(#app-base.shavianator-colors) .nav-link:hover .nav-icon {
    ============================================ */
 
 body:has(.dendrites-canvas) .nav-icon {
-  filter: brightness(0) saturate(100%) invert(0%);
+  filter: brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(100%) hue-rotate(360deg) brightness(100%) contrast(100%);
 }
 
 body:has(.dendrites-canvas) .nav-icon.active,

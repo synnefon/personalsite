@@ -238,7 +238,7 @@ export default function Projects() {
           <Link className="link proj-colors" to="/dendrites" rel="noreferrer">
             <p className="link-text proj-colors">dendrites</p>
             <p className="tooltip-text proj-colors">
-              drifting nodes that wire themselves up
+              dendritic growth simulation
             </p>
           </Link>
           <Link className="link proj-colors" to="/shavianator" rel="noreferrer">

@@ -12,12 +12,11 @@ export type Ball = {
 /** Tunable knobs for the simulation. Tweak freely. */
 export const CONFIG = {
   /** How many balls to spawn. */
-  ballCount: 200,
+  ballCount: 400,
   /** Radius range (px). */
   ballRadius: 4,
   /** Per-axis speed range (px per 60fps frame). */
-  minSpeed: 10,
-  maxSpeed: 10,
+  ballSpeed: 5,
   /** Probability of a sticky collision when a free ball collides with the dendrite.*/
   stickyProbability: 1,
   /** Canvas background (--color-purple-dark). */
