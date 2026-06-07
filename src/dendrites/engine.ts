@@ -26,6 +26,7 @@ export type Sim = {
   /** Offscreen layer holding the rendered cluster, blitted each frame. */
   cluster: HTMLCanvasElement;
   clusterCtx: CanvasRenderingContext2D;
+  keepGenerating: boolean;
 };
 
 // Grid keys pack (cx, cy) into one number. Ball coordinates stay within the
@@ -166,6 +167,7 @@ export function createSim(width: number, height: number, dpr: number): Sim {
     cellSize: 2 * maxRadius,
     cluster,
     clusterCtx,
+    keepGenerating: true,
   };
   sizeCluster(sim, width, height, dpr);
   for (const ball of balls) {
@@ -199,7 +201,7 @@ export function stepSim(
     ball.x += ball.vx * dt;
     ball.y += ball.vy * dt;
 
-    if (ball.x + ball.radius > width) {
+    if (sim.keepGenerating && ball.x + ball.radius > width) {
       const { x, y } = randStartPosition(width, height, true);
       const { vx, vy } = randStartVelocity();
       ball.x = x;
@@ -255,7 +257,18 @@ export function applyInteractions(
   for (const ball of newlyStuck) addStuck(sim, ball);
   // Drop the balls that stuck, then spawn one fresh free ball for each.
   sim.free = sim.free.filter((ball) => !ball.stuck);
+
+  if (!sim.keepGenerating) return;
   for (let i = 0; i < newlyStuck.length; i++) {
-    sim.free.push(createBall(width, height, false, true));
+    if (newlyStuck[i].x < width / 10) {
+      sim.keepGenerating = false;
+      break;
+    }
+    sim.free.push(
+      createBall(width, height, false, true, {
+        x: 0 - newlyStuck[i].x,
+        y: randRange(0, height),
+      }),
+    );
   }
 }
