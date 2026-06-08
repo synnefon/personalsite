@@ -2,6 +2,7 @@ import React, { ReactElement, useEffect, useRef, useState } from "react";
 import "../styles/dendrites.css";
 import { Direction } from "./config.ts";
 import { applyInteractions, changeDirection, drawSim, initializeSim, resizeSim, stepSim } from "./engine.ts";
+import { clusterToSvg, downloadSvg } from "./svgExport.ts";
 import MenuBar from "./MenuBar.tsx";
 import { Sim } from "./types.ts";
 
@@ -124,6 +125,15 @@ export default function Dendrites(): ReactElement {
     <div>
       <canvas ref={canvasRef} className="dendrites-canvas" />
       <MenuBar open={menuOpen} onToggle={() => setMenuOpen(!menuOpen)}>
+        <button
+          className="dendrites-action"
+          onClick={() => {
+            const svg = simRef.current && clusterToSvg(simRef.current);
+            if (svg) downloadSvg(svg);
+          }}
+        >
+          Export SVG
+        </button>
         <button className="dendrites-toggle" onClick={() => setRunning(!running)}>
           {running ? "Stop" : "Start"}
         </button>
