@@ -1,13 +1,26 @@
-/** A single ball in the simulation. Position/velocity are in CSS pixels. */
-export type Ball = {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  radius: number;
-  color: string;
-  stuck: boolean;
-};
+/**
+ * Flow direction of the balls across the canvas. 
+ * LR = left→right
+ * RL = right→left
+ * TB = top→bottom
+ * BT = bottom→top
+ */
+export enum Direction {
+  LR = "LR",
+  RL = "RL",
+  TB = "TB",
+  BT = "BT",
+}
+
+/**
+ * Clockwise turns.
+ */
+export enum Turn {
+  oneQuarter = "oneQuarter",
+  half = "half",
+  threeQuarters = "threeQuarters",
+  noop = "noop",
+}
 
 /** Tunable knobs for the simulation. Tweak freely. */
 export const CONFIG = {
@@ -15,7 +28,7 @@ export const CONFIG = {
   ballCount: 500,
   /** Radius range (px). */
   ballRadius: 3.5,
-  sourceBallRadius: 3.5,
+  sourceBallRadius: 6,
   /** Per-axis speed range (px per 60fps frame). */
   ballSpeed: 5,
   /** Probability of a sticky collision when a free ball collides with the dendrite.*/
@@ -25,4 +38,5 @@ export const CONFIG = {
   /** Ball colors, sampled at random. Mirrors the palette in styles/index.css. */
   stuckColor: "black",
   freeColor: "gray",
+  sourceBallColor: "red",
 } as const;

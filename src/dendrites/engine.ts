@@ -1,4 +1,5 @@
-import { Ball, CONFIG } from "./config.ts";
+import { CONFIG, Direction } from "./config.ts";
+import { Ball, Sim } from "./types.ts";
 
 /*
   The engine: spawning, movement, wall-bouncing, and rendering.
@@ -15,20 +16,6 @@ import { Ball, CONFIG } from "./config.ts";
   The interaction logic (what happens when balls touch) lives in interactions.ts.
 */
 
-/** A free ball plus the stuck cluster, indexed for cheap collision and drawing. */
-export type Sim = {
-  /** Moving balls; tested against the cluster every frame. */
-  free: Ball[];
-  /** Stuck balls bucketed by grid cell. */
-  grid: Map<number, Ball[]>;
-  /** Cell size in CSS px. >= any free+stuck radius sum, so a 3x3 search is exhaustive. */
-  cellSize: number;
-  /** Offscreen layer holding the rendered cluster, blitted each frame. */
-  cluster: HTMLCanvasElement;
-  clusterCtx: CanvasRenderingContext2D;
-  keepGenerating: boolean;
-};
-
 // Grid keys pack (cx, cy) into one number. Ball coordinates stay within the
 // canvas, so cx and cy are non-negative and cy stays well below the stride.
 const GRID_STRIDE = 100000;
@@ -38,62 +25,135 @@ function randRange(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
-function randStartVelocity(): { vx: number; vy: number } {
+function randStartVelocity(direction: Direction): { vx: number; vy: number } {
   // always move towards the center of the canvas, plus or minus a random angle
   // const dx = 1;
   // const dy = 0;
   // const angle = Math.atan2(dy, dx);
   // const speed = randRange(CONFIG.minSpeed, CONFIG.maxSpeed);
-  return { vx: CONFIG.ballSpeed, vy: 0 };
-}
-
-function randStartPosition(
-  width: number,
-  height: number,
-  offscreen: boolean,
-): { x: number; y: number } {
-  // start offscreen, randomly on the left or right, and randomly on the top or bottom
-  // always start on the left side of the canvas
-  if (offscreen) {
-    return { x: 0, y: randRange(0, height) };
-  } else {
-    return { x: randRange(0, width), y: randRange(0, height) };
+  switch (direction) {
+    case Direction.LR:
+      return { vx: CONFIG.ballSpeed, vy: 0 };
+    case Direction.RL:
+      return { vx: -CONFIG.ballSpeed, vy: 0 };
+    case Direction.TB:
+      return { vx: 0, vy: CONFIG.ballSpeed };
+    case Direction.BT:
+      return { vx: 0, vy: -CONFIG.ballSpeed };
   }
 }
 
+function randStartPosition({
+  width,
+  height,
+  direction,
+  offset = false,
+}: {
+  width: number;
+  height: number;
+  direction: Direction;
+  offset?: boolean;
+}): { x: number; y: number } {
+  const randX = randRange(0, width);
+  const randY = randRange(0, height);
+
+  let bPos = { x: 0, y: 0 };
+  switch (direction) {
+    case Direction.LR:
+      bPos = { x: 0, y: randY };
+      break;
+    case Direction.RL:
+      bPos = { x: width, y: randY };
+      break;
+    case Direction.TB:
+      bPos = { x: randX, y: 0 };
+      break;
+    case Direction.BT:
+      bPos = { x: randX, y: height };
+      break;
+  }
+
+  if (offset) {
+    switch (direction) {
+      case Direction.LR:
+        bPos.x = 0 - (width - bPos.x);
+        break;
+      case Direction.RL:
+        bPos.x = width + bPos.x;
+        break;
+      case Direction.TB:
+        bPos.y = 0 - (height - bPos.y);
+        break;
+      case Direction.BT:
+        bPos.y = height + bPos.y;
+        break;
+    }
+  }
+  return bPos;
+}
+
+type ballOptions = {
+  startPosition?: { x: number; y: number };
+  radius?: number;
+  direction: Direction;
+  stuck?: boolean;
+};
 export function createBall(
   width: number,
   height: number,
-  stuck: boolean,
-  offscreen: boolean,
-  startPosition?: { x: number; y: number },
-  radius?: number,
+  opts: ballOptions,
 ): Ball {
+  const { startPosition, radius, direction, stuck } = opts;
   const r = radius ?? CONFIG.ballRadius;
-  const { x, y } = startPosition ?? randStartPosition(width, height, offscreen);
-  const { vx, vy } = randStartVelocity();
+  const { x, y } =
+    startPosition ??
+    randStartPosition({
+      width,
+      height,
+      direction,
+    });
+  const offScreen = isOffscreen(x, y, r, width, height);
+  const { vx, vy } = randStartVelocity(direction);
   const color = stuck ? CONFIG.stuckColor : CONFIG.freeColor;
-  return { x, y, vx, vy, radius: r, color, stuck };
+  return {
+    x,
+    y,
+    vx,
+    vy,
+    radius: r,
+    color,
+    stuck: stuck ?? false,
+    appeared: !offScreen,
+  };
 }
 
 /** Spawn a fresh set of balls: one stuck seed plus a scatter of free balls. */
-export function createBalls(width: number, height: number): Ball[] {
+export function createBalls(
+  width: number,
+  height: number,
+  direction: Direction,
+): Ball[] {
   const balls: Ball[] = [];
-  balls.push(
-    createBall(
-      width,
-      height,
-      true,
-      false,
-      {
-        x: width - width / 10,
-        y: height / 2,
-      },
-      CONFIG.sourceBallRadius,
-    ),
-  );
+
+  balls.push({
+    x: width / 2,
+    y: height / 2,
+    vx: 0,
+    vy: 0,
+    radius: CONFIG.sourceBallRadius,
+    color: CONFIG.sourceBallColor,
+    stuck: true,
+    appeared: true,
+  });
+
   for (let i = 1; i < CONFIG.ballCount; i++) {
-    balls.push(createBall(width, height, false, false));
+    balls.push(
+      createBall(width, height, {
+        direction,
+        stuck: false,
+        startPosition: { x: randRange(0, width), y: randRange(0, height) },
+      }),
+    );
   }
   return balls;
 }
@@ -154,8 +214,18 @@ export function touchesCluster(sim: Sim, ball: Ball): boolean {
 }
 
 /** Build a fresh simulation: free balls scattered about, the seed in the cluster. */
-export function createSim(width: number, height: number, dpr: number): Sim {
-  const balls = createBalls(width, height);
+export function initializeSim({
+  width,
+  height,
+  dpr,
+  direction,
+}: {
+  width: number;
+  height: number;
+  dpr: number;
+  direction: Direction;
+}): Sim {
+  const balls = createBalls(width, height, direction);
   const maxRadius = balls.reduce((m, b) => Math.max(m, b.radius), 0);
   const cluster = document.createElement("canvas");
   const clusterCtx = cluster.getContext("2d");
@@ -187,6 +257,161 @@ export function resizeSim(
   sizeCluster(sim, width, height, dpr);
 }
 
+function isBallOffscreen(ball: Ball, width: number, height: number): boolean {
+  return isOffscreen(ball.x, ball.y, ball.radius, width, height);
+}
+
+function isOffscreen(
+  x: number,
+  y: number,
+  radius: number,
+  width: number,
+  height: number,
+): boolean {
+  return (
+    x + radius < 0 ||
+    x - radius > width ||
+    y + radius < 0 ||
+    y - radius > height
+  );
+}
+
+function shouldStopGenerating(
+  ball: Ball,
+  width: number,
+  height: number,
+): boolean {
+  return (
+    ball.x <= width / 20 ||
+    ball.x >= width - width / 20 ||
+    ball.y <= height / 20 ||
+    ball.y >= height - height / 20
+  );
+}
+
+function resetBall(
+  ball: Ball,
+  width: number,
+  height: number,
+  direction: Direction,
+): Ball {
+  const { x, y } = randStartPosition({
+    width,
+    height,
+    direction,
+    offset: false,
+  });
+  const { vx, vy } = randStartVelocity(direction);
+  return {
+    ...ball,
+    x,
+    y,
+    vx,
+    vy,
+  };
+}
+
+function resteerBalls({
+  sim,
+  vx,
+  vy,
+  xtranslation,
+  ytranslation,
+  width,
+  height,
+}: {
+  sim: Sim;
+  vx: number;
+  vy: number;
+  width: number;
+  height: number;
+  xtranslation: (x: number) => number;
+  ytranslation: (y: number) => number;
+}): void {
+  for (let i = 0; i < sim.free.length; i++) {
+    const ball = sim.free[i];
+    if (isBallOffscreen(ball, width, height)) {
+      ball.x = xtranslation(ball.x);
+      ball.y = ytranslation(ball.y);
+    }
+    ball.vx = vx;
+    ball.vy = vy;
+  }
+}
+
+function makeTranslations(
+  width: number,
+  height: number,
+): Record<
+  Direction,
+  Record<Direction, { x: (x: number) => number; y: (y: number) => number }>
+> {
+  return {
+    [Direction.LR]: {
+      [Direction.LR]: { x: (x) => x, y: (y) => y },
+      [Direction.RL]: { x: (x) => x + width * 2, y: (y) => y },
+      [Direction.TB]: { x: (x) => width + x, y: (y) => y - height },
+      [Direction.BT]: { x: (x) => width + x, y: (y) => y + height },
+    },
+    [Direction.RL]: {
+      [Direction.LR]: { x: (x) => x - width * 2, y: (y) => y },
+      [Direction.RL]: { x: (x) => x, y: (y) => y },
+      [Direction.TB]: { x: (x) => x - width, y: (y) => y - height },
+      [Direction.BT]: { x: (x) => x - width, y: (y) => y + height },
+    },
+    [Direction.TB]: {
+      [Direction.LR]: { x: (x) => x - width, y: (y) => y + height },
+      [Direction.RL]: { x: (x) => x + width, y: (y) => y + height },
+      [Direction.TB]: { x: (x) => x, y: (y) => y },
+      [Direction.BT]: { x: (x) => x, y: (y) => y + height * 2 },
+    },
+    [Direction.BT]: {
+      [Direction.LR]: { x: (x) => x - width, y: (y) => y - height },
+      [Direction.RL]: { x: (x) => x + width, y: (y) => y - height },
+      [Direction.TB]: { x: (x) => x, y: (y) => y - height * 2 },
+      [Direction.BT]: { x: (x) => x, y: (y) => y },
+    },
+  };
+}
+
+export function changeDirection(
+  sim: Sim,
+  width: number,
+  height: number,
+  direction: Direction,
+  oldDirection: Direction,
+): void {
+  const translations = makeTranslations(width, height);
+  const xtranslation = translations[oldDirection][direction].x;
+  const ytranslation = translations[oldDirection][direction].y;
+  let vx = 0;
+  let vy = 0;
+  switch (direction) {
+    case Direction.LR:
+      vx = CONFIG.ballSpeed;
+      break;
+    case Direction.RL:
+      vx = -CONFIG.ballSpeed;
+      break;
+    case Direction.TB:
+      vy = CONFIG.ballSpeed;
+      break;
+    case Direction.BT:
+      vy = -CONFIG.ballSpeed;
+      break;
+  }
+
+  resteerBalls({
+    sim,
+    vx,
+    vy,
+    xtranslation,
+    ytranslation,
+    width,
+    height,
+  });
+}
+
 /**
  * Advance every free ball one step and recycle it off the right wall.
  * `dt` is normalized to 60fps frames (1 === one 60fps frame).
@@ -196,18 +421,20 @@ export function stepSim(
   width: number,
   height: number,
   dt: number,
+  direction: Direction,
 ): void {
-  for (const ball of sim.free) {
+  const { keepGenerating } = sim;
+  for (let i = 0; i < sim.free.length; i++) {
+    const ball = sim.free[i];
+    if (!keepGenerating) continue;
+
     ball.x += ball.vx * dt;
     ball.y += ball.vy * dt;
 
-    if (sim.keepGenerating && ball.x + ball.radius > width) {
-      const { x, y } = randStartPosition(width, height, true);
-      const { vx, vy } = randStartVelocity();
-      ball.x = x;
-      ball.y = y;
-      ball.vx = vx;
-      ball.vy = vy;
+    if (ball.appeared && isBallOffscreen(ball, width, height)) {
+      sim.free[i] = resetBall(ball, width, height, direction);
+    } else if (!ball.appeared) {
+      ball.appeared = true;
     }
   }
 }
@@ -222,7 +449,9 @@ export function drawSim(
   ctx.fillStyle = CONFIG.background;
   ctx.fillRect(0, 0, width, height);
   ctx.drawImage(sim.cluster, 0, 0, width, height);
-  for (const ball of sim.free) drawBall(ctx, ball);
+  for (const ball of sim.free) {
+    drawBall(ctx, ball);
+  }
 }
 
 /**
@@ -241,6 +470,8 @@ export function applyInteractions(
   sim: Sim,
   width: number,
   height: number,
+  direction: Direction,
+  stopRunCallback: () => void,
 ): void {
   const newlyStuck: Ball[] = [];
   for (const ball of sim.free) {
@@ -260,14 +491,23 @@ export function applyInteractions(
 
   if (!sim.keepGenerating) return;
   for (let i = 0; i < newlyStuck.length; i++) {
-    if (newlyStuck[i].x < width / 10) {
+    if (shouldStopGenerating(newlyStuck[i], width, height)) {
       sim.keepGenerating = false;
+      sim.free = [];
+      stopRunCallback();
       break;
     }
+
     sim.free.push(
-      createBall(width, height, false, true, {
-        x: 0 - (width - newlyStuck[i].x),
-        y: randRange(0, height),
+      createBall(width, height, {
+        direction,
+        stuck: false,
+        startPosition: randStartPosition({
+          width,
+          height,
+          direction,
+          offset: true,
+        }),
       }),
     );
   }
