@@ -1,6 +1,7 @@
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import volumeDownIcon from "../assets/dendrites/volume_down.svg";
 import volumeUpIcon from "../assets/dendrites/volume_up.svg";
+import Wip from "../projects/Wip";
 import "../styles/dendrites.css";
 import { CONFIG, Direction } from "./config.ts";
 import {
@@ -65,6 +66,14 @@ export default function Dendrites(): ReactElement {
     setSoundMuted(muted);
   }, [muted]);
 
+  // Desktop-only: show the "desktop only" screensaver on small screens.
+  const [windowWidth, setWindowWidth] = useState<number>(window.innerWidth);
+  const isMobile = windowWidth <= 768;
+  useEffect(() => {
+    const onResize = (): void => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const runningRef = useRef(running);
   const simRef = useRef<Sim | null>(null);
@@ -219,6 +228,11 @@ export default function Dendrites(): ReactElement {
     };
     // eslint-disable-next-line
   }, []);
+
+  // Desktop-only, like the other interactive pages (e.g. Game of Life).
+  if (isMobile) {
+    return <Wip />;
+  }
 
   return (
     <div>
