@@ -24,7 +24,19 @@ const DIRECTION_PAD = [
   { dir: Direction.RL, glyph: "◀", label: "Right to left", area: "left" },
   { dir: Direction.LR, glyph: "▶", label: "Left to right", area: "right" },
   { dir: Direction.TB, glyph: "▼", label: "Top to bottom", area: "down" },
-  { dir: Direction.ALL, glyph: "◎", label: "All directions (inward)", area: "all" },
+  {
+    dir: Direction.ALL,
+    glyph: (
+      <span className="dendrites-all-glyph" aria-hidden="true">
+        <span style={{ gridArea: "u" }}>▼</span>
+        <span style={{ gridArea: "l" }}>▶</span>
+        <span style={{ gridArea: "r" }}>◀</span>
+        <span style={{ gridArea: "d" }}>▲</span>
+      </span>
+    ),
+    label: "All directions (inward)",
+    area: "all",
+  },
 ];
 
 /** One tick mark per integer radius stop (slider step is 1). */

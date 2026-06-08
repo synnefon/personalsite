@@ -206,3 +206,17 @@
   background: rgba(255, 255, 255, 1);
   color: rgb(0, 0, 0);
 }
+
+/* The ALL hub: the four flow triangles, shrunk and turned inward to converge. */
+.dendrites-all-glyph {
+  display: grid;
+  grid-template-areas:
+    ".  u  ."
+    "l  .  r"
+    ".  d  .";
+  align-items: center;
+  justify-items: center;
+  gap: 0;
+  font-size: 0.5rem;
+  line-height: 1;
+}
