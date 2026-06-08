@@ -1,7 +1,7 @@
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import "../styles/dendrites.css";
 import { CONFIG, Direction } from "./config.ts";
-import { advanceSim, changeDirection, drawSim, initializeSim, resizeSim, setFreeRadius } from "./engine.ts";
+import { advanceSim, changeDirection, drawSim, initializeSim, moveSource, resizeSim, setFreeRadius } from "./engine.ts";
 import { clusterToSvg, downloadSvg } from "./svgExport.ts";
 import { initAudio, playConnections, setMuted as setSoundMuted } from "./sound.ts";
 import MenuBar from "./MenuBar.tsx";
@@ -135,9 +135,51 @@ export default function Dendrites(): ReactElement {
     rafId = requestAnimationFrame(frame);
 
     window.addEventListener("resize", resize);
+
+    // Drag the red source ball; grabbing it freezes the sim like the Stop button.
+    let dragging = false;
+    const overSource = (e: PointerEvent): boolean => {
+      const sim = simRef.current;
+      if (!sim) return false;
+      const dx = e.clientX - sim.source.x;
+      const dy = e.clientY - sim.source.y;
+      const grab = sim.source.radius + 10;
+      return dx * dx + dy * dy <= grab * grab;
+    };
+    const onPointerDown = (e: PointerEvent): void => {
+      if (!overSource(e)) return;
+      dragging = true;
+      setRunning(false);
+      canvas.style.cursor = "var(--grabbing)";
+      canvas.setPointerCapture(e.pointerId);
+    };
+    const onPointerMove = (e: PointerEvent): void => {
+      const sim = simRef.current;
+      if (!sim) return;
+      if (dragging) {
+        const x = Math.max(0, Math.min(width, e.clientX));
+        const y = Math.max(0, Math.min(height, e.clientY));
+        moveSource(sim, x, y);
+      } else {
+        canvas.style.cursor = overSource(e) ? "var(--grab)" : "";
+      }
+    };
+    const onPointerUp = (e: PointerEvent): void => {
+      if (!dragging) return;
+      dragging = false;
+      canvas.style.cursor = overSource(e) ? "var(--grab)" : "";
+      canvas.releasePointerCapture(e.pointerId);
+    };
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerup", onPointerUp);
+
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", resize);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerup", onPointerUp);
     };
     // eslint-disable-next-line
   }, []);

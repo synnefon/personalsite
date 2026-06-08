@@ -24,6 +24,8 @@ export type Sim = {
   keepGenerating: boolean;
   /** Current radius for newly-spawned and existing free balls (set by the slider). */
   freeRadius: number;
+  /** The red seed ball, kept as a handle so it can be dragged. */
+  source: Ball;
   /** Axis-aligned bounds of the stuck cluster, for cheap collision rejection. */
   minX: number;
   minY: number;

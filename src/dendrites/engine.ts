@@ -248,6 +248,7 @@ export function initializeSim({
     clusterCtx,
     keepGenerating: true,
     freeRadius: CONFIG.ballRadius,
+    source: balls[0],
     minX: Infinity,
     minY: Infinity,
     maxX: -Infinity,
@@ -281,6 +282,50 @@ export function setFreeRadius(sim: Sim, radius: number): void {
     if (mag > 0) {
       ball.vx = (ball.vx / mag) * speed;
       ball.vy = (ball.vy / mag) * speed;
+    }
+  }
+}
+
+/**
+ * Reposition the source ball (drag-and-drop): re-bucket it in the grid, then
+ * repaint the cluster bitmap and recompute its bounds. Only the source moves.
+ */
+export function moveSource(sim: Sim, x: number, y: number): void {
+  const src = sim.source;
+  const oldKey =
+    Math.floor(src.x / sim.cellSize) * GRID_STRIDE +
+    Math.floor(src.y / sim.cellSize);
+  const oldCell = sim.grid.get(oldKey);
+  if (oldCell) {
+    const idx = oldCell.indexOf(src);
+    if (idx >= 0) oldCell.splice(idx, 1);
+    if (oldCell.length === 0) sim.grid.delete(oldKey);
+  }
+  src.x = x;
+  src.y = y;
+  const newKey =
+    Math.floor(x / sim.cellSize) * GRID_STRIDE + Math.floor(y / sim.cellSize);
+  const newCell = sim.grid.get(newKey);
+  if (newCell) newCell.push(src);
+  else sim.grid.set(newKey, [src]);
+
+  // Repaint the cached cluster bitmap and recompute its bounds from scratch.
+  const ctx = sim.clusterCtx;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, sim.cluster.width, sim.cluster.height);
+  ctx.restore();
+  sim.minX = Infinity;
+  sim.minY = Infinity;
+  sim.maxX = -Infinity;
+  sim.maxY = -Infinity;
+  for (const cell of sim.grid.values()) {
+    for (const ball of cell) {
+      drawBall(ctx, ball);
+      if (ball.x < sim.minX) sim.minX = ball.x;
+      if (ball.x > sim.maxX) sim.maxX = ball.x;
+      if (ball.y < sim.minY) sim.minY = ball.y;
+      if (ball.y > sim.maxY) sim.maxY = ball.y;
     }
   }
 }
