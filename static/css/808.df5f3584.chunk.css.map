@@ -1,1 +1,0 @@
-{"version":3,"file":"static/css/808.df5f3584.chunk.css","mappings":"AAAA,kBAIE,aAAc,CAFd,OAAQ,CADR,cAAe,CAIf,gBAAiB,CACjB,wBAAyB,CAHzB,SAIF","sources":["styles/dendrites.css"],"sourcesContent":[".dendrites-canvas {\n  position: fixed;\n  inset: 0;\n  z-index: 0;\n  display: block;\n  user-select: none;\n  -webkit-user-select: none;\n}\n"],"names":[],"sourceRoot":""}
