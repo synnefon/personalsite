@@ -1,11 +1,11 @@
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import "../styles/dendrites.css";
 import { CONFIG, Direction } from "./config.ts";
-import { advanceSim, changeDirection, drawSim, initializeSim, moveSource, resizeSim, setFreeRadius } from "./engine.ts";
+import { advanceSim, changeDirection, connectedToSource, drawSim, initializeSim, moveSource, resizeSim, setFreeRadius } from "./engine.ts";
 import { clusterToSvg, downloadSvg } from "./svgExport.ts";
 import { initAudio, playConnections, setMuted as setSoundMuted } from "./sound.ts";
 import MenuBar from "./MenuBar.tsx";
-import { Sim } from "./types.ts";
+import { Ball, Sim } from "./types.ts";
 import userSpeakingIcon from "../assets/about/user-speaking.svg";
 
 /** Arrows point the way the balls flow, placed at that point of the diamond. */
@@ -138,6 +138,9 @@ export default function Dendrites(): ReactElement {
 
     // Drag the red source ball; grabbing it freezes the sim like the Stop button.
     let dragging = false;
+    // The source's connected component, snapshotted on grab so the drag moves
+    // only the structure fused to it and leaves detached fragments in place.
+    let dragConnected: Set<Ball> | null = null;
     const overSource = (e: PointerEvent): boolean => {
       const sim = simRef.current;
       if (!sim) return false;
@@ -147,8 +150,10 @@ export default function Dendrites(): ReactElement {
       return dx * dx + dy * dy <= grab * grab;
     };
     const onPointerDown = (e: PointerEvent): void => {
-      if (!overSource(e)) return;
+      const sim = simRef.current;
+      if (!sim || !overSource(e)) return;
       dragging = true;
+      dragConnected = connectedToSource(sim);
       setRunning(false);
       canvas.style.cursor = "var(--grabbing)";
       canvas.setPointerCapture(e.pointerId);
@@ -156,10 +161,10 @@ export default function Dendrites(): ReactElement {
     const onPointerMove = (e: PointerEvent): void => {
       const sim = simRef.current;
       if (!sim) return;
-      if (dragging) {
+      if (dragging && dragConnected) {
         const x = Math.max(0, Math.min(width, e.clientX));
         const y = Math.max(0, Math.min(height, e.clientY));
-        moveSource(sim, x, y);
+        moveSource(sim, x, y, dragConnected);
       } else {
         canvas.style.cursor = overSource(e) ? "var(--grab)" : "";
       }
@@ -167,6 +172,7 @@ export default function Dendrites(): ReactElement {
     const onPointerUp = (e: PointerEvent): void => {
       if (!dragging) return;
       dragging = false;
+      dragConnected = null;
       canvas.style.cursor = overSource(e) ? "var(--grab)" : "";
       canvas.releasePointerCapture(e.pointerId);
     };

@@ -1,9 +1,41 @@
 import { CONFIG, Direction } from "./config.ts";
 import { Ball, Sim } from "./types.ts";
 
-// Grid keys pack (cx, cy) into one number. Ball coordinates stay within the
-// canvas, so cx and cy are non-negative and cy stays well below the stride.
+// Grid keys pack (cx, cy) into one number. Dragging a cluster off the top/left
+// edge can push cx/cy negative, but the packing stays injective because |cy|
+// always stays far below the stride.
 const GRID_STRIDE = 100000;
+
+/** Pack a cell coordinate into a single grid-map key. */
+function gridKey(cx: number, cy: number): number {
+  return cx * GRID_STRIDE + cy;
+}
+
+/** Grid-map key for a ball's current position. */
+function ballKey(sim: Sim, ball: Ball): number {
+  return gridKey(
+    Math.floor(ball.x / sim.cellSize),
+    Math.floor(ball.y / sim.cellSize),
+  );
+}
+
+/** Add a ball to its grid cell, creating the cell if needed. */
+function gridInsert(sim: Sim, ball: Ball): void {
+  const key = ballKey(sim, ball);
+  const cell = sim.grid.get(key);
+  if (cell) cell.push(ball);
+  else sim.grid.set(key, [ball]);
+}
+
+/** Remove a ball from its grid cell, dropping the cell once it empties. */
+function gridRemove(sim: Sim, ball: Ball): void {
+  const key = ballKey(sim, ball);
+  const cell = sim.grid.get(key);
+  if (!cell) return;
+  const idx = cell.indexOf(ball);
+  if (idx >= 0) cell.splice(idx, 1);
+  if (cell.length === 0) sim.grid.delete(key);
+}
 
 /** Random float in [min, max). */
 function randRange(min: number, max: number): number {
@@ -172,16 +204,7 @@ function sizeCluster(
 
 /** Add a now-stuck ball to the spatial grid and paint it onto the cluster layer. */
 export function addStuck(sim: Sim, ball: Ball): void {
-  const cx = Math.floor(ball.x / sim.cellSize);
-  const cy = Math.floor(ball.y / sim.cellSize);
-  const key = cx * GRID_STRIDE + cy;
-  const cell = sim.grid.get(key);
-
-  if (cell) {
-    cell.push(ball);
-  } else {
-    sim.grid.set(key, [ball]);
-  }
+  gridInsert(sim, ball);
 
   if (ball.x < sim.minX) sim.minX = ball.x;
   if (ball.x > sim.maxX) sim.maxX = ball.x;
@@ -209,7 +232,7 @@ export function touchesCluster(sim: Sim, ball: Ball): boolean {
   // cellSize >= any radius sum, so a colliding stuck ball is in the 3x3 block.
   for (let gx = cx - 1; gx <= cx + 1; gx++) {
     for (let gy = cy - 1; gy <= cy + 1; gy++) {
-      const cell = sim.grid.get(gx * GRID_STRIDE + gy);
+      const cell = sim.grid.get(gridKey(gx, gy));
       if (!cell) continue;
       for (const s of cell) {
         const dx = ball.x - s.x;
@@ -287,27 +310,67 @@ export function setFreeRadius(sim: Sim, radius: number): void {
 }
 
 /**
- * Reposition the source ball (drag-and-drop): re-bucket it in the grid, then
- * repaint the cluster bitmap and recompute its bounds. Only the source moves.
+ * Flood-fill the stuck cluster outward from the source along touch-adjacency
+ * (two stuck balls are linked when they overlap — the same test that made the
+ * ball stick in the first place) and return the source's connected component.
+ *
+ * Snapshot this at grab time so a drag carries only the structure fused to the
+ * source; balls from any detached fragment are left where they are.
  */
-export function moveSource(sim: Sim, x: number, y: number): void {
-  const src = sim.source;
-  const oldKey =
-    Math.floor(src.x / sim.cellSize) * GRID_STRIDE +
-    Math.floor(src.y / sim.cellSize);
-  const oldCell = sim.grid.get(oldKey);
-  if (oldCell) {
-    const idx = oldCell.indexOf(src);
-    if (idx >= 0) oldCell.splice(idx, 1);
-    if (oldCell.length === 0) sim.grid.delete(oldKey);
+export function connectedToSource(sim: Sim): Set<Ball> {
+  const connected = new Set<Ball>([sim.source]);
+  const stack: Ball[] = [sim.source];
+  while (stack.length > 0) {
+    const ball = stack.pop();
+    if (!ball) break;
+    const cx = Math.floor(ball.x / sim.cellSize);
+    const cy = Math.floor(ball.y / sim.cellSize);
+    // cellSize >= any radius sum, so a touching ball is within the 3x3 block.
+    for (let gx = cx - 1; gx <= cx + 1; gx++) {
+      for (let gy = cy - 1; gy <= cy + 1; gy++) {
+        const cell = sim.grid.get(gridKey(gx, gy));
+        if (!cell) continue;
+        for (const other of cell) {
+          if (connected.has(other)) continue;
+          const dx = ball.x - other.x;
+          const dy = ball.y - other.y;
+          const minDist = ball.radius + other.radius;
+          if (dx * dx + dy * dy <= minDist * minDist) {
+            connected.add(other);
+            stack.push(other);
+          }
+        }
+      }
+    }
   }
-  src.x = x;
-  src.y = y;
-  const newKey =
-    Math.floor(x / sim.cellSize) * GRID_STRIDE + Math.floor(y / sim.cellSize);
-  const newCell = sim.grid.get(newKey);
-  if (newCell) newCell.push(src);
-  else sim.grid.set(newKey, [src]);
+  return connected;
+}
+
+/**
+ * Drag the source to (x, y), carrying the cluster fused to it. Every ball in
+ * `connected` (the source's component, snapshotted at grab time) shifts by the
+ * same delta and is re-bucketed; balls outside the set are passed through
+ * untouched. Then repaint the cluster bitmap and recompute its bounds.
+ */
+export function moveSource(
+  sim: Sim,
+  x: number,
+  y: number,
+  connected: Set<Ball>,
+): void {
+  const src = sim.source;
+  const dx = x - src.x;
+  const dy = y - src.y;
+  if (dx === 0 && dy === 0) return;
+
+  // Pull the connected balls out of the grid at their old positions, shift, and
+  // reinsert at the new ones. Pass-through balls keep their cells as-is.
+  for (const ball of connected) gridRemove(sim, ball);
+  for (const ball of connected) {
+    ball.x += dx;
+    ball.y += dy;
+  }
+  for (const ball of connected) gridInsert(sim, ball);
 
   // Repaint the cached cluster bitmap and recompute its bounds from scratch.
   const ctx = sim.clusterCtx;
