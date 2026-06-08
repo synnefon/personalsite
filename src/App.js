@@ -3,6 +3,7 @@ import { Route, HashRouter as Router, Routes, useLocation } from "react-router-d
 import Footer from "./Footer";
 import Navbar from "./Navbar";
 import { ColorBlindModeProvider } from "./context/ColorBlindModeContext";
+import GunCursor from "./easter_eggs/GunCursor";
 import Home from "./home/Home";
 
 const Game4096 = lazy(() => import("./4096/Game4096.tsx"));
@@ -38,6 +39,7 @@ function App() {
     <ColorBlindModeProvider>
       <Router>
         <TitleUpdater />
+        <GunCursor />
         <Navbar />
         <Suspense
           fallback={

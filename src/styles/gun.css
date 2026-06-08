@@ -1,0 +1,99 @@
+/* Cannon/gun easter egg overlay. Activated via the Konami code (see GunCursor). */
+
+.gun-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Hide every cursor on the page while the gun is armed */
+body.gun-armed,
+body.gun-armed * {
+  cursor: none !important;
+}
+
+.gun-follower {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.gun-rotor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+  transition: transform 90ms linear;
+}
+
+.gun-sprite {
+  position: absolute;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.35));
+}
+
+.gun-muzzle {
+  position: absolute;
+  image-rendering: pixelated;
+}
+
+.gun-crater {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.gun-burst {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.gun-debris {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: #2b211a;
+  image-rendering: pixelated;
+  animation: gun-debris-fly 0.6s ease-out forwards;
+}
+
+@keyframes gun-debris-fly {
+  to {
+    transform: translate(var(--dx), var(--dy));
+    opacity: 0;
+  }
+}
+
+.gun-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 36px;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  font-family: "JuliaMono", monospace;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  color: var(--color-orange, orange);
+  background: rgba(0, 0, 0, 0.78);
+  border: 2px solid var(--color-orange, orange);
+  border-radius: 4px;
+  white-space: nowrap;
+  animation: gun-toast-fade 1.5s ease-out forwards;
+}
+
+@keyframes gun-toast-fade {
+  0% { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gun-rotor { transition: none; }
+}
