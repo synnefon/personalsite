@@ -22,4 +22,9 @@ export type Sim = {
   cluster: HTMLCanvasElement;
   clusterCtx: CanvasRenderingContext2D;
   keepGenerating: boolean;
+  /** Axis-aligned bounds of the stuck cluster, for cheap collision rejection. */
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
 };

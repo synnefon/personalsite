@@ -1,21 +1,6 @@
 import { CONFIG, Direction } from "./config.ts";
 import { Ball, Sim } from "./types.ts";
 
-/*
-  The engine: spawning, movement, wall-bouncing, and rendering.
-
-  Stuck balls never move, so they're kept in two structures that keep the hot
-  path cheap as the dendrite grows:
-    - a spatial-hash `grid`, so a free ball only tests the handful of stuck
-      balls in neighbouring cells instead of the whole cluster (collision is
-      O(free) per frame instead of O(total^2));
-    - an offscreen `cluster` canvas they're painted onto once when they stick,
-      so each frame blits a single image instead of re-stroking every stuck
-      ball (drawing is O(free) per frame too).
-
-  The interaction logic (what happens when balls touch) lives in interactions.ts.
-*/
-
 // Grid keys pack (cx, cy) into one number. Ball coordinates stay within the
 // canvas, so cx and cy are non-negative and cy stays well below the stride.
 const GRID_STRIDE = 100000;
@@ -26,11 +11,6 @@ function randRange(min: number, max: number): number {
 }
 
 function randStartVelocity(direction: Direction): { vx: number; vy: number } {
-  // always move towards the center of the canvas, plus or minus a random angle
-  // const dx = 1;
-  // const dy = 0;
-  // const angle = Math.atan2(dy, dx);
-  // const speed = randRange(CONFIG.minSpeed, CONFIG.maxSpeed);
   switch (direction) {
     case Direction.LR:
       return { vx: CONFIG.ballSpeed, vy: 0 };
@@ -188,13 +168,34 @@ export function addStuck(sim: Sim, ball: Ball): void {
   const cy = Math.floor(ball.y / sim.cellSize);
   const key = cx * GRID_STRIDE + cy;
   const cell = sim.grid.get(key);
-  if (cell) cell.push(ball);
-  else sim.grid.set(key, [ball]);
+
+  if (cell) {
+    cell.push(ball);
+  } else {
+    sim.grid.set(key, [ball]);
+  }
+
+  if (ball.x < sim.minX) sim.minX = ball.x;
+  if (ball.x > sim.maxX) sim.maxX = ball.x;
+  if (ball.y < sim.minY) sim.minY = ball.y;
+  if (ball.y > sim.maxY) sim.maxY = ball.y;
   drawBall(sim.clusterCtx, ball);
 }
 
 /** True if `ball` overlaps any stuck ball, found via the spatial grid. */
 export function touchesCluster(sim: Sim, ball: Ball): boolean {
+  // Cheap reject: a ball outside the cluster's bounding box (padded by one
+  // cell, which is >= any radius sum) can't touch a stuck ball, so skip the
+  // nine grid probes entirely.
+  const pad = sim.cellSize;
+  if (
+    ball.x < sim.minX - pad ||
+    ball.x > sim.maxX + pad ||
+    ball.y < sim.minY - pad ||
+    ball.y > sim.maxY + pad
+  ) {
+    return false;
+  }
   const cx = Math.floor(ball.x / sim.cellSize);
   const cy = Math.floor(ball.y / sim.cellSize);
   // cellSize >= any radius sum, so a colliding stuck ball is in the 3x3 block.
@@ -238,6 +239,10 @@ export function initializeSim({
     cluster,
     clusterCtx,
     keepGenerating: true,
+    minX: Infinity,
+    minY: Infinity,
+    maxX: -Infinity,
+    maxY: -Infinity,
   };
   sizeCluster(sim, width, height, dpr);
   for (const ball of balls) {
@@ -294,7 +299,7 @@ function resetBall(
   width: number,
   height: number,
   direction: Direction,
-): Ball {
+): void {
   const { x, y } = randStartPosition({
     width,
     height,
@@ -302,13 +307,10 @@ function resetBall(
     offset: false,
   });
   const { vx, vy } = randStartVelocity(direction);
-  return {
-    ...ball,
-    x,
-    y,
-    vx,
-    vy,
-  };
+  ball.x = x;
+  ball.y = y;
+  ball.vx = vx;
+  ball.vy = vy;
 }
 
 function resteerBalls({
@@ -423,16 +425,22 @@ export function stepSim(
   dt: number,
   direction: Direction,
 ): void {
-  const { keepGenerating } = sim;
-  for (let i = 0; i < sim.free.length; i++) {
-    const ball = sim.free[i];
-    if (!keepGenerating) continue;
+  if (!sim.keepGenerating) return;
+  const free = sim.free;
+  if (free.length === 0) return;
 
-    ball.x += ball.vx * dt;
-    ball.y += ball.vy * dt;
+  // Every free ball shares the current direction's velocity, so the per-frame
+  // displacement is identical for all of them — compute it once.
+  const dx = free[0].vx * dt;
+  const dy = free[0].vy * dt;
+
+  for (let i = 0; i < free.length; i++) {
+    const ball = free[i];
+    ball.x += dx;
+    ball.y += dy;
 
     if (ball.appeared && isBallOffscreen(ball, width, height)) {
-      sim.free[i] = resetBall(ball, width, height, direction);
+      resetBall(ball, width, height, direction);
     } else if (!ball.appeared) {
       ball.appeared = true;
     }
@@ -449,9 +457,20 @@ export function drawSim(
   ctx.fillStyle = CONFIG.background;
   ctx.fillRect(0, 0, width, height);
   ctx.drawImage(sim.cluster, 0, 0, width, height);
-  for (const ball of sim.free) {
-    drawBall(ctx, ball);
+
+  // Free balls share one radius and color, so submit them as a single path and
+  // fill once instead of a beginPath/fill round-trip per ball.
+  const free = sim.free;
+  if (free.length === 0) return;
+  ctx.fillStyle = CONFIG.freeColor;
+  ctx.beginPath();
+  const TAU = Math.PI * 2;
+  for (let i = 0; i < free.length; i++) {
+    const b = free[i];
+    ctx.moveTo(b.x + b.radius, b.y); // lift the pen so arcs don't link up
+    ctx.arc(b.x, b.y, b.radius, 0, TAU);
   }
+  ctx.fill();
 }
 
 /**
@@ -473,42 +492,47 @@ export function applyInteractions(
   direction: Direction,
   stopRunCallback: () => void,
 ): void {
-  const newlyStuck: Ball[] = [];
-  for (const ball of sim.free) {
+  const free = sim.free;
+  const stuckIdx: number[] = [];
+  for (let i = 0; i < free.length; i++) {
+    const ball = free[i];
     if (touchesCluster(sim, ball)) {
       ball.stuck = true;
       ball.color = CONFIG.stuckColor;
-      newlyStuck.push(ball);
+      stuckIdx.push(i);
     }
   }
-  if (newlyStuck.length === 0) return;
+  if (stuckIdx.length === 0) return;
 
   // Commit after the scan: every ball this frame is tested against the same
   // cluster snapshot, and the grid is never mutated while it's being read.
-  for (const ball of newlyStuck) addStuck(sim, ball);
-  // Drop the balls that stuck, then spawn one fresh free ball for each.
-  sim.free = sim.free.filter((ball) => !ball.stuck);
+  for (let k = 0; k < stuckIdx.length; k++) addStuck(sim, free[stuckIdx[k]]);
 
-  if (!sim.keepGenerating) return;
-  for (let i = 0; i < newlyStuck.length; i++) {
-    if (shouldStopGenerating(newlyStuck[i], width, height)) {
+  if (!sim.keepGenerating) {
+    sim.free = free.filter((ball) => !ball.stuck);
+    return;
+  }
+
+  // Each stuck ball is replaced by exactly one fresh free ball, so reuse its
+  // slot instead of filtering the array and re-growing it every frame.
+  for (let k = 0; k < stuckIdx.length; k++) {
+    const i = stuckIdx[k];
+    if (shouldStopGenerating(free[i], width, height)) {
       sim.keepGenerating = false;
       sim.free = [];
       stopRunCallback();
-      break;
+      return;
     }
 
-    sim.free.push(
-      createBall(width, height, {
+    free[i] = createBall(width, height, {
+      direction,
+      stuck: false,
+      startPosition: randStartPosition({
+        width,
+        height,
         direction,
-        stuck: false,
-        startPosition: randStartPosition({
-          width,
-          height,
-          direction,
-          offset: true,
-        }),
+        offset: true,
       }),
-    );
+    });
   }
 }
