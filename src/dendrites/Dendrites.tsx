@@ -5,6 +5,14 @@ import { applyInteractions, changeDirection, drawSim, initializeSim, resizeSim, 
 import MenuBar from "./MenuBar.tsx";
 import { Sim } from "./types.ts";
 
+/** Arrows point the way the balls flow, placed at that point of the diamond. */
+const DIRECTION_PAD = [
+  { dir: Direction.BT, glyph: "↑", label: "Bottom to top", area: "up" },
+  { dir: Direction.RL, glyph: "←", label: "Right to left", area: "left" },
+  { dir: Direction.LR, glyph: "→", label: "Left to right", area: "right" },
+  { dir: Direction.TB, glyph: "↓", label: "Top to bottom", area: "down" },
+];
+
 /**
  * Dendrites — balls zooming around a full-screen canvas, with a programmable
  * interaction layer (see interactions.ts).
@@ -18,6 +26,7 @@ export default function Dendrites(): ReactElement {
 
   const [running, setRunning] = useState(false);
   const [direction, setDirection] = useState(Direction.LR);
+  const [menuOpen, setMenuOpen] = useState(true);
 
 
   const runningRef = useRef(running);
@@ -114,16 +123,24 @@ export default function Dendrites(): ReactElement {
   return (
     <div>
       <canvas ref={canvasRef} className="dendrites-canvas" />
-      <MenuBar>
+      <MenuBar open={menuOpen} onToggle={() => setMenuOpen(!menuOpen)}>
         <button className="dendrites-toggle" onClick={() => setRunning(!running)}>
           {running ? "Stop" : "Start"}
         </button>
-        <select value={direction} onChange={(e) => setDirection(e.target.value as Direction)}>
-          <option value="LR">Left to Right</option>
-          <option value="RL">Right to Left</option>
-          <option value="TB">Top to Bottom</option>
-          <option value="BT">Bottom to Top</option>
-        </select>
+        <div className="dendrites-direction-pad">
+          {DIRECTION_PAD.map(({ dir, glyph, label, area }) => (
+            <button
+              key={dir}
+              aria-label={label}
+              title={label}
+              className={`dendrites-arrow${direction === dir ? " dendrites-arrow--active" : ""}`}
+              style={{ gridArea: area }}
+              onClick={() => setDirection(dir)}
+            >
+              {glyph}
+            </button>
+          ))}
+        </div>
       </MenuBar>
     </div>
   );
