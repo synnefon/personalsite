@@ -563,3 +563,28 @@ export function applyInteractions(
     });
   }
 }
+
+/**
+ * Advance the sim one frame, sub-stepping so no free ball moves more than its
+ * own radius between collision checks. Without this, fast (small) balls leap
+ * over the cluster's thin capture zone between frames and tunnel through,
+ * collapsing the growth into straight lines.
+ */
+export function advanceSim(
+  sim: Sim,
+  width: number,
+  height: number,
+  dt: number,
+  direction: Direction,
+  stopRunCallback: () => void,
+  onConnections?: (count: number) => void,
+): void {
+  const distance = speedForRadius(sim.freeRadius) * dt;
+  const substeps = Math.max(1, Math.ceil(distance / sim.freeRadius));
+  const subDt = dt / substeps;
+  for (let s = 0; s < substeps; s++) {
+    stepSim(sim, width, height, subDt, direction);
+    applyInteractions(sim, width, height, direction, stopRunCallback, onConnections);
+    if (!sim.keepGenerating) break;
+  }
+}

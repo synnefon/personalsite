@@ -1,7 +1,7 @@
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import "../styles/dendrites.css";
 import { CONFIG, Direction } from "./config.ts";
-import { applyInteractions, changeDirection, drawSim, initializeSim, resizeSim, setFreeRadius, stepSim } from "./engine.ts";
+import { advanceSim, changeDirection, drawSim, initializeSim, resizeSim, setFreeRadius } from "./engine.ts";
 import { clusterToSvg, downloadSvg } from "./svgExport.ts";
 import { initAudio, playConnections, setMuted as setSoundMuted } from "./sound.ts";
 import MenuBar from "./MenuBar.tsx";
@@ -118,11 +118,11 @@ export default function Dendrites(): ReactElement {
       if (!simRef.current) return;
 
       if (runningRef.current) {
-        stepSim(simRef.current, width, height, dt, directionRef.current);
-        applyInteractions(
+        advanceSim(
           simRef.current,
           width,
           height,
+          dt,
           directionRef.current,
           () => setRunning(false),
           playConnections,
