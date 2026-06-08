@@ -22,14 +22,17 @@ export default function Dendrites(): ReactElement {
 
   const runningRef = useRef(running);
   const simRef = useRef<Sim | null>(null);
+  function initSim() {
+    simRef.current = initializeSim({
+      width: window.innerWidth,
+      height: window.innerHeight,
+      dpr: window.devicePixelRatio || 1,
+      direction: directionRef.current,
+    });
+  }
   useEffect(() => {
     if (!runningRef.current && simRef.current?.free.length === 0) {
-      simRef.current = initializeSim({
-        width: window.innerWidth,
-        height: window.innerHeight,
-        dpr: window.devicePixelRatio || 1,
-        direction: directionRef.current,
-      });
+      initSim();
     }
     runningRef.current = running;
   }, [running]);
@@ -60,12 +63,7 @@ export default function Dendrites(): ReactElement {
     let width = window.innerWidth;
     let height = window.innerHeight;
 
-    simRef.current = initializeSim({
-      width,
-      height,
-      dpr: window.devicePixelRatio || 1,
-      direction,
-    });
+    initSim();
 
     // Size the backing store for crisp rendering on retina displays, then
     // draw in CSS pixels by scaling the context by the device pixel ratio.
