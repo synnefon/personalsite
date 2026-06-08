@@ -1,12 +1,22 @@
 import React, { ReactElement, useEffect, useRef, useState } from "react";
+import volumeDownIcon from "../assets/dendrites/volume_down.svg";
+import volumeUpIcon from "../assets/dendrites/volume_up.svg";
 import "../styles/dendrites.css";
 import { CONFIG, Direction } from "./config.ts";
-import { advanceSim, changeDirection, connectedToSource, drawSim, initializeSim, moveSource, resizeSim, setFreeRadius } from "./engine.ts";
-import { clusterToSvg, downloadSvg } from "./svgExport.ts";
-import { initAudio, playConnections, setMuted as setSoundMuted } from "./sound.ts";
+import {
+  advanceSim,
+  changeDirection,
+  connectedToSource,
+  drawSim,
+  initializeSim,
+  moveSource,
+  resizeSim,
+  setFreeRadius,
+} from "./engine.ts";
 import MenuBar from "./MenuBar.tsx";
+import { initAudio, playConnections, setPitchForRadius, setMuted as setSoundMuted } from "./sound.ts";
+import { clusterToSvg, downloadSvg } from "./svgExport.ts";
 import { Ball, Sim } from "./types.ts";
-import userSpeakingIcon from "../assets/about/user-speaking.svg";
 
 /** Arrows point the way the balls flow, placed at that point of the diamond. */
 const DIRECTION_PAD = [
@@ -15,6 +25,12 @@ const DIRECTION_PAD = [
   { dir: Direction.LR, glyph: "→", label: "Left to right", area: "right" },
   { dir: Direction.TB, glyph: "↓", label: "Top to bottom", area: "down" },
 ];
+
+/** One tick mark per integer radius stop (slider step is 1). */
+const RADIUS_TICKS = Array.from(
+  { length: CONFIG.maxBallRadius - CONFIG.minBallRadius + 1 },
+  (_, i) => i,
+);
 
 /**
  * Dendrites — balls zooming around a full-screen canvas, with a programmable
@@ -59,6 +75,7 @@ export default function Dendrites(): ReactElement {
   useEffect(() => {
     radiusRef.current = radius;
     if (simRef.current) setFreeRadius(simRef.current, radius);
+    setPitchForRadius(radius);
   }, [radius]);
 
   const directionRef = useRef(direction);
@@ -226,17 +243,35 @@ export default function Dendrites(): ReactElement {
             </button>
           ))}
         </div>
-        <input
-          type="range"
-          className="dendrites-radius"
-          min={2}
-          max={CONFIG.maxBallRadius}
-          step={1}
-          value={radius}
-          onChange={(e) => setRadius(+e.target.value)}
-          aria-label="Free ball radius"
-          title="Free ball radius"
-        />
+        <div className="dendrites-radius-wrap">
+          <div
+            className="dendrites-radius-ticks dendrites-radius-ticks--top"
+            aria-hidden="true"
+          >
+            {RADIUS_TICKS.map((i) => (
+              <span key={i} />
+            ))}
+          </div>
+          <input
+            type="range"
+            className="dendrites-radius"
+            min={CONFIG.minBallRadius}
+            max={CONFIG.maxBallRadius}
+            step={1}
+            value={radius}
+            onChange={(e) => setRadius(+e.target.value)}
+            aria-label="Free ball radius"
+            title="Free ball radius"
+          />
+          <div
+            className="dendrites-radius-ticks dendrites-radius-ticks--bottom"
+            aria-hidden="true"
+          >
+            {RADIUS_TICKS.map((i) => (
+              <span key={i} />
+            ))}
+          </div>
+        </div>
         <button
           className="dendrites-mute"
           aria-label={muted ? "Unmute sound" : "Mute sound"}
@@ -248,10 +283,9 @@ export default function Dendrites(): ReactElement {
           }}
         >
           <img
-            src={userSpeakingIcon}
+            src={muted ? volumeDownIcon : volumeUpIcon}
             alt=""
-            className="dendrites-mute-icon"
-            style={{ opacity: muted ? 0.4 : 1 }}
+            className={`dendrites-mute-icon${muted ? " muted" : " playing"}`}
             draggable={false}
           />
         </button>

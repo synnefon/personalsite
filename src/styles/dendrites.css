@@ -82,21 +82,81 @@
   color: rgb(255, 255, 255);
 }
 
-.dendrites-mute-icon {
-  width: 1.15rem;
-  height: 1.15rem;
-  display: block;
-  filter: brightness(0) invert(0.2);
-}
-
-.dendrites-radius {
+.dendrites-radius-wrap {
   position: absolute;
   right: 15rem;
   top: 50%;
   transform: translateY(-50%);
   width: 6rem;
+}
+
+.dendrites-radius {
+  display: block;
+  width: 100%;
+  margin: 0;
   cursor: var(--pointer);
   accent-color: white;
+}
+
+/* The track reads as clickable (--pointer above); click-dragging it grabs. */
+.dendrites-radius:active {
+  cursor: var(--grabbing);
+}
+
+/* The thumb reads as grabbable, turning to a fist while it's being dragged.
+   Split per engine — an unrecognized pseudo-element voids the whole rule. */
+.dendrites-radius::-webkit-slider-thumb {
+  cursor: var(--grab);
+}
+.dendrites-radius::-moz-range-thumb {
+  cursor: var(--grab);
+}
+.dendrites-radius:active::-webkit-slider-thumb {
+  cursor: var(--grabbing);
+}
+.dendrites-radius:active::-moz-range-thumb {
+  cursor: var(--grabbing);
+}
+
+/* One tick per integer radius stop, inset by half the thumb width so the end
+   ticks line up with the thumb's travel. Mirrored above and below the track. */
+.dendrites-radius-ticks {
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.dendrites-radius-ticks--top {
+  bottom: 100%;
+  margin-bottom: 2px;
+}
+
+.dendrites-radius-ticks--bottom {
+  top: 100%;
+  margin-top: 2px;
+}
+
+.dendrites-radius-ticks span {
+  width: 1px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.dendrites-mute-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  display: block;
+}
+
+.dendrites-mute-icon.muted {
+  filter: brightness(0) invert(0.7);
+}
+
+.dendrites-mute-icon.playing {
+  filter: brightness(0) invert(1);
 }
 
 .dendrites-mute {
@@ -108,6 +168,9 @@
   font-size: 1rem;
   line-height: 1;
   cursor: var(--pointer);
+  background: rgb(0, 0, 0);
+  border: 1px solid rgba(255, 255, 255, 1);
+  border-radius: 6px;
 }
 
 .dendrites-direction-pad {

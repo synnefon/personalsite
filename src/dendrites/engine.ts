@@ -418,10 +418,10 @@ function shouldStopGenerating(
   height: number,
 ): boolean {
   return (
-    ball.x <= width / 20 ||
-    ball.x >= width - width / 20 ||
-    ball.y <= height / 20 ||
-    ball.y >= height - height / 20
+    ball.x <= 10 ||
+    ball.x >= width - 10 ||
+    ball.y <= 10 ||
+    ball.y >= height - 10
   );
 }
 
@@ -692,7 +692,14 @@ export function advanceSim(
   const subDt = dt / substeps;
   for (let s = 0; s < substeps; s++) {
     stepSim(sim, width, height, subDt, direction);
-    applyInteractions(sim, width, height, direction, stopRunCallback, onConnections);
+    applyInteractions(
+      sim,
+      width,
+      height,
+      direction,
+      stopRunCallback,
+      onConnections,
+    );
     if (!sim.keepGenerating) break;
   }
 }

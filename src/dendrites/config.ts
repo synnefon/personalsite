@@ -29,6 +29,8 @@ export const CONFIG = {
   /** Radius range (px). */
   ballRadius: 3.5,
   sourceBallRadius: 6,
+  /** Min free-ball radius (slider floor); connection blips play unshifted here. */
+  minBallRadius: 2,
   /** Max free-ball radius (slider cap); the collision grid's cellSize is sized for this. */
   maxBallRadius: 10,
   /** Per-axis speed range (px per 60fps frame). */
