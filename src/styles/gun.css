@@ -6,6 +6,11 @@
   z-index: 2147483000;
   pointer-events: none;
   overflow: hidden;
+
+  /* Site look: flat palette, heavy black outlines */
+  --gun-paper: #050404;
+  --gun-ink: #f0f0f0;
+  --gun-accent: #f0f0f0;
 }
 
 /* Hide every cursor on the page while the gun is armed */
@@ -31,10 +36,21 @@ body.gun-armed * {
   transition: transform 90ms linear;
 }
 
+/* Heavy black outline around the pixel silhouette, plus a hard offset shadow */
 .gun-sprite {
   position: absolute;
   image-rendering: pixelated;
-  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.35));
+  filter:
+    drop-shadow(2px 0 0 #000) drop-shadow(-2px 0 0 #000)
+    drop-shadow(0 2px 0 #000) drop-shadow(0 -2px 0 #000)
+    drop-shadow(3px 4px 0 rgba(0, 0, 0, 0.3));
+}
+
+.gun-sprite--laser {
+  filter:
+    drop-shadow(2px 0 0 #000) drop-shadow(-2px 0 0 #000)
+    drop-shadow(0 2px 0 #000) drop-shadow(0 -2px 0 #000)
+    drop-shadow(0 0 4px #29f0e0);
 }
 
 .gun-muzzle {
@@ -42,11 +58,34 @@ body.gun-armed * {
   image-rendering: pixelated;
 }
 
+/* Charge-up glow at the muzzle; scale/opacity driven imperatively while held */
+.gun-charge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 240, 190, 0.95) 0%,
+    rgba(255, 140, 20, 0.6) 42%,
+    rgba(255, 90, 0, 0) 72%
+  );
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
 .gun-crater {
   position: absolute;
-  transform: translate(-50%, -50%);
   image-rendering: pixelated;
   pointer-events: none;
+}
+
+/* Glowing bloom around the laser's molten holes */
+.gun-crater--molten {
+  filter: drop-shadow(0 0 5px #ff6a00) drop-shadow(0 0 2px #ffcf4d);
 }
 
 .gun-burst {
@@ -79,10 +118,10 @@ body.gun-armed * {
   font-family: "JuliaMono", monospace;
   font-size: 14px;
   letter-spacing: 0.5px;
-  color: var(--color-orange, orange);
-  background: rgba(0, 0, 0, 0.78);
-  border: 2px solid var(--color-orange, orange);
-  border-radius: 4px;
+  color: var(--gun-ink);
+  background: var(--gun-paper);
+  border: 3px solid var(--gun-ink);
+  border-radius: 0;
   white-space: nowrap;
   animation: gun-toast-fade 1.5s ease-out forwards;
 }
@@ -94,6 +133,95 @@ body.gun-armed * {
   100% { opacity: 0; }
 }
 
+.gun-menu {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  padding: 10px;
+  min-width: 168px;
+  background: var(--gun-paper);
+  border: 4px solid var(--gun-ink);
+  border-radius: 0;
+  font-family: "JuliaMono", monospace;
+  color: var(--gun-ink);
+  animation: gun-menu-in 0.18s ease-out;
+}
+
+.gun-menu-title {
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--gun-ink);
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.gun-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 6px;
+  border: 2px solid transparent;
+}
+
+.gun-menu-row.is-selected {
+  background: var(--gun-accent);
+  color: var(--gun-paper);
+  border: 2px solid var(--gun-ink);
+}
+
+.gun-menu-marker {
+  width: 10px;
+  font-size: 13px;
+}
+
+.gun-menu-label {
+  flex: 1;
+  font-size: 14px;
+}
+
+.gun-menu-row.is-selected .gun-menu-label {
+  font-weight: bold;
+}
+
+.gun-menu-icon {
+  display: flex;
+  justify-content: flex-end;
+  width: 60px;
+}
+
+/* Heavy black outline on the menu icons too */
+.gun-icon {
+  image-rendering: pixelated;
+  filter:
+    drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000)
+    drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000);
+}
+
+.gun-icon--laser {
+  filter:
+    drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000)
+    drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000)
+    drop-shadow(0 0 2px #29f0e0);
+}
+
+.gun-menu-note {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 2px solid var(--gun-ink);
+  font-size: 11px;
+  text-align: center;
+}
+
+@keyframes gun-menu-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gun-rotor { transition: none; }
+  .gun-menu { animation: none; }
 }
