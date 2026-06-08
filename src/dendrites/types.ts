@@ -22,6 +22,8 @@ export type Sim = {
   cluster: HTMLCanvasElement;
   clusterCtx: CanvasRenderingContext2D;
   keepGenerating: boolean;
+  /** Current radius for newly-spawned and existing free balls (set by the slider). */
+  freeRadius: number;
   /** Axis-aligned bounds of the stuck cluster, for cheap collision rejection. */
   minX: number;
   minY: number;

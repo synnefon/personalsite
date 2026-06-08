@@ -1,10 +1,12 @@
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import "../styles/dendrites.css";
-import { Direction } from "./config.ts";
-import { applyInteractions, changeDirection, drawSim, initializeSim, resizeSim, stepSim } from "./engine.ts";
+import { CONFIG, Direction } from "./config.ts";
+import { applyInteractions, changeDirection, drawSim, initializeSim, resizeSim, setFreeRadius, stepSim } from "./engine.ts";
 import { clusterToSvg, downloadSvg } from "./svgExport.ts";
+import { initAudio, playConnections, setMuted as setSoundMuted } from "./sound.ts";
 import MenuBar from "./MenuBar.tsx";
 import { Sim } from "./types.ts";
+import userSpeakingIcon from "../assets/about/user-speaking.svg";
 
 /** Arrows point the way the balls flow, placed at that point of the diamond. */
 const DIRECTION_PAD = [
@@ -28,10 +30,16 @@ export default function Dendrites(): ReactElement {
   const [running, setRunning] = useState(false);
   const [direction, setDirection] = useState(Direction.LR);
   const [menuOpen, setMenuOpen] = useState(true);
+  const [muted, setMuted] = useState(true);
+  const [radius, setRadius] = useState<number>(CONFIG.ballRadius);
+  useEffect(() => {
+    setSoundMuted(muted);
+  }, [muted]);
 
 
   const runningRef = useRef(running);
   const simRef = useRef<Sim | null>(null);
+  const radiusRef = useRef(radius);
   function initSim() {
     simRef.current = initializeSim({
       width: window.innerWidth,
@@ -39,6 +47,7 @@ export default function Dendrites(): ReactElement {
       dpr: window.devicePixelRatio || 1,
       direction: directionRef.current,
     });
+    setFreeRadius(simRef.current, radiusRef.current);
   }
   useEffect(() => {
     if (!runningRef.current && simRef.current?.free.length === 0) {
@@ -46,6 +55,11 @@ export default function Dendrites(): ReactElement {
     }
     runningRef.current = running;
   }, [running]);
+
+  useEffect(() => {
+    radiusRef.current = radius;
+    if (simRef.current) setFreeRadius(simRef.current, radius);
+  }, [radius]);
 
   const directionRef = useRef(direction);
   const prevDirectionRef = useRef(direction);
@@ -105,7 +119,14 @@ export default function Dendrites(): ReactElement {
 
       if (runningRef.current) {
         stepSim(simRef.current, width, height, dt, directionRef.current);
-        applyInteractions(simRef.current, width, height, directionRef.current, () => setRunning(false));
+        applyInteractions(
+          simRef.current,
+          width,
+          height,
+          directionRef.current,
+          () => setRunning(false),
+          playConnections,
+        );
       }
       drawSim(ctx, simRef.current, width, height);
 
@@ -134,7 +155,13 @@ export default function Dendrites(): ReactElement {
         >
           Export SVG
         </button>
-        <button className="dendrites-toggle" onClick={() => setRunning(!running)}>
+        <button
+          className="dendrites-toggle"
+          onClick={() => {
+            if (!running) initAudio();
+            setRunning(!running);
+          }}
+        >
           {running ? "Stop" : "Start"}
         </button>
         <div className="dendrites-direction-pad">
@@ -151,6 +178,35 @@ export default function Dendrites(): ReactElement {
             </button>
           ))}
         </div>
+        <input
+          type="range"
+          className="dendrites-radius"
+          min={2}
+          max={CONFIG.maxBallRadius}
+          step={1}
+          value={radius}
+          onChange={(e) => setRadius(+e.target.value)}
+          aria-label="Free ball radius"
+          title="Free ball radius"
+        />
+        <button
+          className="dendrites-mute"
+          aria-label={muted ? "Unmute sound" : "Mute sound"}
+          aria-pressed={muted}
+          title={muted ? "Unmute sound" : "Mute sound"}
+          onClick={() => {
+            if (muted) initAudio();
+            setMuted(!muted);
+          }}
+        >
+          <img
+            src={userSpeakingIcon}
+            alt=""
+            className="dendrites-mute-icon"
+            style={{ opacity: muted ? 0.4 : 1 }}
+            draggable={false}
+          />
+        </button>
       </MenuBar>
     </div>
   );

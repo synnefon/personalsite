@@ -29,6 +29,8 @@ export const CONFIG = {
   /** Radius range (px). */
   ballRadius: 3.5,
   sourceBallRadius: 6,
+  /** Max free-ball radius (slider cap); the collision grid's cellSize is sized for this. */
+  maxBallRadius: 10,
   /** Per-axis speed range (px per 60fps frame). */
   ballSpeed: 5,
   /** Probability of a sticky collision when a free ball collides with the dendrite.*/

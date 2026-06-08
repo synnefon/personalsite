@@ -10,16 +10,24 @@ function randRange(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
-function randStartVelocity(direction: Direction): { vx: number; vy: number } {
+/** Free-ball speed scales inversely with radius: default radius → CONFIG.ballSpeed. */
+function speedForRadius(radius: number): number {
+  return (CONFIG.ballSpeed * CONFIG.ballRadius) / radius;
+}
+
+function randStartVelocity(
+  direction: Direction,
+  speed: number,
+): { vx: number; vy: number } {
   switch (direction) {
     case Direction.LR:
-      return { vx: CONFIG.ballSpeed, vy: 0 };
+      return { vx: speed, vy: 0 };
     case Direction.RL:
-      return { vx: -CONFIG.ballSpeed, vy: 0 };
+      return { vx: -speed, vy: 0 };
     case Direction.TB:
-      return { vx: 0, vy: CONFIG.ballSpeed };
+      return { vx: 0, vy: speed };
     case Direction.BT:
-      return { vx: 0, vy: -CONFIG.ballSpeed };
+      return { vx: 0, vy: -speed };
   }
 }
 
@@ -93,7 +101,7 @@ export function createBall(
       direction,
     });
   const offScreen = isOffscreen(x, y, r, width, height);
-  const { vx, vy } = randStartVelocity(direction);
+  const { vx, vy } = randStartVelocity(direction, speedForRadius(r));
   const color = stuck ? CONFIG.stuckColor : CONFIG.freeColor;
   return {
     x,
@@ -235,10 +243,11 @@ export function initializeSim({
   const sim: Sim = {
     free: [],
     grid: new Map(),
-    cellSize: 2 * maxRadius,
+    cellSize: 2 * Math.max(maxRadius, CONFIG.maxBallRadius),
     cluster,
     clusterCtx,
     keepGenerating: true,
+    freeRadius: CONFIG.ballRadius,
     minX: Infinity,
     minY: Infinity,
     maxX: -Infinity,
@@ -260,6 +269,20 @@ export function resizeSim(
   dpr: number,
 ): void {
   sizeCluster(sim, width, height, dpr);
+}
+
+/** Set free balls' radius and inversely-scaled speed — current and future. Stuck balls keep theirs. */
+export function setFreeRadius(sim: Sim, radius: number): void {
+  sim.freeRadius = radius;
+  const speed = speedForRadius(radius);
+  for (const ball of sim.free) {
+    ball.radius = radius;
+    const mag = Math.hypot(ball.vx, ball.vy);
+    if (mag > 0) {
+      ball.vx = (ball.vx / mag) * speed;
+      ball.vy = (ball.vy / mag) * speed;
+    }
+  }
 }
 
 function isBallOffscreen(ball: Ball, width: number, height: number): boolean {
@@ -306,7 +329,7 @@ function resetBall(
     direction,
     offset: false,
   });
-  const { vx, vy } = randStartVelocity(direction);
+  const { vx, vy } = randStartVelocity(direction, speedForRadius(ball.radius));
   ball.x = x;
   ball.y = y;
   ball.vx = vx;
@@ -386,20 +409,21 @@ export function changeDirection(
   const translations = makeTranslations(width, height);
   const xtranslation = translations[oldDirection][direction].x;
   const ytranslation = translations[oldDirection][direction].y;
+  const speed = speedForRadius(sim.freeRadius);
   let vx = 0;
   let vy = 0;
   switch (direction) {
     case Direction.LR:
-      vx = CONFIG.ballSpeed;
+      vx = speed;
       break;
     case Direction.RL:
-      vx = -CONFIG.ballSpeed;
+      vx = -speed;
       break;
     case Direction.TB:
-      vy = CONFIG.ballSpeed;
+      vy = speed;
       break;
     case Direction.BT:
-      vy = -CONFIG.ballSpeed;
+      vy = -speed;
       break;
   }
 
@@ -491,6 +515,7 @@ export function applyInteractions(
   height: number,
   direction: Direction,
   stopRunCallback: () => void,
+  onConnections?: (count: number) => void,
 ): void {
   const free = sim.free;
   const stuckIdx: number[] = [];
@@ -503,6 +528,7 @@ export function applyInteractions(
     }
   }
   if (stuckIdx.length === 0) return;
+  onConnections?.(stuckIdx.length);
 
   // Commit after the scan: every ball this frame is tested against the same
   // cluster snapshot, and the grid is never mutated while it's being read.
@@ -527,6 +553,7 @@ export function applyInteractions(
     free[i] = createBall(width, height, {
       direction,
       stuck: false,
+      radius: sim.freeRadius,
       startPosition: randStartPosition({
         width,
         height,
