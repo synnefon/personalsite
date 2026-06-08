@@ -47,6 +47,36 @@ function speedForRadius(radius: number): number {
   return (CONFIG.ballSpeed * CONFIG.ballRadius) / radius;
 }
 
+/** The four uniform flow directions (everything except ALL). */
+const FLOW_DIRECTIONS = [
+  Direction.LR,
+  Direction.RL,
+  Direction.TB,
+  Direction.BT,
+];
+
+/** Pick one of the four flow directions at random. */
+function randomFlowDirection(): Direction {
+  return FLOW_DIRECTIONS[Math.floor(Math.random() * FLOW_DIRECTIONS.length)];
+}
+
+/**
+ * A velocity of magnitude `speed` aimed from (x, y) at the canvas center, with
+ * the angle jittered uniformly within ±CONFIG.allSpreadDegrees. Used by ALL mode.
+ */
+function aimedVelocity(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  speed: number,
+): { vx: number; vy: number } {
+  const base = Math.atan2(height / 2 - y, width / 2 - x);
+  const spread = (CONFIG.allSpreadDegrees * Math.PI) / 180;
+  const angle = base + randRange(-spread, spread);
+  return { vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed };
+}
+
 function randStartVelocity(
   direction: Direction,
   speed: number,
@@ -60,6 +90,9 @@ function randStartVelocity(
       return { vx: 0, vy: speed };
     case Direction.BT:
       return { vx: 0, vy: -speed };
+    default:
+      // ALL has no shared vector; createBall/resetBall use aimedVelocity instead.
+      throw new Error(`randStartVelocity: unsupported direction ${direction}`);
   }
 }
 
@@ -74,6 +107,16 @@ function randStartPosition({
   direction: Direction;
   offset?: boolean;
 }): { x: number; y: number } {
+  // ALL spawns on a random edge; the inward aim is applied later by aimedVelocity.
+  if (direction === Direction.ALL) {
+    return randStartPosition({
+      width,
+      height,
+      direction: randomFlowDirection(),
+      offset,
+    });
+  }
+
   const randX = randRange(0, width);
   const randY = randRange(0, height);
 
@@ -133,7 +176,11 @@ export function createBall(
       direction,
     });
   const offScreen = isOffscreen(x, y, r, width, height);
-  const { vx, vy } = randStartVelocity(direction, speedForRadius(r));
+  const speed = speedForRadius(r);
+  const { vx, vy } =
+    direction === Direction.ALL
+      ? aimedVelocity(x, y, width, height, speed)
+      : randStartVelocity(direction, speed);
   const color = stuck ? CONFIG.stuckColor : CONFIG.freeColor;
   return {
     x,
@@ -437,7 +484,11 @@ function resetBall(
     direction,
     offset: false,
   });
-  const { vx, vy } = randStartVelocity(direction, speedForRadius(ball.radius));
+  const speed = speedForRadius(ball.radius);
+  const { vx, vy } =
+    direction === Direction.ALL
+      ? aimedVelocity(x, y, width, height, speed)
+      : randStartVelocity(direction, speed);
   ball.x = x;
   ball.y = y;
   ball.vx = vx;
@@ -485,24 +536,35 @@ function makeTranslations(
       [Direction.RL]: { x: (x) => x + width * 2, y: (y) => y },
       [Direction.TB]: { x: (x) => width + x, y: (y) => y - height },
       [Direction.BT]: { x: (x) => width + x, y: (y) => y + height },
+      [Direction.ALL]: { x: (x) => x, y: (y) => y },
     },
     [Direction.RL]: {
       [Direction.LR]: { x: (x) => x - width * 2, y: (y) => y },
       [Direction.RL]: { x: (x) => x, y: (y) => y },
       [Direction.TB]: { x: (x) => x - width, y: (y) => y - height },
       [Direction.BT]: { x: (x) => x - width, y: (y) => y + height },
+      [Direction.ALL]: { x: (x) => x, y: (y) => y },
     },
     [Direction.TB]: {
       [Direction.LR]: { x: (x) => x - width, y: (y) => y + height },
       [Direction.RL]: { x: (x) => x + width, y: (y) => y + height },
       [Direction.TB]: { x: (x) => x, y: (y) => y },
       [Direction.BT]: { x: (x) => x, y: (y) => y + height * 2 },
+      [Direction.ALL]: { x: (x) => x, y: (y) => y },
     },
     [Direction.BT]: {
       [Direction.LR]: { x: (x) => x - width, y: (y) => y - height },
       [Direction.RL]: { x: (x) => x + width, y: (y) => y - height },
       [Direction.TB]: { x: (x) => x, y: (y) => y - height * 2 },
       [Direction.BT]: { x: (x) => x, y: (y) => y },
+      [Direction.ALL]: { x: (x) => x, y: (y) => y },
+    },
+    [Direction.ALL]: {
+      [Direction.LR]: { x: (x) => x, y: (y) => y },
+      [Direction.RL]: { x: (x) => x, y: (y) => y },
+      [Direction.TB]: { x: (x) => x, y: (y) => y },
+      [Direction.BT]: { x: (x) => x, y: (y) => y },
+      [Direction.ALL]: { x: (x) => x, y: (y) => y },
     },
   };
 }
@@ -514,10 +576,19 @@ export function changeDirection(
   direction: Direction,
   oldDirection: Direction,
 ): void {
-  const translations = makeTranslations(width, height);
-  const xtranslation = translations[oldDirection][direction].x;
-  const ytranslation = translations[oldDirection][direction].y;
   const speed = speedForRadius(sim.freeRadius);
+
+  // Entering ALL: no shared vector, so re-aim each ball at the center in place.
+  // Off-screen balls recycle through resetBall on the next step.
+  if (direction === Direction.ALL) {
+    for (const ball of sim.free) {
+      const { vx, vy } = aimedVelocity(ball.x, ball.y, width, height, speed);
+      ball.vx = vx;
+      ball.vy = vy;
+    }
+    return;
+  }
+
   let vx = 0;
   let vy = 0;
   switch (direction) {
@@ -535,6 +606,24 @@ export function changeDirection(
       break;
   }
 
+  // Leaving ALL: no single axis to wrap from, so re-steer in place (identity
+  // translation) and let off-screen balls recycle naturally.
+  if (oldDirection === Direction.ALL) {
+    resteerBalls({
+      sim,
+      vx,
+      vy,
+      xtranslation: (x) => x,
+      ytranslation: (y) => y,
+      width,
+      height,
+    });
+    return;
+  }
+
+  const translations = makeTranslations(width, height);
+  const xtranslation = translations[oldDirection][direction].x;
+  const ytranslation = translations[oldDirection][direction].y;
   resteerBalls({
     sim,
     vx,
@@ -559,17 +648,13 @@ export function stepSim(
 ): void {
   if (!sim.keepGenerating) return;
   const free = sim.free;
-  if (free.length === 0) return;
 
-  // Every free ball shares the current direction's velocity, so the per-frame
-  // displacement is identical for all of them — compute it once.
-  const dx = free[0].vx * dt;
-  const dy = free[0].vy * dt;
-
+  // Velocity is per-ball (ALL mode aims each at the center), so move each by its
+  // own vector rather than one shared displacement.
   for (let i = 0; i < free.length; i++) {
     const ball = free[i];
-    ball.x += dx;
-    ball.y += dy;
+    ball.x += ball.vx * dt;
+    ball.y += ball.vy * dt;
 
     if (ball.appeared && isBallOffscreen(ball, width, height)) {
       resetBall(ball, width, height, direction);

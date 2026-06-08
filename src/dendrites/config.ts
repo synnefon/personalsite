@@ -1,15 +1,17 @@
 /**
- * Flow direction of the balls across the canvas. 
+ * Flow direction of the balls across the canvas.
  * LR = left→right
  * RL = right→left
  * TB = top→bottom
  * BT = bottom→top
+ * ALL = inward toward the center from every edge
  */
 export enum Direction {
   LR = "LR",
   RL = "RL",
   TB = "TB",
   BT = "BT",
+  ALL = "ALL",
 }
 
 /**
@@ -35,6 +37,8 @@ export const CONFIG = {
   maxBallRadius: 10,
   /** Per-axis speed range (px per 60fps frame). */
   ballSpeed: 5,
+  /** ALL mode: angle of the random spread around each ball's aim at the center. */
+  allSpreadDegrees: 89,
   /** Probability of a sticky collision when a free ball collides with the dendrite.*/
   stickyProbability: 1,
   /** Canvas background (--color-purple-dark). */

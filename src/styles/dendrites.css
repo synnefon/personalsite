@@ -177,7 +177,7 @@
   display: grid;
   grid-template-areas:
     ".    up   ."
-    "left .    right"
+    "left all  right"
     ".    down .";
   gap: 0.2rem;
 }

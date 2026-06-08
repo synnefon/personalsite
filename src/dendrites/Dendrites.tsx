@@ -18,12 +18,13 @@ import { initAudio, playConnections, setPitchForRadius, setMuted as setSoundMute
 import { clusterToSvg, downloadSvg } from "./svgExport.ts";
 import { Ball, Sim } from "./types.ts";
 
-/** Arrows point the way the balls flow, placed at that point of the diamond. */
+/** Arrows point the way the balls flow, at that point of the diamond; ALL is the center hub. */
 const DIRECTION_PAD = [
-  { dir: Direction.BT, glyph: "↑", label: "Bottom to top", area: "up" },
-  { dir: Direction.RL, glyph: "←", label: "Right to left", area: "left" },
-  { dir: Direction.LR, glyph: "→", label: "Left to right", area: "right" },
-  { dir: Direction.TB, glyph: "↓", label: "Top to bottom", area: "down" },
+  { dir: Direction.BT, glyph: "▲", label: "Bottom to top", area: "up" },
+  { dir: Direction.RL, glyph: "◀", label: "Right to left", area: "left" },
+  { dir: Direction.LR, glyph: "▶", label: "Left to right", area: "right" },
+  { dir: Direction.TB, glyph: "▼", label: "Top to bottom", area: "down" },
+  { dir: Direction.ALL, glyph: "◎", label: "All directions (inward)", area: "all" },
 ];
 
 /** One tick mark per integer radius stop (slider step is 1). */
