@@ -57,7 +57,11 @@ function makeScorch(scale) {
       let color;
       if (dist < radius * 0.4) color = SCORCH.void;
       else if (dist < radius * 0.7) color = pick(SCORCH.rim);
-      else color = Math.random() < SCORCH.hotChance ? pick(SCORCH.hot) : pick(SCORCH.rim);
+      else
+        color =
+          Math.random() < SCORCH.hotChance
+            ? pick(SCORCH.hot)
+            : pick(SCORCH.rim);
 
       ctx.fillStyle = color;
       ctx.fillRect(x, y, 1, 1);
@@ -83,7 +87,13 @@ function makeScorch(scale) {
     }
   }
 
-  return { dataUrl: canvas.toDataURL(), w: G * PIXEL, h: G * PIXEL, ox: 0.5, oy: 0.5 };
+  return {
+    dataUrl: canvas.toDataURL(),
+    w: G * PIXEL,
+    h: G * PIXEL,
+    ox: 0.5,
+    oy: 0.5,
+  };
 }
 
 function makeMolten(scale) {
@@ -97,9 +107,21 @@ function makeMolten(scale) {
 
   // Irregular blob outline from a few angular harmonics with random phase
   const lobes = [
-    { freq: 2 + ((Math.random() * 2) | 0), amp: 0.08 + Math.random() * 0.08, phase: Math.random() * TAU },
-    { freq: 3 + ((Math.random() * 3) | 0), amp: 0.04 + Math.random() * 0.05, phase: Math.random() * TAU },
-    { freq: 6 + ((Math.random() * 4) | 0), amp: 0.02 + Math.random() * 0.04, phase: Math.random() * TAU },
+    {
+      freq: 2 + ((Math.random() * 2) | 0),
+      amp: 0.08 + Math.random() * 0.08,
+      phase: Math.random() * TAU,
+    },
+    {
+      freq: 3 + ((Math.random() * 3) | 0),
+      amp: 0.04 + Math.random() * 0.05,
+      phase: Math.random() * TAU,
+    },
+    {
+      freq: 6 + ((Math.random() * 4) | 0),
+      amp: 0.02 + Math.random() * 0.04,
+      phase: Math.random() * TAU,
+    },
   ];
   const edgeAt = (angle) => {
     let m = 1;
@@ -129,10 +151,15 @@ function makeMolten(scale) {
   }
 
   // Molten drips running downward from the lower rim
-  const drips = Math.random() > 0.9 ? 1 : 0;
+  const dripRand = Math.random();
+  const drips =
+    dripRand > 0.99 ? 3 : dripRand > 0.95 ? 2 : dripRand > 0.8 ? 1 : 0;
   for (let i = 0; i < drips; i++) {
-    let dx = cx + (Math.random() * 2 - 1) * radius * 0.7;
-    let dy = cy + radius * 0.55;
+    // Start at the molten rim on the lower edge, then run downward
+    const ang = Math.PI / 2 + (Math.random() - 0.5) * 0.8;
+    const e = edgeAt(ang);
+    let dx = cx + Math.cos(ang) * e;
+    let dy = cy + Math.sin(ang) * e;
     const len = 4 + Math.random() * (H - dy - 1);
     for (let step = 0; step < len; step++) {
       dx += (Math.random() - 0.5) * 0.5;
@@ -142,13 +169,24 @@ function makeMolten(scale) {
       if (iy >= H) break;
       if (ix < 0 || ix >= W) continue;
       const t = step / len;
-      const color = t < 0.35 ? pick(MOLTEN.glow) : t < 0.7 ? pick(MOLTEN.cool) : pick(MOLTEN.coolDark);
+      const color =
+        t < 0.35
+          ? pick(MOLTEN.glow)
+          : t < 0.7
+            ? pick(MOLTEN.cool)
+            : pick(MOLTEN.coolDark);
       ctx.fillStyle = color;
       ctx.fillRect(ix, iy, 1, 1);
     }
   }
 
-  return { dataUrl: canvas.toDataURL(), w: W * PIXEL, h: H * PIXEL, ox: 0.5, oy: (cy + 0.5) / H };
+  return {
+    dataUrl: canvas.toDataURL(),
+    w: W * PIXEL,
+    h: H * PIXEL,
+    ox: 0.5,
+    oy: (cy + 0.5) / H,
+  };
 }
 
 export function makeCrater({ style = "scorch", scale = 1 } = {}) {
