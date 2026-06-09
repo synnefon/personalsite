@@ -77,22 +77,24 @@ body.gun-armed * {
   pointer-events: none;
 }
 
-.gun-crater {
-  position: absolute;
-  image-rendering: pixelated;
-  pointer-events: none;
-}
-
-/* Shared surface for the laser's molten holes — drawn at cell resolution and
-   scaled up, so overlapping holes merge into one cavity. The bloom glows around
-   the whole combined silhouette. */
-.gun-molten {
+/* Shared surface for every crater — drawn at cell resolution and scaled up, so
+   overlapping craters merge: dark centers fuse and borders trace the combined
+   outline. */
+.gun-craters {
   position: absolute;
   left: 0;
   top: 0;
   image-rendering: pixelated;
   pointer-events: none;
-  filter: drop-shadow(0 0 5px #ff6a00) drop-shadow(0 0 2px #ffcf4d);
+}
+
+/* Smooth bloom behind the crater layer; only laser holes glow, and each fades
+   over a few seconds. Drawn in css px (not pixelated) for a soft halo. */
+.gun-glow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
 }
 
 .gun-burst {

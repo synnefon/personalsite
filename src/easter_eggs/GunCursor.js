@@ -6,10 +6,11 @@ import { GUNS } from "./guns";
 import { startLaserCharge } from "./gunSound";
 import {
   createMoltenHole,
+  createScorchCrater,
   isInMoltenVoid,
-  makeScorchCrater,
   PIXEL,
-  renderMoltenHoles,
+  renderCraters,
+  renderMoltenGlow,
 } from "./pixelCrater";
 
 const KONAMI = [
@@ -19,7 +20,6 @@ const KONAMI = [
 ];
 
 const MAX_CRATERS = 500; // safety cap; craters otherwise persist until reload
-const MAX_MOLTEN = 150; // bounds the molten-field redraw cost
 const DEBRIS_MS = 650;
 
 const FLASH_ART = ["..Y..", ".YOY.", "YOWOY", ".YOY.", "..Y.."];
@@ -107,13 +107,14 @@ export default function GunCursor() {
   const [armed, setArmed] = useState(false);
   const [gunIndex, setGunIndex] = useState(0);
   const [craters, setCraters] = useState([]);
-  const [moltenHoles, setMoltenHoles] = useState([]);
   const [bursts, setBursts] = useState([]);
   const [toast, setToast] = useState(null);
 
   const armedRef = useRef(false);
-  const moltenCanvasRef = useRef(null);
-  const moltenHolesRef = useRef([]);
+  const cratersCanvasRef = useRef(null);
+  const glowCanvasRef = useRef(null);
+  const cratersRef = useRef([]);
+  const glowRafRef = useRef(0);
   const followerRef = useRef(null);
   const rotorRef = useRef(null);
   const spriteRef = useRef(null);
@@ -162,34 +163,60 @@ export default function GunCursor() {
     return () => document.body.classList.remove("gun-armed");
   }, [armed]);
 
-  // Repaint the shared molten-hole canvas whenever the set of holes changes (or
-  // the viewport resizes). All live holes share one surface so that overlapping
-  // ones merge into a single cavity. The canvas backing store is at cell
-  // resolution and CSS-scaled up by PIXEL to keep the crisp pixel look.
+  // Repaint the shared crater canvas whenever the set of craters changes (or the
+  // viewport resizes). All craters share one surface so they merge: dark centers
+  // combine into one cavity and borders trace the combined outline. The backing
+  // store is at cell resolution and CSS-scaled up by PIXEL for the crisp look.
+  // The laser glow lives on a second, smooth css-px canvas that animates on its
+  // own clock (it fades over time), so it's driven by requestAnimationFrame.
   useEffect(() => {
-    moltenHolesRef.current = moltenHoles;
-    const canvas = moltenCanvasRef.current;
-    if (!canvas) return;
-    const draw = () => {
-      const cols = Math.max(1, Math.ceil(window.innerWidth / PIXEL));
-      const rows = Math.max(1, Math.ceil(window.innerHeight / PIXEL));
-      if (canvas.width !== cols) canvas.width = cols;
-      if (canvas.height !== rows) canvas.height = rows;
-      canvas.style.width = `${cols * PIXEL}px`;
-      canvas.style.height = `${rows * PIXEL}px`;
-      const holes = moltenHoles.map((h) => ({
-        cx: h.x / PIXEL,
-        cy: h.y / PIXEL,
-        r: h.r,
-        lobes: h.lobes,
-        drips: h.drips,
-      }));
-      renderMoltenHoles(canvas.getContext("2d"), holes, cols, rows);
+    cratersRef.current = craters;
+    const cratersCanvas = cratersCanvasRef.current;
+    const glowCanvas = glowCanvasRef.current;
+    if (!cratersCanvas || !glowCanvas) return;
+
+    const drawCraters = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const cols = Math.max(1, Math.ceil(w / PIXEL));
+      const rows = Math.max(1, Math.ceil(h / PIXEL));
+      if (cratersCanvas.width !== cols) cratersCanvas.width = cols;
+      if (cratersCanvas.height !== rows) cratersCanvas.height = rows;
+      cratersCanvas.style.width = `${cols * PIXEL}px`;
+      cratersCanvas.style.height = `${rows * PIXEL}px`;
+      if (glowCanvas.width !== w) glowCanvas.width = w;
+      if (glowCanvas.height !== h) glowCanvas.height = h;
+      const cells = craters.map((c) => ({ ...c, cx: c.x / PIXEL, cy: c.y / PIXEL }));
+      renderCraters(cratersCanvas.getContext("2d"), cells, cols, rows);
     };
-    draw();
-    window.addEventListener("resize", draw);
-    return () => window.removeEventListener("resize", draw);
-  }, [moltenHoles]);
+    drawCraters();
+
+    // (Re)start the glow loop; it self-stops once every glow has faded.
+    const glowCtx = glowCanvas.getContext("2d");
+    const tick = () => {
+      const active = renderMoltenGlow(
+        glowCtx,
+        cratersRef.current,
+        glowCanvas.width,
+        glowCanvas.height,
+        performance.now()
+      );
+      glowRafRef.current = active ? requestAnimationFrame(tick) : 0;
+    };
+    if (!glowRafRef.current) glowRafRef.current = requestAnimationFrame(tick);
+
+    window.addEventListener("resize", drawCraters);
+    return () => window.removeEventListener("resize", drawCraters);
+  }, [craters]);
+
+  // Cancel the glow animation on unmount.
+  useEffect(
+    () => () => {
+      if (glowRafRef.current) cancelAnimationFrame(glowRafRef.current);
+      glowRafRef.current = 0;
+    },
+    []
+  );
 
   // Aim, fire, click interception. Re-binds when the active gun changes.
   useEffect(() => {
@@ -230,15 +257,13 @@ export default function GunCursor() {
 
     // A shot landing in the black center of an existing molten hole passes
     // straight through it — no new decal, no debris, and the hole is unchanged.
+    // (Shots on a hole's rim are not "in the void" — they crater normally and
+    // their dark center consumes that bit of rim.)
     const inMoltenVoid = (x, y) => {
-      const holes = moltenHolesRef.current;
-      if (holes.length === 0) return false;
-      const cells = holes.map((h) => ({
-        cx: h.x / PIXEL,
-        cy: h.y / PIXEL,
-        r: h.r,
-        lobes: h.lobes,
-      }));
+      const cells = cratersRef.current
+        .filter((c) => c.type === "molten")
+        .map((h) => ({ cx: h.x / PIXEL, cy: h.y / PIXEL, r: h.r, lobes: h.lobes }));
+      if (cells.length === 0) return false;
       return isInMoltenVoid(cells, x / PIXEL, y / PIXEL);
     };
 
@@ -295,19 +320,18 @@ export default function GunCursor() {
 
       const craterScale = gun.charge ? 0.6 + power * 3.4 : gun.craterScale;
       const id = ++idRef.current;
-      if (gun.crater === "molten") {
-        const hole = createMoltenHole(craterScale);
-        setMoltenHoles((hs) => {
-          const next = [...hs, { id, x, y, ...hole }];
-          return next.length > MAX_MOLTEN ? next.slice(next.length - MAX_MOLTEN) : next;
-        });
-      } else {
-        const crater = makeScorchCrater(craterScale);
-        setCraters((cs) => {
-          const next = [...cs, { id, x, y, ...crater }];
-          return next.length > MAX_CRATERS ? next.slice(next.length - MAX_CRATERS) : next;
-        });
-      }
+      const molten = gun.crater === "molten";
+      const shape = molten
+        ? createMoltenHole(craterScale)
+        : createScorchCrater(craterScale);
+      // Laser holes glow and fade over 5–15s, by shot size (charge).
+      const glow = molten
+        ? { bornAt: performance.now(), glowMs: (5 + power * 10) * 1000 }
+        : null;
+      setCraters((cs) => {
+        const next = [...cs, { id, x, y, ...shape, ...glow }];
+        return next.length > MAX_CRATERS ? next.slice(next.length - MAX_CRATERS) : next;
+      });
 
       if (!reduced) {
         const count = Math.round(7 + (gun.charge ? power * 16 : 0));
@@ -417,28 +441,14 @@ export default function GunCursor() {
     };
   }, [armed, gun]);
 
-  if (!armed && craters.length === 0 && moltenHoles.length === 0) return null;
+  if (!armed && craters.length === 0) return null;
 
   return createPortal(
     <div className="gun-overlay" aria-hidden="true">
-      {craters.map((c) => (
-        <img
-          key={c.id}
-          className="gun-crater"
-          src={c.dataUrl}
-          alt=""
-          style={{
-            left: c.x,
-            top: c.y,
-            width: c.w,
-            height: c.h,
-            transform: `translate(${-c.ox * 100}%, ${-c.oy * 100}%)`,
-          }}
-        />
-      ))}
-      {/* Above the scorch marks so a laser hole punches through and covers
-          them; below debris/sprite/menu, which sit on top of everything. */}
-      <canvas ref={moltenCanvasRef} className="gun-molten" />
+      {/* Glow first (behind) so laser holes punched on the crater layer above let
+          their bloom spill out around the edges; both sit below debris/menu. */}
+      <canvas ref={glowCanvasRef} className="gun-glow" />
+      <canvas ref={cratersCanvasRef} className="gun-craters" />
       {bursts.map((b) => (
         <div key={b.id} className="gun-burst" style={{ left: b.x, top: b.y }}>
           {b.bits.map((bit, i) => (
