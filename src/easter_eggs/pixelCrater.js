@@ -1,14 +1,18 @@
-// Procedural pixel-art impact decals drawn to a transparent canvas.
-// Returns a data URL, display size (w/h), and the impact anchor (ox/oy as
-// fractions of the image) so callers can pin the hole to the click point.
+// Procedural pixel-art impact decals.
+//
+// Scorch craters (bullets) are baked to standalone data-URL images — each one is
+// an independent decal. Molten craters (laser) work differently: their dark
+// holes must MERGE when they overlap, so they are never baked individually.
+// Instead a laser shot produces a hole *descriptor* (createMoltenHole) and the
+// caller paints every live hole onto one shared canvas (renderMoltenHoles),
+// where overlapping holes fuse into a single cavity.
 //
 // Scaling keeps the on-screen PIXEL size constant and changes the grid
 // dimensions instead — bigger craters use *more* pixels, not bigger ones.
 
-const PIXEL = 5; // css px per crater pixel — constant across all sizes
+export const PIXEL = 5; // css px per crater pixel — constant across all sizes
 const SCORCH_GRID = 15; // base grid cells at scale 1
 const MOLTEN_W = 16;
-const MOLTEN_H = 22;
 const TAU = Math.PI * 2;
 
 const SCORCH = {
@@ -30,6 +34,19 @@ const MOLTEN = {
 
 const pick = (arr) => arr[(Math.random() * arr.length) | 0];
 
+// Deterministic [0,1) hash of a cell. The molten field is redrawn on every shot,
+// so its interior colors and ragged edge must be a stable function of position —
+// otherwise they would shimmer between redraws.
+function cellNoise(x, y, salt) {
+  let h = (x * 374761393 + y * 668265263 + salt * 2246822519) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
+const pickStable = (arr, x, y, salt) =>
+  arr[(cellNoise(x, y, salt) * arr.length) | 0];
+
 function newCanvas(w, h) {
   const canvas = document.createElement("canvas");
   canvas.width = w;
@@ -42,7 +59,7 @@ function gridMul(scale) {
   return scale * (0.78 + Math.random() * 0.5);
 }
 
-function makeScorch(scale) {
+export function makeScorchCrater(scale) {
   const G = Math.max(7, Math.round(SCORCH_GRID * gridMul(scale)));
   const { canvas, ctx } = newCanvas(G, G);
   const c = (G - 1) / 2;
@@ -96,16 +113,51 @@ function makeScorch(scale) {
   };
 }
 
-function makeMolten(scale) {
-  const mul = gridMul(scale);
-  const W = Math.max(8, Math.round(MOLTEN_W * mul));
-  const H = Math.max(11, Math.round(MOLTEN_H * mul));
-  const { canvas, ctx } = newCanvas(W, H);
-  const cx = (W - 1) / 2;
-  const cy = H * (6.5 / MOLTEN_H); // hole sits near the top, proportionally
-  const radius = cx * (0.55 + Math.random() * 0.15);
+// --- Molten holes (laser) --------------------------------------------------
 
-  // Irregular blob outline from a few angular harmonics with random phase
+// Blob edge radius (in cells) at a given angle, from the hole's lobe harmonics.
+function moltenEdgeAt(hole, angle) {
+  let m = 1;
+  for (const l of hole.lobes) m += l.amp * Math.sin(l.freq * angle + l.phase);
+  return hole.r * m;
+}
+
+// Baked drip pixels (cell offsets from the hole center) running downward. Baked
+// once at creation so they don't reshuffle when the field is redrawn.
+function makeDrips(r, lobes) {
+  const dripRand = Math.random();
+  const count =
+    dripRand > 0.99 ? 3 : dripRand > 0.95 ? 2 : dripRand > 0.8 ? 1 : 0;
+
+  const pixels = [];
+  for (let i = 0; i < count; i++) {
+    const ang = Math.PI / 2 + (Math.random() - 0.5) * 0.8;
+    const e = moltenEdgeAt({ r, lobes }, ang);
+    let dx = Math.cos(ang) * e;
+    let dy = Math.sin(ang) * e;
+    const len = 3 + Math.random() * Math.max(2, r * 0.9);
+    for (let step = 0; step < len; step++) {
+      dx += (Math.random() - 0.5) * 0.5;
+      dy += 1;
+      const t = step / len;
+      const c =
+        t < 0.35
+          ? pick(MOLTEN.glow)
+          : t < 0.7
+            ? pick(MOLTEN.cool)
+            : pick(MOLTEN.coolDark);
+      pixels.push({ dx, dy, c });
+    }
+  }
+  return pixels;
+}
+
+// A laser hole's shape, independent of where it lands. The caller pins it to the
+// click point and renders it (merged with its neighbors) via renderMoltenHoles.
+export function createMoltenHole(scale) {
+  const W = Math.max(8, Math.round(MOLTEN_W * gridMul(scale)));
+  const cxCells = (W - 1) / 2;
+  const r = cxCells * (0.55 + Math.random() * 0.15);
   const lobes = [
     {
       freq: 2 + ((Math.random() * 2) | 0),
@@ -123,72 +175,80 @@ function makeMolten(scale) {
       phase: Math.random() * TAU,
     },
   ];
-  const edgeAt = (angle) => {
-    let m = 1;
-    for (const l of lobes) m += l.amp * Math.sin(l.freq * angle + l.phase);
-    return radius * m;
-  };
-
-  // Melted body: mostly dark hole (~80%) with a thin white-hot/glow rim
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const dx = x - cx;
-      const dy = y - cy;
-      const dist = Math.hypot(dx, dy);
-      const shapeEdge = edgeAt(Math.atan2(dy, dx));
-      if (dist > shapeEdge + (Math.random() * 1.2 - 0.6)) continue;
-
-      const t = dist / shapeEdge; // 0 center .. 1 edge, following the blob
-      let color;
-      if (t < 0.8) color = pick(MOLTEN.hole);
-      else if (t < 0.9) color = pick(MOLTEN.hot);
-      else if (t < 0.96) color = pick(MOLTEN.glow);
-      else color = pick(MOLTEN.cool);
-
-      ctx.fillStyle = color;
-      ctx.fillRect(x, y, 1, 1);
-    }
-  }
-
-  // Molten drips running downward from the lower rim
-  const dripRand = Math.random();
-  const drips =
-    dripRand > 0.99 ? 3 : dripRand > 0.95 ? 2 : dripRand > 0.8 ? 1 : 0;
-  for (let i = 0; i < drips; i++) {
-    // Start at the molten rim on the lower edge, then run downward
-    const ang = Math.PI / 2 + (Math.random() - 0.5) * 0.8;
-    const e = edgeAt(ang);
-    let dx = cx + Math.cos(ang) * e;
-    let dy = cy + Math.sin(ang) * e;
-    const len = 4 + Math.random() * (H - dy - 1);
-    for (let step = 0; step < len; step++) {
-      dx += (Math.random() - 0.5) * 0.5;
-      dy += 1;
-      const ix = Math.round(dx);
-      const iy = Math.round(dy);
-      if (iy >= H) break;
-      if (ix < 0 || ix >= W) continue;
-      const t = step / len;
-      const color =
-        t < 0.35
-          ? pick(MOLTEN.glow)
-          : t < 0.7
-            ? pick(MOLTEN.cool)
-            : pick(MOLTEN.coolDark);
-      ctx.fillStyle = color;
-      ctx.fillRect(ix, iy, 1, 1);
-    }
-  }
-
-  return {
-    dataUrl: canvas.toDataURL(),
-    w: W * PIXEL,
-    h: H * PIXEL,
-    ox: 0.5,
-    oy: (cy + 0.5) / H,
-  };
+  return { r, lobes, drips: makeDrips(r, lobes) };
 }
 
-export function makeCrater({ style = "scorch", scale = 1 } = {}) {
-  return style === "molten" ? makeMolten(scale) : makeScorch(scale);
+// True when a point (in cell coords) sits inside the black void of any hole.
+// Shots landing here pass through the existing hole and leave no new decal.
+export function isInMoltenVoid(holes, gx, gy) {
+  for (const h of holes) {
+    const dx = gx - h.cx;
+    const dy = gy - h.cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist < moltenEdgeAt(h, Math.atan2(dy, dx)) * 0.8) return true;
+  }
+  return false;
+}
+
+// Paint every live hole onto one canvas (cols x rows cells). Overlapping holes
+// merge: each cell takes the SMALLEST normalized distance across all holes, so
+// the hot rim only survives on the outer boundary of the combined silhouette —
+// interiors fuse into one dark cavity. Holes carry cx/cy in cell coords.
+export function renderMoltenHoles(ctx, holes, cols, rows) {
+  ctx.clearRect(0, 0, cols, rows);
+  if (holes.length === 0) return;
+
+  // Per-hole cell bbox (margin covers the lobe bulge plus edge jitter) so each
+  // cell only tests the few holes that could possibly reach it.
+  const boxes = holes.map((h) => {
+    const margin = Math.ceil(h.r * 1.35) + 2;
+    return {
+      x0: Math.max(0, Math.floor(h.cx - margin)),
+      x1: Math.min(cols - 1, Math.ceil(h.cx + margin)),
+      y0: Math.max(0, Math.floor(h.cy - margin)),
+      y1: Math.min(rows - 1, Math.ceil(h.cy + margin)),
+    };
+  });
+  const ux0 = Math.min(...boxes.map((b) => b.x0));
+  const ux1 = Math.max(...boxes.map((b) => b.x1));
+  const uy0 = Math.min(...boxes.map((b) => b.y0));
+  const uy1 = Math.max(...boxes.map((b) => b.y1));
+
+  for (let gy = uy0; gy <= uy1; gy++) {
+    for (let gx = ux0; gx <= ux1; gx++) {
+      let m = Infinity;
+      for (let i = 0; i < holes.length; i++) {
+        const b = boxes[i];
+        if (gx < b.x0 || gx > b.x1 || gy < b.y0 || gy > b.y1) continue;
+        const h = holes[i];
+        const dx = gx - h.cx;
+        const dy = gy - h.cy;
+        const d = Math.hypot(dx, dy) / moltenEdgeAt(h, Math.atan2(dy, dx));
+        if (d < m) m = d;
+      }
+      if (m === Infinity) continue;
+      m += (cellNoise(gx, gy, 7) - 0.5) * 0.1; // ragged but stable edge
+      if (m >= 1) continue;
+
+      let color;
+      if (m < 0.8) color = pickStable(MOLTEN.hole, gx, gy, 0);
+      else if (m < 0.9) color = pickStable(MOLTEN.hot, gx, gy, 1);
+      else if (m < 0.96) color = pickStable(MOLTEN.glow, gx, gy, 2);
+      else color = pickStable(MOLTEN.cool, gx, gy, 3);
+
+      ctx.fillStyle = color;
+      ctx.fillRect(gx, gy, 1, 1);
+    }
+  }
+
+  // Drips on top, in each hole's local space.
+  for (const h of holes) {
+    for (const p of h.drips) {
+      const gx = Math.round(h.cx + p.dx);
+      const gy = Math.round(h.cy + p.dy);
+      if (gx < 0 || gy < 0 || gx >= cols || gy >= rows) continue;
+      ctx.fillStyle = p.c;
+      ctx.fillRect(gx, gy, 1, 1);
+    }
+  }
 }

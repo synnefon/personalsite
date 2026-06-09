@@ -4,7 +4,13 @@ import { createPortal } from "react-dom";
 import "../styles/gun.css";
 import { GUNS } from "./guns";
 import { startLaserCharge } from "./gunSound";
-import { makeCrater } from "./pixelCrater";
+import {
+  createMoltenHole,
+  isInMoltenVoid,
+  makeScorchCrater,
+  PIXEL,
+  renderMoltenHoles,
+} from "./pixelCrater";
 
 const KONAMI = [
   "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown",
@@ -13,6 +19,7 @@ const KONAMI = [
 ];
 
 const MAX_CRATERS = 500; // safety cap; craters otherwise persist until reload
+const MAX_MOLTEN = 150; // bounds the molten-field redraw cost
 const DEBRIS_MS = 650;
 
 const FLASH_ART = ["..Y..", ".YOY.", "YOWOY", ".YOY.", "..Y.."];
@@ -100,10 +107,13 @@ export default function GunCursor() {
   const [armed, setArmed] = useState(false);
   const [gunIndex, setGunIndex] = useState(0);
   const [craters, setCraters] = useState([]);
+  const [moltenHoles, setMoltenHoles] = useState([]);
   const [bursts, setBursts] = useState([]);
   const [toast, setToast] = useState(null);
 
   const armedRef = useRef(false);
+  const moltenCanvasRef = useRef(null);
+  const moltenHolesRef = useRef([]);
   const followerRef = useRef(null);
   const rotorRef = useRef(null);
   const spriteRef = useRef(null);
@@ -152,6 +162,35 @@ export default function GunCursor() {
     return () => document.body.classList.remove("gun-armed");
   }, [armed]);
 
+  // Repaint the shared molten-hole canvas whenever the set of holes changes (or
+  // the viewport resizes). All live holes share one surface so that overlapping
+  // ones merge into a single cavity. The canvas backing store is at cell
+  // resolution and CSS-scaled up by PIXEL to keep the crisp pixel look.
+  useEffect(() => {
+    moltenHolesRef.current = moltenHoles;
+    const canvas = moltenCanvasRef.current;
+    if (!canvas) return;
+    const draw = () => {
+      const cols = Math.max(1, Math.ceil(window.innerWidth / PIXEL));
+      const rows = Math.max(1, Math.ceil(window.innerHeight / PIXEL));
+      if (canvas.width !== cols) canvas.width = cols;
+      if (canvas.height !== rows) canvas.height = rows;
+      canvas.style.width = `${cols * PIXEL}px`;
+      canvas.style.height = `${rows * PIXEL}px`;
+      const holes = moltenHoles.map((h) => ({
+        cx: h.x / PIXEL,
+        cy: h.y / PIXEL,
+        r: h.r,
+        lobes: h.lobes,
+        drips: h.drips,
+      }));
+      renderMoltenHoles(canvas.getContext("2d"), holes, cols, rows);
+    };
+    draw();
+    window.addEventListener("resize", draw);
+    return () => window.removeEventListener("resize", draw);
+  }, [moltenHoles]);
+
   // Aim, fire, click interception. Re-binds when the active gun changes.
   useEffect(() => {
     if (!armed) return;
@@ -189,6 +228,20 @@ export default function GunCursor() {
 
     const chargeMs = gun.chargeMs || 3000;
 
+    // A shot landing in the black center of an existing molten hole passes
+    // straight through it — no new decal, no debris, and the hole is unchanged.
+    const inMoltenVoid = (x, y) => {
+      const holes = moltenHolesRef.current;
+      if (holes.length === 0) return false;
+      const cells = holes.map((h) => ({
+        cx: h.x / PIXEL,
+        cy: h.y / PIXEL,
+        r: h.r,
+        lobes: h.lobes,
+      }));
+      return isInMoltenVoid(cells, x / PIXEL, y / PIXEL);
+    };
+
     // power is 0..1 for a charge gun (how charged), else 1
     const fire = (x, y, power = 1) => {
       if (gun.charge) gun.sound(power);
@@ -215,26 +268,46 @@ export default function GunCursor() {
       );
 
       if (!reduced) {
-        const a = gun.shake * (gun.charge ? 0.5 + power * 2.5 : 1);
-        document.getElementById("app-base")?.animate(
-          [
-            { transform: "translate(0, 0)" },
-            { transform: `translate(${rand(-a, a)}px, ${rand(-a, a)}px)` },
-            { transform: `translate(${rand(-a, a)}px, ${rand(-a, a)}px)` },
-            { transform: "translate(0, 0)" },
-          ],
-          { duration: 170, easing: "ease-out" }
-        );
+        // Bigger shots (more charge) shake harder AND longer. Frames scale with
+        // duration to keep a roughly constant rattle frequency, and decay toward
+        // the end so the screen settles instead of snapping back.
+        const intensity = gun.charge ? 0.5 + power * 2.5 : 1;
+        const a = gun.shake * intensity;
+        const duration = 170 * intensity;
+        const steps = Math.max(3, Math.round(duration / 45));
+        const frames = [{ transform: "translate(0, 0)" }];
+        for (let i = 1; i < steps; i++) {
+          const decay = 1 - i / steps;
+          frames.push({
+            transform: `translate(${rand(-a, a) * decay}px, ${rand(-a, a) * decay}px)`,
+          });
+        }
+        frames.push({ transform: "translate(0, 0)" });
+        document.getElementById("app-base")?.animate(frames, {
+          duration,
+          easing: "ease-out",
+        });
       }
 
+      // The trigger still fired (sound/recoil/flash above), but there's nothing
+      // to crater or kick up when shooting into an existing hole.
+      if (inMoltenVoid(x, y)) return;
+
       const craterScale = gun.charge ? 0.6 + power * 3.4 : gun.craterScale;
-      const crater = makeCrater({ style: gun.crater, scale: craterScale });
-      const craterId = ++idRef.current;
-      const molten = gun.crater === "molten";
-      setCraters((cs) => {
-        const next = [...cs, { id: craterId, x, y, molten, ...crater }];
-        return next.length > MAX_CRATERS ? next.slice(next.length - MAX_CRATERS) : next;
-      });
+      const id = ++idRef.current;
+      if (gun.crater === "molten") {
+        const hole = createMoltenHole(craterScale);
+        setMoltenHoles((hs) => {
+          const next = [...hs, { id, x, y, ...hole }];
+          return next.length > MAX_MOLTEN ? next.slice(next.length - MAX_MOLTEN) : next;
+        });
+      } else {
+        const crater = makeScorchCrater(craterScale);
+        setCraters((cs) => {
+          const next = [...cs, { id, x, y, ...crater }];
+          return next.length > MAX_CRATERS ? next.slice(next.length - MAX_CRATERS) : next;
+        });
+      }
 
       if (!reduced) {
         const count = Math.round(7 + (gun.charge ? power * 16 : 0));
@@ -344,14 +417,14 @@ export default function GunCursor() {
     };
   }, [armed, gun]);
 
-  if (!armed && craters.length === 0) return null;
+  if (!armed && craters.length === 0 && moltenHoles.length === 0) return null;
 
   return createPortal(
     <div className="gun-overlay" aria-hidden="true">
       {craters.map((c) => (
         <img
           key={c.id}
-          className={`gun-crater${c.molten ? " gun-crater--molten" : ""}`}
+          className="gun-crater"
           src={c.dataUrl}
           alt=""
           style={{
@@ -363,6 +436,9 @@ export default function GunCursor() {
           }}
         />
       ))}
+      {/* Above the scorch marks so a laser hole punches through and covers
+          them; below debris/sprite/menu, which sit on top of everything. */}
+      <canvas ref={moltenCanvasRef} className="gun-molten" />
       {bursts.map((b) => (
         <div key={b.id} className="gun-burst" style={{ left: b.x, top: b.y }}>
           {b.bits.map((bit, i) => (

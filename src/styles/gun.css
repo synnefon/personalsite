@@ -83,8 +83,15 @@ body.gun-armed * {
   pointer-events: none;
 }
 
-/* Glowing bloom around the laser's molten holes */
-.gun-crater--molten {
+/* Shared surface for the laser's molten holes — drawn at cell resolution and
+   scaled up, so overlapping holes merge into one cavity. The bloom glows around
+   the whole combined silhouette. */
+.gun-molten {
+  position: absolute;
+  left: 0;
+  top: 0;
+  image-rendering: pixelated;
+  pointer-events: none;
   filter: drop-shadow(0 0 5px #ff6a00) drop-shadow(0 0 2px #ffcf4d);
 }
 
