@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 
 import "../styles/gun.css";
 import { GUNS } from "./guns";
-import { startLaserCharge } from "./gunSound";
+import { primeGunAudio, startLaserCharge } from "./gunSound";
 import {
   createMoltenHole,
   createScorchCrater,
@@ -221,6 +221,9 @@ export default function GunCursor() {
   // Aim, fire, click interception. Re-binds when the active gun changes.
   useEffect(() => {
     if (!armed) return;
+    // Warm the shared audio context the moment the gun is drawn, so the first
+    // shot is audible instead of clipped by a cold context's startup latency.
+    primeGunAudio();
     const reduced = prefersReducedMotion();
 
     setToast({ id: ++idRef.current, msg: `🔫 ${gun.label}${gun.hint ? ` · ${gun.hint}` : ""}` });

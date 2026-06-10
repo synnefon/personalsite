@@ -1,18 +1,44 @@
-// Synthesized gun sounds, in the per-sound AudioContext style of
-// home/eightBitSynth.js. One short-lived context per shot.
+// Synthesized gun sounds over a single shared AudioContext.
+//
+// Each shot used to spin up its own AudioContext, but a freshly created context
+// has cold-start latency and may begin life "suspended" (browser autoplay
+// policy). Gun cracks are tiny transients (tens of ms), so on a cold context the
+// hardware isn't producing output yet and the whole sound is missed — you hear
+// nothing until rapid repeat firing happens to warm a context / unlock audio.
+// One shared context that we resume on demand stays warm, so every shot is
+// audible from the first trigger.
 
-function makeCtx(volume) {
+let sharedCtx = null;
+
+// Lazily create the shared context and resume it if the browser suspended it.
+// Safe to call from any user gesture (arming, pointerdown) to warm audio early.
+export function primeGunAudio() {
   const Ctx = window.AudioContext || window.webkitAudioContext;
   if (!Ctx) return null;
-  const ctx = new Ctx();
+  if (!sharedCtx) sharedCtx = new Ctx();
+  if (sharedCtx.state === "suspended") sharedCtx.resume().catch(() => {});
+  return sharedCtx;
+}
+
+// A per-shot gain node (its own volume) feeding the shared context's output.
+function makeBus(volume) {
+  const ctx = primeGunAudio();
+  if (!ctx) return null;
   const master = ctx.createGain();
   master.gain.value = volume;
   master.connect(ctx.destination);
   return { ctx, master };
 }
 
-function closeSoon(ctx, ms) {
-  setTimeout(() => ctx.close().catch(() => {}), ms);
+// Disconnect a finished shot's master gain so nodes don't pile up on the shared
+// context. The one-shot sources/oscillators feeding it stop on their own and are
+// GC'd once detached.
+function releaseSoon(master, ms) {
+  setTimeout(() => {
+    try {
+      master.disconnect();
+    } catch {}
+  }, ms);
 }
 
 // Filtered white-noise burst with a fast quadratic decay
@@ -69,7 +95,7 @@ function distortionCurve(amount) {
 }
 
 export function playGunshot(volume = 0.65) {
-  const r = makeCtx(volume);
+  const r = makeBus(volume);
   if (!r) return;
   const { ctx, master } = r;
   const now = ctx.currentTime;
@@ -87,16 +113,16 @@ export function playGunshot(volume = 0.65) {
   // Quick clean low punch for body — short, so it's a snap not a thud
   tone(ctx, master, now, { type: "triangle", f0: 180, f1: 70, dur: 0.05, peak: 0.55 });
 
-  closeSoon(ctx, 350);
+  releaseSoon(master, 350);
 }
 
 export function playUziShot(volume = 0.16) {
-  const r = makeCtx(volume);
+  const r = makeBus(volume);
   if (!r) return;
   const now = r.ctx.currentTime;
   noiseBurst(r.ctx, r.master, now, { dur: 0.07, freq: 2500, q: 1.0, peak: 1 });
   tone(r.ctx, r.master, now, { type: "square", f0: 220, f1: 90, dur: 0.05, peak: 0.4 });
-  closeSoon(r.ctx, 180);
+  releaseSoon(r.master, 180);
 }
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
@@ -104,7 +130,7 @@ const clamp01 = (x) => Math.max(0, Math.min(1, x));
 // Charging whine: rising pitch + swelling volume over durationMs.
 // Returns a handle whose stop() fades it out (call on release).
 export function startLaserCharge(durationMs = 3000) {
-  const r = makeCtx(0.2);
+  const r = makeBus(0.2);
   if (!r) return { stop() {} };
   const { ctx, master } = r;
   const now = ctx.currentTime;
@@ -147,7 +173,7 @@ export function startLaserCharge(durationMs = 3000) {
       osc.stop(t + 0.08);
       harm.stop(t + 0.08);
       lfo.stop(t + 0.08);
-      setTimeout(() => ctx.close().catch(() => {}), 200);
+      releaseSoon(master, 200);
     },
   };
 }
@@ -155,7 +181,7 @@ export function startLaserCharge(durationMs = 3000) {
 // Discharge: longer/deeper/louder the more it was charged (0..1).
 export function playLaserShot(charge = 1) {
   const c = clamp01(charge);
-  const r = makeCtx(0.26 + c * 0.2);
+  const r = makeBus(0.26 + c * 0.2);
   if (!r) return;
   const { ctx, master } = r;
   const now = ctx.currentTime;
@@ -228,5 +254,5 @@ export function playLaserShot(charge = 1) {
   body.stop(stopAt);
   shimmer.stop(now + 0.35);
 
-  closeSoon(ctx, 1800);
+  releaseSoon(master, 1800);
 }
