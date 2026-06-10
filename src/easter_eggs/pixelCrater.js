@@ -1,16 +1,20 @@
 // Procedural pixel-art impact decals.
 //
 // Every gun (bullets and laser alike) produces a crater *descriptor* — a shape,
-// not a baked image — and the caller paints all live craters onto one shared
-// canvas via renderCraters. They merge there:
+// not a baked image — and the caller bakes it into a persistent surface via
+// stampCrater, then throws the descriptor away. Nothing is kept per hole, so
+// holes never expire and any number of them costs the same. Merging happens at
+// bake time:
 //
-//   1. All dark centers are drawn first, so they combine into one cavity and a
-//      newer hole CONSUMES any border it lands on (the border becomes void).
-//   2. Borders are drawn second, and only where no border exists yet, so the
-//      combined shape gets a single clean outline instead of stacked rims.
+//   1. A cell already covered by an earlier hole always goes dark, so a newer
+//      hole CONSUMES any rim it lands on and overlapping holes weld into one
+//      cavity.
+//   2. Rims are painted only on previously-bare cells, so the combined shape
+//      gets a single clean outline instead of stacked rims.
 //
-// Laser holes additionally glow; the glow is a separate smooth layer painted by
-// renderMoltenGlow and faded out over time by the caller.
+// Every hole interior is the same dark void color; the laser look comes from
+// its molten rim plus a transient glow layer (renderGlows) faded out over time
+// by the caller.
 //
 // Scaling keeps the on-screen PIXEL size constant and changes the grid
 // dimensions instead — bigger craters use *more* pixels, not bigger ones.
@@ -20,8 +24,9 @@ const SCORCH_GRID = 15; // base grid cells at scale 1
 const MOLTEN_W = 16;
 const TAU = Math.PI * 2;
 
+const VOID = "#080808"; // interior of every hole, regardless of gun
+
 const SCORCH = {
-  void: "#080808",
   rim: ["#161210", "#241a14", "#322318", "#1d160f"],
   hot: ["#6e2f12", "#8a3b14", "#a85a1e"],
   hotChance: 0.22,
@@ -37,7 +42,6 @@ const MOLTEN_DARK = 0.8;
 
 // Molten metal heat gradient, hottest at the melted edge
 const MOLTEN = {
-  hole: ["#1c0a04", "#120703", "#230d05"],
   hot: ["#fff3c4", "#ffe28a", "#ffd23f"],
   glow: ["#ff9a1f", "#ff7a00", "#ff5e00"],
   cool: ["#cf3a0c", "#9e2407", "#7a1804"],
@@ -46,9 +50,8 @@ const MOLTEN = {
 
 const pick = (arr) => arr[(Math.random() * arr.length) | 0];
 
-// Deterministic [0,1) hash of a cell. The shared canvas is redrawn on every
-// shot, so the interior colors and ragged edges must be a stable function of
-// position — otherwise they would shimmer between redraws.
+// Deterministic [0,1) hash of a cell — stable per-position color and edge
+// variation, independent of stamp order.
 function cellNoise(x, y, salt) {
   let h = (x * 374761393 + y * 668265263 + salt * 2246822519) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
@@ -80,7 +83,7 @@ function makeCracks(radius, c) {
       pixels.push({
         dx: Math.round(px),
         dy: Math.round(py),
-        c: Math.random() < 0.3 ? pick(SCORCH.rim) : SCORCH.void,
+        c: Math.random() < 0.3 ? pick(SCORCH.rim) : VOID,
       });
       angle += (Math.random() - 0.5) * 0.8;
     }
@@ -170,11 +173,11 @@ export function createMoltenHole(scale) {
   };
 }
 
-// --- Shared rendering ------------------------------------------------------
+// --- Persistent surface ------------------------------------------------------
 
 // Normalized distance of a cell from a crater: <darkFrac is the dark void,
 // [darkFrac, 1) is the rim, >=1 is outside. Includes a stable ragged-edge
-// jitter so redraws don't shimmer. Craters carry cx/cy in cell coords.
+// jitter. Craters carry cx/cy in cell coords.
 function normDist(crater, gx, gy) {
   const dx = gx - crater.cx;
   const dy = gy - crater.cy;
@@ -185,12 +188,6 @@ function normDist(crater, gx, gy) {
   }
   const edge = crater.radius + (cellNoise(gx, gy, 5) - 0.5) * 1.6;
   return dist / edge;
-}
-
-function darkColor(crater, gx, gy) {
-  return crater.type === "molten"
-    ? pickStable(MOLTEN.hole, gx, gy, 0)
-    : SCORCH.void;
 }
 
 // Rim color for a cell at normalized distance m (darkFrac <= m < 1), hotter
@@ -207,133 +204,111 @@ function rimColor(crater, m, gx, gy) {
     : pickStable(SCORCH.rim, gx, gy, 1);
 }
 
-// True when a point (in cell coords) sits inside the black void of any hole.
+// The surface holes are baked into. Per-cell fields:
+//   covered — cell is inside some hole's disk (dark or rim)
+//   dark    — cell is painted the dark void color
+// The offscreen canvas is the pixel source of truth; the caller blits it onto
+// the visible canvas. The surface only ever grows, so holes outside a shrunken
+// viewport survive a later re-expand.
+export function createSurface() {
+  const canvas = document.createElement("canvas");
+  return {
+    cols: 0,
+    rows: 0,
+    covered: new Uint8Array(0),
+    dark: new Uint8Array(0),
+    canvas,
+    ctx: canvas.getContext("2d"),
+  };
+}
+
+// Grow the surface to at least cols x rows, preserving baked content.
+export function growSurface(s, cols, rows) {
+  const w = Math.max(s.cols, cols);
+  const h = Math.max(s.rows, rows);
+  if (w === s.cols && h === s.rows) return;
+  const covered = new Uint8Array(w * h);
+  const dark = new Uint8Array(w * h);
+  for (let gy = 0; gy < s.rows; gy++) {
+    covered.set(s.covered.subarray(gy * s.cols, (gy + 1) * s.cols), gy * w);
+    dark.set(s.dark.subarray(gy * s.cols, (gy + 1) * s.cols), gy * w);
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (s.cols > 0 && s.rows > 0) ctx.drawImage(s.canvas, 0, 0);
+  Object.assign(s, { cols: w, rows: h, covered, dark, canvas, ctx });
+}
+
+// Bake one crater (cx/cy in cell coords) into the surface, combining it with
+// whatever is already there: covered cells go dark, bare cells get this
+// crater's own dark/rim bands, so rims trace just the outer silhouette of the
+// merged shape. The descriptor is not retained.
+export function stampCrater(s, crater) {
+  const margin = Math.ceil(crater.reach) + 2;
+  const x0 = Math.max(0, Math.floor(crater.cx - margin));
+  const x1 = Math.min(s.cols - 1, Math.ceil(crater.cx + margin));
+  const y0 = Math.max(0, Math.floor(crater.cy - margin));
+  const y1 = Math.min(s.rows - 1, Math.ceil(crater.cy + margin));
+
+  // Extras (cracks/drips) are eligible only where the page was bare before this
+  // stamp, but paint after the body so they sit on top of it.
+  const extras = [];
+  for (const p of crater.extras) {
+    const gx = Math.round(crater.cx + p.dx);
+    const gy = Math.round(crater.cy + p.dy);
+    if (gx < 0 || gy < 0 || gx >= s.cols || gy >= s.rows) continue;
+    if (!s.covered[gy * s.cols + gx]) extras.push({ gx, gy, c: p.c });
+  }
+
+  for (let gy = y0; gy <= y1; gy++) {
+    for (let gx = x0; gx <= x1; gx++) {
+      const m = normDist(crater, gx, gy);
+      if (m >= 1) continue;
+      const idx = gy * s.cols + gx;
+      const isDark = s.covered[idx] === 1 || m < crater.darkFrac;
+      s.covered[idx] = 1;
+      if (isDark) s.dark[idx] = 1;
+      s.ctx.fillStyle = isDark ? VOID : rimColor(crater, m, gx, gy);
+      s.ctx.fillRect(gx, gy, 1, 1);
+    }
+  }
+
+  for (const p of extras) {
+    s.ctx.fillStyle = p.c;
+    s.ctx.fillRect(p.gx, p.gy, 1, 1);
+  }
+}
+
+// True when a css-px point sits inside the black void of any baked hole.
 // Shots landing here pass through the existing hole and leave no new decal.
-export function isInMoltenVoid(holes, gx, gy) {
-  for (const h of holes) {
-    const dx = gx - h.cx;
-    const dy = gy - h.cy;
-    const dist = Math.hypot(dx, dy);
-    if (dist < moltenEdgeAt(h, Math.atan2(dy, dx)) * MOLTEN_DARK) return true;
-  }
-  return false;
+export function isInVoid(s, x, y) {
+  const gx = Math.floor(x / PIXEL);
+  const gy = Math.floor(y / PIXEL);
+  if (gx < 0 || gy < 0 || gx >= s.cols || gy >= s.rows) return false;
+  return s.dark[gy * s.cols + gx] === 1;
 }
 
-// Per-cell accumulators, reused across redraws:
-//   cov     — how many crater disks cover the cell (saturated at 2)
-//   bestM   — smallest normalized distance over those craters
-//   bestIdx — which crater achieved bestM (its palette colors the cell)
-let cov = null;
-let bestM = null;
-let bestIdx = null;
-function getFields(n) {
-  if (!cov || cov.length < n) {
-    cov = new Uint8Array(n);
-    bestM = new Float32Array(n);
-    bestIdx = new Int32Array(n);
-  }
-  cov.fill(0, 0, n);
-  bestM.fill(2, 0, n);
-  bestIdx.fill(-1, 0, n);
-}
-
-// Paint every live crater onto one canvas (cols x rows cells). Craters merge:
-// a cell covered by two or more crater disks is inside the combined cavity and
-// is always dark — a rim is NEVER drawn around an already-placed center. Only
-// cells covered by a single crater show that crater's own dark/rim bands, so
-// rims trace just the outer silhouette of the merged shape.
-export function renderCraters(ctx, craters, cols, rows) {
-  ctx.clearRect(0, 0, cols, rows);
-  if (craters.length === 0) return;
-
-  const boxes = craters.map((c) => {
-    const m = Math.ceil(c.reach) + 2;
-    return {
-      x0: Math.max(0, Math.floor(c.cx - m)),
-      x1: Math.min(cols - 1, Math.ceil(c.cx + m)),
-      y0: Math.max(0, Math.floor(c.cy - m)),
-      y1: Math.min(rows - 1, Math.ceil(c.cy + m)),
-    };
-  });
-  getFields(cols * rows);
-
-  // Accumulate coverage and the nearest crater per cell.
-  let ux0 = cols, ux1 = -1, uy0 = rows, uy1 = -1;
-  for (let k = 0; k < craters.length; k++) {
-    const c = craters[k];
-    const b = boxes[k];
-    if (b.x0 < ux0) ux0 = b.x0;
-    if (b.x1 > ux1) ux1 = b.x1;
-    if (b.y0 < uy0) uy0 = b.y0;
-    if (b.y1 > uy1) uy1 = b.y1;
-    for (let gy = b.y0; gy <= b.y1; gy++) {
-      for (let gx = b.x0; gx <= b.x1; gx++) {
-        const m = normDist(c, gx, gy);
-        if (m >= 1) continue;
-        const idx = gy * cols + gx;
-        if (cov[idx] < 2) cov[idx]++;
-        if (m < bestM[idx]) {
-          bestM[idx] = m;
-          bestIdx[idx] = k;
-        }
-      }
-    }
-  }
-
-  // Paint: overlaps and dark zones are dark; single-coverage rim cells get the
-  // nearest crater's rim band.
-  for (let gy = uy0; gy <= uy1; gy++) {
-    for (let gx = ux0; gx <= ux1; gx++) {
-      const idx = gy * cols + gx;
-      const k = bestIdx[idx];
-      if (k < 0) continue;
-      const c = craters[k];
-      const m = bestM[idx];
-      ctx.fillStyle =
-        cov[idx] >= 2 || m < c.darkFrac
-          ? darkColor(c, gx, gy)
-          : rimColor(c, m, gx, gy);
-      ctx.fillRect(gx, gy, 1, 1);
-    }
-  }
-
-  // Extras (cracks/drips) on top, in each crater's local space — but only on
-  // bare page or this crater's own single-coverage surface, so they never mark
-  // a merged cavity or another crater's territory.
-  for (let k = 0; k < craters.length; k++) {
-    const c = craters[k];
-    for (const p of c.extras) {
-      const gx = Math.round(c.cx + p.dx);
-      const gy = Math.round(c.cy + p.dy);
-      if (gx < 0 || gy < 0 || gx >= cols || gy >= rows) continue;
-      const idx = gy * cols + gx;
-      if (cov[idx] !== 0 && !(cov[idx] === 1 && bestIdx[idx] === k)) continue;
-      ctx.fillStyle = p.c;
-      ctx.fillRect(gx, gy, 1, 1);
-    }
-  }
-}
-
-// Smooth orange bloom around each laser hole, in css px. Each hole's glow fades
+// Smooth orange bloom around each fresh laser hole, in css px. Each glow fades
 // linearly from birth over its glowMs; returns true while any glow is still
 // visible so the caller can keep animating. Glows blend additively.
-export function renderMoltenGlow(ctx, craters, w, h, now) {
+export function renderGlows(ctx, glows, w, h, now) {
   ctx.clearRect(0, 0, w, h);
   let active = false;
   ctx.globalCompositeOperation = "lighter";
-  for (const c of craters) {
-    if (c.type !== "molten") continue;
-    const t = (now - c.bornAt) / c.glowMs;
+  for (const g of glows) {
+    const t = (now - g.bornAt) / g.glowMs;
     if (t >= 1) continue;
     active = true;
     const alpha = 1 - t;
-    const R = c.r * PIXEL * 2.1;
-    const g = ctx.createRadialGradient(c.x, c.y, R * 0.12, c.x, c.y, R);
-    g.addColorStop(0, `rgba(255, 150, 40, ${0.5 * alpha})`);
-    g.addColorStop(0.5, `rgba(255, 110, 0, ${0.26 * alpha})`);
-    g.addColorStop(1, "rgba(255, 90, 0, 0)");
-    ctx.fillStyle = g;
-    ctx.fillRect(c.x - R, c.y - R, R * 2, R * 2);
+    const R = g.r * PIXEL * 2.1;
+    const grad = ctx.createRadialGradient(g.x, g.y, R * 0.12, g.x, g.y, R);
+    grad.addColorStop(0, `rgba(255, 150, 40, ${0.5 * alpha})`);
+    grad.addColorStop(0.5, `rgba(255, 110, 0, ${0.26 * alpha})`);
+    grad.addColorStop(1, "rgba(255, 90, 0, 0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(g.x - R, g.y - R, R * 2, R * 2);
   }
   ctx.globalCompositeOperation = "source-over";
   return active;

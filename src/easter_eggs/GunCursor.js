@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import "../styles/gun.css";
@@ -7,10 +7,12 @@ import { primeGunAudio, startLaserCharge } from "./gunSound";
 import {
   createMoltenHole,
   createScorchCrater,
-  isInMoltenVoid,
+  createSurface,
+  growSurface,
+  isInVoid,
   PIXEL,
-  renderCraters,
-  renderMoltenGlow,
+  renderGlows,
+  stampCrater,
 } from "./pixelCrater";
 
 const KONAMI = [
@@ -19,7 +21,6 @@ const KONAMI = [
   "b", "a",
 ];
 
-const MAX_CRATERS = 500; // safety cap; craters otherwise persist until reload
 const DEBRIS_MS = 650;
 
 const FLASH_ART = ["..Y..", ".YOY.", "YOWOY", ".YOY.", "..Y.."];
@@ -106,14 +107,15 @@ function GunIcon({ gun }) {
 export default function GunCursor() {
   const [armed, setArmed] = useState(false);
   const [gunIndex, setGunIndex] = useState(0);
-  const [craters, setCraters] = useState([]);
+  const [hasMarks, setHasMarks] = useState(false);
   const [bursts, setBursts] = useState([]);
   const [toast, setToast] = useState(null);
 
   const armedRef = useRef(false);
   const cratersCanvasRef = useRef(null);
   const glowCanvasRef = useRef(null);
-  const cratersRef = useRef([]);
+  const surfaceRef = useRef(null);
+  const glowsRef = useRef([]);
   const glowRafRef = useRef(0);
   const followerRef = useRef(null);
   const rotorRef = useRef(null);
@@ -163,51 +165,66 @@ export default function GunCursor() {
     return () => document.body.classList.remove("gun-armed");
   }, [armed]);
 
-  // Repaint the shared crater canvas whenever the set of craters changes (or the
-  // viewport resizes). All craters share one surface so they merge: dark centers
-  // combine into one cavity and borders trace the combined outline. The backing
-  // store is at cell resolution and CSS-scaled up by PIXEL for the crisp look.
-  // The laser glow lives on a second, smooth css-px canvas that animates on its
-  // own clock (it fades over time), so it's driven by requestAnimationFrame.
-  useEffect(() => {
-    cratersRef.current = craters;
-    const cratersCanvas = cratersCanvasRef.current;
-    const glowCanvas = glowCanvasRef.current;
-    if (!cratersCanvas || !glowCanvas) return;
-
-    const drawCraters = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const cols = Math.max(1, Math.ceil(w / PIXEL));
-      const rows = Math.max(1, Math.ceil(h / PIXEL));
-      if (cratersCanvas.width !== cols) cratersCanvas.width = cols;
-      if (cratersCanvas.height !== rows) cratersCanvas.height = rows;
-      cratersCanvas.style.width = `${cols * PIXEL}px`;
-      cratersCanvas.style.height = `${rows * PIXEL}px`;
-      if (glowCanvas.width !== w) glowCanvas.width = w;
-      if (glowCanvas.height !== h) glowCanvas.height = h;
-      const cells = craters.map((c) => ({ ...c, cx: c.x / PIXEL, cy: c.y / PIXEL }));
-      renderCraters(cratersCanvas.getContext("2d"), cells, cols, rows);
-    };
-    drawCraters();
-
-    // (Re)start the glow loop; it self-stops once every glow has faded.
-    const glowCtx = glowCanvas.getContext("2d");
+  // Runs the glow fade loop, pruning glows as they expire; self-stops once
+  // every glow has faded. Restartable, no-op while already running.
+  const ensureGlowLoop = useCallback(() => {
+    if (glowRafRef.current) return;
     const tick = () => {
-      const active = renderMoltenGlow(
-        glowCtx,
-        cratersRef.current,
+      const glowCanvas = glowCanvasRef.current;
+      if (!glowCanvas) {
+        glowRafRef.current = 0;
+        return;
+      }
+      const now = performance.now();
+      glowsRef.current = glowsRef.current.filter(
+        (g) => now - g.bornAt < g.glowMs
+      );
+      const active = renderGlows(
+        glowCanvas.getContext("2d"),
+        glowsRef.current,
         glowCanvas.width,
         glowCanvas.height,
-        performance.now()
+        now
       );
       glowRafRef.current = active ? requestAnimationFrame(tick) : 0;
     };
-    if (!glowRafRef.current) glowRafRef.current = requestAnimationFrame(tick);
+    glowRafRef.current = requestAnimationFrame(tick);
+  }, []);
 
-    window.addEventListener("resize", drawCraters);
-    return () => window.removeEventListener("resize", drawCraters);
-  }, [craters]);
+  // Size the canvases to the viewport and blit the baked hole surface onto the
+  // visible canvas. Holes live on the surface (not in state), bake in when
+  // stamped, and persist until reload; the surface only grows on resize, so
+  // nothing is lost shrinking and re-expanding the window. The backing store is
+  // at cell resolution and CSS-scaled up by PIXEL for the crisp look. The laser
+  // glow lives on a second, smooth css-px canvas driven by its own RAF loop.
+  useEffect(() => {
+    const cratersCanvas = cratersCanvasRef.current;
+    const glowCanvas = glowCanvasRef.current;
+    if (!cratersCanvas || !glowCanvas) return;
+    if (!surfaceRef.current) surfaceRef.current = createSurface();
+    const surface = surfaceRef.current;
+
+    const fit = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      growSurface(
+        surface,
+        Math.max(1, Math.ceil(w / PIXEL)),
+        Math.max(1, Math.ceil(h / PIXEL))
+      );
+      if (cratersCanvas.width !== surface.cols) cratersCanvas.width = surface.cols;
+      if (cratersCanvas.height !== surface.rows) cratersCanvas.height = surface.rows;
+      cratersCanvas.style.width = `${surface.cols * PIXEL}px`;
+      cratersCanvas.style.height = `${surface.rows * PIXEL}px`;
+      if (glowCanvas.width !== w) glowCanvas.width = w;
+      if (glowCanvas.height !== h) glowCanvas.height = h;
+      cratersCanvas.getContext("2d").drawImage(surface.canvas, 0, 0);
+    };
+    fit();
+
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [armed, hasMarks]);
 
   // Cancel the glow animation on unmount.
   useEffect(
@@ -258,18 +275,6 @@ export default function GunCursor() {
 
     const chargeMs = gun.chargeMs || 3000;
 
-    // A shot landing in the black center of an existing molten hole passes
-    // straight through it — no new decal, no debris, and the hole is unchanged.
-    // (Shots on a hole's rim are not "in the void" — they crater normally and
-    // their dark center consumes that bit of rim.)
-    const inMoltenVoid = (x, y) => {
-      const cells = cratersRef.current
-        .filter((c) => c.type === "molten")
-        .map((h) => ({ cx: h.x / PIXEL, cy: h.y / PIXEL, r: h.r, lobes: h.lobes }));
-      if (cells.length === 0) return false;
-      return isInMoltenVoid(cells, x / PIXEL, y / PIXEL);
-    };
-
     // power is 0..1 for a charge gun (how charged), else 1
     const fire = (x, y, power = 1) => {
       if (gun.charge) gun.sound(power);
@@ -317,24 +322,34 @@ export default function GunCursor() {
         });
       }
 
-      // The trigger still fired (sound/recoil/flash above), but there's nothing
-      // to crater or kick up when shooting into an existing hole.
-      if (inMoltenVoid(x, y)) return;
+      // A shot landing in the black void of any existing hole passes straight
+      // through it — the trigger still fired (sound/recoil/flash above), but
+      // there's nothing to crater or kick up. Shots on a rim still crater, and
+      // their dark center consumes that bit of rim.
+      const surface = surfaceRef.current;
+      if (!surface || isInVoid(surface, x, y)) return;
 
       const craterScale = gun.charge ? 0.6 + power * 3.4 : gun.craterScale;
-      const id = ++idRef.current;
       const molten = gun.crater === "molten";
       const shape = molten
         ? createMoltenHole(craterScale)
         : createScorchCrater(craterScale);
+      // Bake the hole into the persistent surface; overlapping holes combine
+      // there and the descriptor is dropped.
+      stampCrater(surface, { ...shape, cx: x / PIXEL, cy: y / PIXEL });
+      cratersCanvasRef.current?.getContext("2d").drawImage(surface.canvas, 0, 0);
+      setHasMarks(true);
       // Laser holes glow and fade over 5–15s, by shot size (charge).
-      const glow = molten
-        ? { bornAt: performance.now(), glowMs: (5 + power * 10) * 1000 }
-        : null;
-      setCraters((cs) => {
-        const next = [...cs, { id, x, y, ...shape, ...glow }];
-        return next.length > MAX_CRATERS ? next.slice(next.length - MAX_CRATERS) : next;
-      });
+      if (molten) {
+        glowsRef.current.push({
+          x,
+          y,
+          r: shape.r,
+          bornAt: performance.now(),
+          glowMs: (5 + power * 10) * 1000,
+        });
+        ensureGlowLoop();
+      }
 
       if (!reduced) {
         const count = Math.round(7 + (gun.charge ? power * 16 : 0));
@@ -442,9 +457,9 @@ export default function GunCursor() {
       window.removeEventListener("blur", onCancel);
       window.removeEventListener("click", swallowClick, true);
     };
-  }, [armed, gun]);
+  }, [armed, gun, ensureGlowLoop]);
 
-  if (!armed && craters.length === 0) return null;
+  if (!armed && !hasMarks) return null;
 
   return createPortal(
     <div className="gun-overlay" aria-hidden="true">

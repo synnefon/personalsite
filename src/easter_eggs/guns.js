@@ -20,16 +20,32 @@ export const GUNS = [
   {
     id: "pistol",
     label: "pistol",
-    grid: { w: 16, h: 12 },
-    pixel: 4.5,
-    muzzle: { x: 16, y: 4.5 },
+    grid: { w: 19, h: 13 },
+    pixel: 4.2,
+    muzzle: { x: 19, y: 5 },
     rects: [
-      { x: 2, y: 3, w: 14, h: 3, c: METAL }, // slide / barrel
-      { x: 3, y: 3, w: 12, h: 1, c: METAL_LIGHT }, // top highlight
-      { x: 2, y: 6, w: 8, h: 1, c: DARK }, // front frame
-      { x: 2, y: 6, w: 3, h: 6, c: GRIP_WOOD }, // grip
-      { x: 5, y: 6, w: 1, h: 3, c: DARK }, // trigger
-      { x: 15, y: 3, w: 1, h: 3, c: MUZZLE }, // muzzle tip
+      { x: 4, y: 2, w: 7, h: 1, c: METAL }, // top strap
+      { x: 3, y: 3, w: 2, h: 4, c: METAL }, // rear frame
+      { x: 10, y: 3, w: 1, h: 1, c: METAL }, // frame at barrel join
+      { x: 5, y: 3, w: 5, h: 4, c: METAL }, // cylinder
+      { x: 5, y: 3, w: 5, h: 1, c: METAL_LIGHT }, // cylinder highlight
+      { x: 6, y: 4, w: 1, h: 2, c: DARK }, // cylinder flute
+      { x: 8, y: 4, w: 1, h: 2, c: DARK }, // cylinder flute
+      { x: 5, y: 7, w: 5, h: 1, c: METAL }, // bottom strap
+      { x: 10, y: 4, w: 8, h: 2, c: METAL }, // barrel
+      { x: 10, y: 4, w: 7, h: 1, c: METAL_LIGHT }, // barrel highlight
+      { x: 18, y: 4, w: 1, h: 2, c: MUZZLE }, // muzzle tip
+      { x: 17, y: 3, w: 1, h: 1, c: DARK }, // front sight
+      { x: 2, y: 1, w: 2, h: 1, c: DARK }, // hammer spur
+      { x: 3, y: 2, w: 1, h: 1, c: DARK }, // hammer
+      { x: 6, y: 8, w: 1, h: 1, c: DARK }, // trigger guard rear
+      { x: 9, y: 8, w: 1, h: 1, c: DARK }, // trigger guard front
+      { x: 6, y: 9, w: 4, h: 1, c: DARK }, // trigger guard bottom
+      { x: 7, y: 8, w: 1, h: 1, c: DARK }, // trigger
+      { x: 2, y: 4, w: 2, h: 3, c: GRIP_WOOD }, // grip top
+      { x: 1, y: 7, w: 4, h: 2, c: GRIP_WOOD }, // grip mid
+      { x: 0, y: 9, w: 4, h: 2, c: GRIP_WOOD }, // grip low
+      { x: 0, y: 11, w: 3, h: 1, c: GRIP_DARK }, // butt cap
     ],
     sound: playGunshot,
     auto: false,
