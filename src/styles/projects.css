@@ -10,6 +10,42 @@
 
 
 /* ============================================
+   SECTION SUBHEADERS
+   ============================================ */
+
+.proj-subheader {
+  display: flex;
+  align-items: flex-end;
+  margin-left: 14px;
+  padding-bottom: 0.25em;
+  color: var(--color-orange);
+  font-weight: 700;
+  font-size: calc(8px + 1.2vmin);
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* First row hugs its content; remaining rows set item/section spacing. */
+.links.proj-colors {
+  grid-template-rows: min-content;
+  grid-auto-rows: 2.5em;
+}
+
+/* Lead space above the first header, matched to the gap below it. */
+.links.proj-colors > .proj-subheader:first-child {
+  padding-top: 1em;
+}
+
+/* Indent item names under their section header (descriptions unaffected). */
+.links.proj-colors p.link-text {
+  margin-left: 28px;
+}
+
+
+/* ============================================
    SPECIAL EFFECTS
    ============================================ */
 

@@ -205,6 +205,8 @@ export default function Projects() {
         </div>
         <div className="links-wrapper" style={{ position: "relative" }}>
         <div className="links proj-colors" ref={linksRef}>
+          {/* art */}
+          <div className="proj-subheader proj-colors">art</div>
           <a
             className="link proj-colors"
             href="https://synnefon.github.io/mapinator"
@@ -215,16 +217,6 @@ export default function Projects() {
               procedural terrain map generator
             </p>
           </a>
-          <Link
-            className="link proj-colors"
-            to="/game-of-life"
-            rel="noreferrer"
-          >
-            <p className="link-text proj-colors">game of life</p>
-            <p className="tooltip-text proj-colors">
-              cellular automata simulator
-            </p>
-          </Link>
           <Link
             className="link proj-colors"
             to="/lava-lamp-radio"
@@ -241,31 +233,6 @@ export default function Projects() {
               dendritic growth simulation
             </p>
           </Link>
-          <Link className="link proj-colors" to="/shavianator" rel="noreferrer">
-            <p className="link-text proj-colors">shavian transliterator</p>
-            <p className="tooltip-text proj-colors">english → shavian</p>
-          </Link>
-          {
-            <Link className="link proj-colors" to="/snek" rel="noreferrer">
-              <p className="link-text proj-colors">snek</p>
-              <p className="tooltip-text proj-colors">snek!</p>
-            </Link>
-          }
-
-          <Link className="link proj-colors" to="/sudoku" rel="noreferrer">
-            <p className="link-text proj-colors">sudoku</p>
-            <p className="tooltip-text proj-colors">eternal classic</p>
-          </Link>
-          <Link
-            className="link proj-colors"
-            to="/shufflenator"
-            rel="noreferrer"
-          >
-            <p className="link-text proj-colors">shufflenator</p>
-            <p className="tooltip-text proj-colors">
-              optimal shuffle pattern calculator
-            </p>
-          </Link>
           <Link
             className="link proj-colors"
             to="/monarch-music"
@@ -275,6 +242,13 @@ export default function Projects() {
             <p className="tooltip-text proj-colors">
               monarch sightings sonified
             </p>
+          </Link>
+
+          {/* games */}
+          <div className="proj-subheader proj-colors">games</div>
+          <Link className="link proj-colors" to="/snek" rel="noreferrer">
+            <p className="link-text proj-colors">snek</p>
+            <p className="tooltip-text proj-colors">snek!</p>
           </Link>
           <Link
             className="link proj-colors"
@@ -286,10 +260,40 @@ export default function Projects() {
               dice-rolling territory conquest
             </p>
           </Link>
-          {/* <Link className="link proj-colors" to="/matchgame" rel="noreferrer">
-            <p className="link-text proj-colors">sea match</p>
-            <p className="tooltip-text proj-colors">a sea-themed memory game</p>
-          </Link> */}
+          <Link className="link proj-colors" to="/sudoku" rel="noreferrer">
+            <p className="link-text proj-colors">sudoku</p>
+            <p className="tooltip-text proj-colors">eternal classic</p>
+          </Link>
+          <Link
+            className="link proj-colors"
+            to="/game-of-life"
+            rel="noreferrer"
+          >
+            <p className="link-text proj-colors">game of life</p>
+            <p className="tooltip-text proj-colors">
+              cellular automata simulator
+            </p>
+          </Link>
+
+          {/* tools */}
+          <div className="proj-subheader proj-colors">tools</div>
+          <Link className="link proj-colors" to="/shavianator" rel="noreferrer">
+            <p className="link-text proj-colors">shavian transliterator</p>
+            <p className="tooltip-text proj-colors">english → shavian</p>
+          </Link>
+          <Link
+            className="link proj-colors"
+            to="/shufflenator"
+            rel="noreferrer"
+          >
+            <p className="link-text proj-colors">shufflenator</p>
+            <p className="tooltip-text proj-colors">
+              optimal shuffle pattern calculator
+            </p>
+          </Link>
+
+          {/* open source */}
+          <div className="proj-subheader proj-colors">open source</div>
           <a
             className="link proj-colors"
             href="https://thangs.com/designer/synnefon"
@@ -320,6 +324,10 @@ export default function Projects() {
               lisp-like query language. al dente.{" "}
             </p>
           </a>
+          {/* <Link className="link proj-colors" to="/matchgame" rel="noreferrer">
+            <p className="link-text proj-colors">sea match</p>
+            <p className="tooltip-text proj-colors">a sea-themed memory game</p>
+          </Link> */}
           {/* <Link className="link proj-colors" to="/wip" rel="noreferrer">
             <p className="link-text proj-colors">work in progress</p>
             <p className="tooltip-text proj-colors">coming soon to a website near you</p>
