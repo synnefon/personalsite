@@ -121,8 +121,8 @@ export default function Home() {
       setDuckPosition(initialPosition);
     }
 
-    // Check if animation has been seen before (sessionStorage is cleared on cache clear)
-    const hasSeenAnimation = sessionStorage.getItem("hasSeenHomeAnimation") === "true";
+    // Check if animation has been seen before (localStorage persists across visits)
+    const hasSeenAnimation = localStorage.getItem("hasSeenHomeAnimation") === "true";
 
     if (hasSeenAnimation) {
       // Skip flutter, show text immediately, but still wait 5s before cycling descriptors
@@ -160,9 +160,9 @@ export default function Home() {
   // Once every letter has finished fluttering, wait POST_FLUTTER_DELAY_MS then cycle subtitles
   useEffect(() => {
     if (skipAnimations || !allFluttersDone) return;
+    localStorage.setItem("hasSeenHomeAnimation", "true");
     const timer = setTimeout(() => {
       setSubtitleVisible(true);
-      sessionStorage.setItem("hasSeenHomeAnimation", "true");
     }, POST_FLUTTER_DELAY_MS);
     return () => clearTimeout(timer);
   }, [allFluttersDone, skipAnimations]);
