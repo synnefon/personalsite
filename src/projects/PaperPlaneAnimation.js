@@ -30,6 +30,23 @@ const PLANE_Z_INDEX = 9999;
 const PLANE_ICON_SIZE = "32px";
 const PLANE_SHADOW = "drop-shadow(0 2px 4px rgba(0,0,0,0.2))";
 
+// The plane icon, shared with the held-plane rendering in PaperPlanes
+export const PaperPlaneIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    className="paper-plane-icon"
+    style={{
+      width: PLANE_ICON_SIZE,
+      height: PLANE_ICON_SIZE,
+      filter: PLANE_SHADOW,
+      fill: "currentColor",
+    }}
+  >
+    <path d="M1.77,6.215A2.433,2.433,0,0,0,0,8.611a2.474,2.474,0,0,0,.771,1.71L4,13.548V20h6.448l3.265,3.267a2.4,2.4,0,0,0,1.706.713,2.438,2.438,0,0,0,.618-.08,2.4,2.4,0,0,0,1.726-1.689L24-.016ZM3.533,8.856l13.209-3.7L7,14.9V12.326Zm11.6,11.6L11.675,17H9.1l9.734-9.741Z" />
+  </svg>
+);
+
 /**
  * Animated paper airplane component
  * Simulates realistic glide physics when triggered
@@ -39,6 +56,8 @@ const PaperPlaneAnimation = ({
   onComplete,
   direction = "right",
   gustState,
+  initialState,
+  onCatch,
 }) => {
   const [position, setPosition] = useState(null);
   const animationRef = useRef(null);
@@ -149,8 +168,11 @@ const PaperPlaneAnimation = ({
   useEffect(() => {
     if (!startPosition) return;
 
-    // Initialize simulation state
-    const initialConditions = getInitialConditions();
+    // Initialize simulation state: thrown planes carry their throw
+    // velocity/heading, otherwise fall back to random conditions
+    const initialConditions = initialState
+      ? { ...initialState, H: 0, Range: 0 }
+      : getInitialConditions();
     stateRef.current = { ...initialConditions };
 
     // Calculate scale based on current screen width for consistent relative speed
@@ -258,11 +280,19 @@ const PaperPlaneAnimation = ({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startPosition, direction]);
+  }, [startPosition, direction, initialState]);
 
   if (!position) {
     return null;
   }
+
+  // Traveling planes can be caught mid-flight
+  const handleMouseDown = (e) => {
+    if (e.button !== 0 || !onCatch) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onCatch({ x: e.clientX, y: e.clientY });
+  };
 
   // Determine scaleX based on initial direction
   const scaleX = direction === "left" ? DIRECTION_LEFT : DIRECTION_RIGHT;
@@ -270,29 +300,18 @@ const PaperPlaneAnimation = ({
   return (
     <div
       className="paper-plane-animated"
+      onMouseDown={handleMouseDown}
       style={{
         position: "fixed",
         left: `${position.x}px`,
         top: `${position.y}px`,
         transform: `translate(${TRANSLATE_OFFSET}, ${TRANSLATE_OFFSET}) scaleX(${scaleX}) rotate(${position.angle}deg)`,
-        pointerEvents: "none",
+        pointerEvents: onCatch ? "auto" : "none",
         zIndex: PLANE_Z_INDEX,
         transition: "none",
       }}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        className="paper-plane-icon"
-        style={{
-          width: PLANE_ICON_SIZE,
-          height: PLANE_ICON_SIZE,
-          filter: PLANE_SHADOW,
-          fill: "currentColor",
-        }}
-      >
-        <path d="M1.77,6.215A2.433,2.433,0,0,0,0,8.611a2.474,2.474,0,0,0,.771,1.71L4,13.548V20h6.448l3.265,3.267a2.4,2.4,0,0,0,1.706.713,2.438,2.438,0,0,0,.618-.08,2.4,2.4,0,0,0,1.726-1.689L24-.016ZM3.533,8.856l13.209-3.7L7,14.9V12.326Zm11.6,11.6L11.675,17H9.1l9.734-9.741Z" />
-      </svg>
+      <PaperPlaneIcon />
     </div>
   );
 };

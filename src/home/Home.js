@@ -451,7 +451,7 @@ export default function Home() {
   };
 
   return (
-    <div id="app-base" className={`home-colors paper-plane-cursor theme-${theme}`}>
+    <div id="app-base" className={`home-colors theme-${theme}`}>
       <div className="theme-picker">
         {THEMES.map((t) => (
           <button

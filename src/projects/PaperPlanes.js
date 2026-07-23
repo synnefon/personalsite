@@ -1,13 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import fanIcon from "../assets/projects/fan.svg";
 import { findSafeViewportSpot } from "../util/safeSpot";
-import PaperPlaneAnimation from "./PaperPlaneAnimation";
+import { calculateCoordinateScale } from "./paperPlanePhysics";
+import PaperPlaneAnimation, { PaperPlaneIcon } from "./PaperPlaneAnimation";
 
 // Fan dimensions - must match .fan-container in projects.css
 const FAN_SIZE = 60;
 const LONG_PRESS_DELAY_MS = 200;
 
-// Click-anywhere paper planes, plus the fan that blows them around.
+// Throw tuning: mouse velocity is sampled over a trailing window
+const VELOCITY_WINDOW_MS = 120;
+const MIN_SAMPLE_SPAN_MS = 30;
+const DRAG_THRESHOLD_PX = 6;
+const MIN_THROW_SPEED_PX_PER_SEC = 50;
+
+// Press-and-drag paper planes, plus the fan that blows them around.
+// Pressing picks up a plane (the cursor becomes it), releasing throws
+// it with the mouse's velocity; a plain click just drops it.
 export default function PaperPlanes() {
   const [planes, setPlanes] = useState([]);
   const [gustState, setGustState] = useState({ strength: 0, angle: 0 });
@@ -18,10 +27,15 @@ export default function PaperPlanes() {
   const [hasDragged, setHasDragged] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [pressActive, setPressActive] = useState(false);
+  const [holding, setHolding] = useState(false);
+  const [heldPos, setHeldPos] = useState(null);
   const fanPositionRef = useRef({ x: null, y: null });
   const fanElementRef = useRef(null);
   const longPressTimeoutRef = useRef(null);
   const longPressMetRef = useRef(false);
+  const throwSamplesRef = useRef([]);
+  const holdStartRef = useRef({ x: 0, y: 0 });
+  const holdDraggedRef = useRef(false);
 
   // Generate strong upward gusts when fan is spinning
   useEffect(() => {
@@ -150,30 +164,47 @@ export default function PaperPlanes() {
     };
   }, []);
 
-  const handlePageClick = useCallback(
-    (e) => {
-      // Ignore clicks on interactive elements
-      const isInteractive = e.target.closest(
-        "a, .link, button, .audio-fact, .duck-container, #person-icon, .me-fact-wrapper, .fan-container, .navbar, .social-icons"
-      );
-      if (isInteractive) return;
+  // --- Plane hold / throw ---
 
-      // Get click position
-      const clickPosition = {
-        x: e.clientX,
-        y: e.clientY,
-      };
+  const beginHold = useCallback((x, y) => {
+    throwSamplesRef.current = [{ x, y, t: performance.now() }];
+    holdStartRef.current = { x, y };
+    holdDraggedRef.current = false;
+    setHeldPos({ x, y });
+    setHolding(true);
+  }, []);
 
-      // Determine direction: fly towards the further side
-      // If click is on left half, fly right; if on right half, fly left
-      const screenMidpoint = window.innerWidth / 2;
-      const direction = clickPosition.x < screenMidpoint ? "right" : "left";
+  const catchPlane = useCallback(
+    (planeId, x, y) => {
+      setPlanes((prev) => prev.filter((p) => p.id !== planeId));
+      beginHold(x, y);
+    },
+    [beginHold]
+  );
 
-      // Add new plane to the list
+  const throwPlane = useCallback(
+    (x, y, vx, vy) => {
+      let direction;
+      let initial;
+      if (Math.hypot(vx, vy) < MIN_THROW_SPEED_PX_PER_SEC) {
+        // A plain click or a still release: just drop the plane
+        direction = "right";
+        initial = { V: 0, Gam: 0 };
+      } else {
+        // Screen px/s -> sim m/s; sim y is up, and horizontal speed
+        // folds into the direction multiplier
+        const scale = calculateCoordinateScale(window.innerWidth);
+        direction = vx >= 0 ? "right" : "left";
+        const simVx = Math.abs(vx) / scale;
+        const simVy = -vy / scale;
+        initial = { V: Math.hypot(simVx, simVy), Gam: Math.atan2(simVy, simVx) };
+      }
+
       const newPlane = {
         id: Date.now(),
-        startPosition: clickPosition,
+        startPosition: { x, y },
         direction,
+        initial,
       };
 
       setPlanes((prev) => {
@@ -199,11 +230,79 @@ export default function PaperPlanes() {
     [fanVisible]
   );
 
-  // Fire planes from anywhere on the page
+  const handleHoldMove = useCallback((e) => {
+    const t = performance.now();
+    const samples = throwSamplesRef.current;
+    samples.push({ x: e.clientX, y: e.clientY, t });
+    while (samples.length && t - samples[0].t > VELOCITY_WINDOW_MS) {
+      samples.shift();
+    }
+    const start = holdStartRef.current;
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > DRAG_THRESHOLD_PX) {
+      holdDraggedRef.current = true;
+    }
+    setHeldPos({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const handleHoldUp = useCallback(
+    (e) => {
+      setHolding(false);
+      setHeldPos(null);
+      let vx = 0;
+      let vy = 0;
+      if (holdDraggedRef.current) {
+        const t = performance.now();
+        const samples = throwSamplesRef.current;
+        // Only trust fresh samples: a parked mouse is a drop, not a
+        // slow throw averaged across the whole hold
+        const reference = samples.find((s) => t - s.t <= VELOCITY_WINDOW_MS);
+        if (reference && t - reference.t >= MIN_SAMPLE_SPAN_MS) {
+          const dt = (t - reference.t) / 1000;
+          vx = (e.clientX - reference.x) / dt;
+          vy = (e.clientY - reference.y) / dt;
+        }
+      }
+      throwPlane(e.clientX, e.clientY, vx, vy);
+    },
+    [throwPlane]
+  );
+
   useEffect(() => {
-    document.addEventListener("click", handlePageClick);
-    return () => document.removeEventListener("click", handlePageClick);
-  }, [handlePageClick]);
+    if (!holding) return;
+    window.addEventListener("mousemove", handleHoldMove);
+    window.addEventListener("mouseup", handleHoldUp);
+    return () => {
+      window.removeEventListener("mousemove", handleHoldMove);
+      window.removeEventListener("mouseup", handleHoldUp);
+    };
+  }, [holding, handleHoldMove, handleHoldUp]);
+
+  const handlePageMouseDown = useCallback(
+    (e) => {
+      if (e.button !== 0) return;
+      // Ignore presses on interactive elements
+      const isInteractive = e.target.closest(
+        "a, .link, button, .audio-fact, .duck-container, #person-icon, .me-fact-wrapper, .fan-container, .navbar, .social-icons"
+      );
+      if (isInteractive) return;
+      // Ignore presses on the scrollbar (clientWidth excludes it)
+      const scroller = document.getElementById("app-base");
+      if (
+        scroller &&
+        e.clientX >= scroller.getBoundingClientRect().left + scroller.clientWidth
+      ) {
+        return;
+      }
+      beginHold(e.clientX, e.clientY);
+    },
+    [beginHold]
+  );
+
+  // Pick up a fresh plane from anywhere on the page
+  useEffect(() => {
+    document.addEventListener("mousedown", handlePageMouseDown);
+    return () => document.removeEventListener("mousedown", handlePageMouseDown);
+  }, [handlePageMouseDown]);
 
   const handleAnimationComplete = useCallback((planeId) => {
     setPlanes((prev) => prev.filter((p) => p.id !== planeId));
@@ -217,10 +316,25 @@ export default function PaperPlanes() {
           key={plane.id}
           startPosition={plane.startPosition}
           direction={plane.direction}
+          initialState={plane.initial}
           gustState={gustState}
+          onCatch={(pos) => catchPlane(plane.id, pos.x, pos.y)}
           onComplete={() => handleAnimationComplete(plane.id)}
         />
       ))}
+
+      {/* While holding, the plane rides with the mouse under a grabbing cursor */}
+      {holding && heldPos && (
+        <>
+          <div
+            className="paper-plane-held"
+            style={{ left: `${heldPos.x}px`, top: `${heldPos.y}px` }}
+          >
+            <PaperPlaneIcon />
+          </div>
+          <div className="plane-hold-overlay" />
+        </>
+      )}
 
       {/* Fan appears at bottom after 2+ planes fired */}
       {fanVisible && (

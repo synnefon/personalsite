@@ -15,7 +15,7 @@ export const types = {
 
 const VS = "|";
 const SP = " ";
-const LN = "o- ";
+const LN = "*- ";
 
 // `ancestors` holds one flag per level above: true when that ancestor
 // has more siblings below, so its pipe continues; false leaves a gap.
