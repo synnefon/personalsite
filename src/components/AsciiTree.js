@@ -135,7 +135,11 @@ const renderNodes = (nodes, ancestors) =>
           className="tree-row"
           id={node.id}
           style={{ "--tree-depth": ancestors.length }}
-          data-pipes={(spacerText(ancestors) + "\n").repeat(12)}
+          data-pipes={
+            node.type === types.section
+              ? undefined
+              : (spacerText(ancestors) + "\n").repeat(12)
+          }
         >
           <span className="tree-prefix">{prefixText(ancestors)}</span>
           <NodeContent node={node} />

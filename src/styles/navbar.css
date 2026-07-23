@@ -80,20 +80,57 @@ body.lava-lamp-fullscreen .navbar {
   margin-right: 0.3em;
 }
 
-.nav-link.active,
-.nav-link:hover {
+.nav-link.active {
   color: var(--color-white);
   background-color: var(--color-black);
+}
+.nav-link.active .nav-item {
+  color: var(--color-white);
+}
+
+.nav-link:hover {
   cursor: var(--pointer) !important;
 }
-.nav-link.active .nav-item,
-.nav-link:hover .nav-item {
-  color: var(--color-white);
+
+/* Hover marker (space always reserved so widths stay fixed) */
+.nav-item::after {
+  content: " *";
+  visibility: hidden;
+}
+
+.nav-link:hover .nav-item::after {
+  visibility: visible;
 }
 
 /* .nav-link:hover .nav-item {
   animation: boing 0.3s ease-in-out alternate;
 } */
+
+/* ============================================
+   THEME OVERRIDES
+   ============================================ */
+
+/* Dark themes: highlight chip inverts to the theme's colors */
+body:has(#app-base.theme-blueprint) .nav-link.active,
+body:has(#app-base.theme-black) .nav-link.active {
+  background-color: var(--color-white);
+}
+
+body:has(#app-base.theme-black) .nav-link.active .nav-item {
+  color: var(--color-black);
+}
+
+body:has(#app-base.theme-blueprint) .nav-link.active .nav-item {
+  color: var(--color-blueprint);
+}
+
+body:has(#app-base.theme-amber) .nav-link.active {
+  background-color: var(--color-amber);
+}
+
+body:has(#app-base.theme-amber) .nav-link.active .nav-item {
+  color: var(--color-amber-black);
+}
 
 /* ============================================
    DENDRITES PAGE OVERRIDE
@@ -103,8 +140,7 @@ body:has(.dendrites-canvas) .nav-item {
   color: var(--color-black);
 }
 
-body:has(.dendrites-canvas) .nav-item.active,
-body:has(.dendrites-canvas) .nav-link:hover .nav-item {
+body:has(.dendrites-canvas) .nav-item.active {
   color: var(--color-orange);
 }
 
@@ -136,13 +172,11 @@ body:has(.dendrites-canvas) .nav-link:hover .nav-item {
     font-size: calc(12px + 1vmin);
   }
 
-  /* Inverse when highlighted */
-  .nav-link:hover,
+  /* Inverse when selected */
   .nav-link.active {
     background-color: var(--color-white);
   }
 
-  .nav-link:hover .nav-item,
   .nav-link.active .nav-item {
     color: var(--color-black);
   }

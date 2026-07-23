@@ -73,6 +73,18 @@ const SITE_TREE = {
       children: [
         {
           type: types.section,
+          title: "technical",
+          children: [
+            { type: types.stringContent, content: "system architecture" },
+            { type: types.stringContent, content: "cloud computing" },
+            { type: types.stringContent, content: "ai software development" },
+            { type: types.stringContent, content: "typescript" },
+            { type: types.stringContent, content: "rest apis" },
+            { type: types.stringContent, content: "project management" },
+          ],
+        },
+        {
+          type: types.section,
           title: "strengths",
           children: [
             { type: types.audioContent, content: "curiosity", audio: curiosityAudio },
@@ -148,6 +160,11 @@ const SITE_TREE = {
   ],
 };
 
+const THEMES = ["black", "white", "amber", "blueprint"];
+
+// px; must match .duck-container size in home.css
+const DUCK_SIZE = 72;
+
 // Sound and animation timing constants (single source of truth)
 const SOUND_DURATION_MS = 1300;
 const MAX_VOLUME_MULTIPLIER = 3;
@@ -157,15 +174,24 @@ const VOLUME_INCREMENT = (MAX_VOLUME_MULTIPLIER - 1) / (NUM_ARPEGGIO_STEPS - 1);
 export default function Home() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [duckVisible, setDuckVisible] = useState(true);
+  const [duckHover, setDuckHover] = useState(false);
   const [flapFrame, setFlapFrame] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem("homeTheme");
+    return THEMES.includes(saved) ? saved : "white";
+  });
   const [skipAnimations, setSkipAnimations] = useState(false);
   const [duckPosition, setDuckPosition] = useState({ left: null, top: null, bottom: null });
+  const [docked, setDocked] = useState(true);
+  const [dockPos, setDockPos] = useState(null);
+  const [noTransition, setNoTransition] = useState(false);
   const [volumeMultiplier, setVolumeMultiplier] = useState(1);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const soundStopRef = useRef(null);
   const soundParamsRef = useRef(null);
   const contentWrapperRef = useRef(null);
   const timeoutRef = useRef(null);
+  const duckRef = useRef(null);
 
   const isMobile = windowWidth <= 768;
 
@@ -202,11 +228,6 @@ export default function Home() {
   }, [location.pathname, navigationType]);
 
   useEffect(() => {
-    // Set initial random duck position if not loaded from session storage
-    if (duckPosition.left === null && duckPosition.top === null) {
-      setDuckPosition(spawnDuckInView());
-    }
-
     // Check if animation has been seen before (localStorage persists across visits)
     const hasSeenAnimation = localStorage.getItem("hasSeenHomeAnimation") === "true";
 
@@ -214,8 +235,33 @@ export default function Home() {
       // Skip flutter, show text immediately
       setSkipAnimations(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // While docked, the duck is pinned just under the last menu item.
+  // Track the navbar through resizes, hamburger toggles, and font loads.
+  useEffect(() => {
+    if (!docked) return;
+    const navbar = document.querySelector(".navbar");
+    if (!navbar) return;
+
+    const measure = () => {
+      const navRect = navbar.getBoundingClientRect();
+      const links = navbar.querySelectorAll(".nav-link");
+      const anchor = links.length
+        ? links[links.length - 1].getBoundingClientRect()
+        : navRect;
+      setDockPos({ left: navRect.left, top: anchor.bottom, width: navRect.width });
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(navbar);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [docked]);
 
   // Flap the duck's arms while it sings
   useEffect(() => {
@@ -240,6 +286,11 @@ export default function Home() {
     localStorage.setItem("hasSeenHomeAnimation", "true");
   }, [skipAnimations]);
 
+  // Remember the chosen theme across visits
+  useEffect(() => {
+    localStorage.setItem("homeTheme", theme);
+  }, [theme]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -252,6 +303,15 @@ export default function Home() {
     };
   }, []);
 
+  // Big eyes when hovered or singing; no wings while docked in the
+  // menu; flapping alternates the wings while singing on the page.
+  const duckFace = () => {
+    const eyes = isPlaying || duckHover ? "⚆ɞ⚆" : "•ɞ•";
+    if (docked) return `₍${eyes}₎`;
+    if (isPlaying) return flapFrame ? `ˏ₍${eyes}₎ˎ` : `ˋ₍${eyes}₎ˊ`;
+    return `ˏ₍${eyes}₎ˎ`;
+  };
+
   // Pick a safe spot in the current view, anchored to page coordinates
   // so the duck stays put when the page scrolls.
   const spawnDuckInView = () => {
@@ -262,11 +322,41 @@ export default function Home() {
         ? { ...duckPosition, top: duckPosition.top - scrollTop }
         : duckPosition;
     const next = findSafeViewportSpot({
-      size: 72,
+      size: DUCK_SIZE,
       currentPos: viewportPos,
       minDistance: 150,
     });
     return next.top !== null ? { ...next, top: next.top + scrollTop } : next;
+  };
+
+  // First click: the duck leaves the menu and flies onto the page.
+  // Swap fixed viewport coords for page coords in place (no visible
+  // move), then fly to a random spot once the swap has painted.
+  const flyOntoPage = () => {
+    const scroller = document.getElementById("app-base");
+    const scrollTop = scroller ? scroller.scrollTop : 0;
+    const rect = duckRef.current.getBoundingClientRect();
+    setDocked(false);
+    setNoTransition(true);
+    setDuckPosition({
+      left: rect.left,
+      // Center the full-size box on the menu-row glyph
+      top: rect.top + (rect.height - DUCK_SIZE) / 2 + scrollTop,
+      bottom: null,
+    });
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        setNoTransition(false);
+        const next = findSafeViewportSpot({
+          size: DUCK_SIZE,
+          currentPos: { left: rect.left, top: rect.top },
+          minDistance: 150,
+        });
+        setDuckPosition(
+          next.top !== null ? { ...next, top: next.top + scrollTop } : next
+        );
+      })
+    );
   };
 
   const handleClick = () => {
@@ -322,7 +412,11 @@ export default function Home() {
     }
 
     // Move duck to a random spot in the current view
-    setDuckPosition(spawnDuckInView());
+    if (docked) {
+      flyOntoPage();
+    } else {
+      setDuckPosition(spawnDuckInView());
+    }
 
     // Start playing sound with current volume multiplier, params, and arpeggio step
     // arpeggioStep is 0-indexed: volume 1.0→step 0, 1.5→step 1, 2.0→step 2, 2.5→step 3, 3.0→step 4
@@ -357,7 +451,17 @@ export default function Home() {
   };
 
   return (
-    <div id="app-base" className="home-colors paper-plane-cursor">
+    <div id="app-base" className={`home-colors paper-plane-cursor theme-${theme}`}>
+      <div className="theme-picker">
+        {THEMES.map((t) => (
+          <button
+            key={t}
+            aria-label={`${t} theme`}
+            className={`theme-box theme-box-${t} ${theme === t ? "selected" : ""}`}
+            onClick={() => setTheme(t)}
+          />
+        ))}
+      </div>
       <div className="content-wrapper home-colors" ref={contentWrapperRef}>
 
         <AsciiTree root={SITE_TREE} />
@@ -368,22 +472,38 @@ export default function Home() {
       <PaperPlanes />
 
       {/* Duck */}
-      {duckVisible && !isMobile && (
+      {duckVisible && !isMobile && (!docked || dockPos !== null) && (
         <div
-          className={`duck-container ${isPlaying ? "wiggle" : ""}`}
-          style={{
-            left:
-              duckPosition.left !== null ? `${duckPosition.left}px` : "auto",
-            top: duckPosition.top !== null ? `${duckPosition.top}px` : "auto",
-            bottom:
-              duckPosition.bottom !== null
-                ? `${duckPosition.bottom}px`
-                : "auto",
-          }}
+          ref={duckRef}
+          className={`duck-container ${docked ? "docked" : ""} ${
+            isPlaying ? "wiggle" : ""
+          } ${noTransition ? "no-transition" : ""}`}
+          style={
+            docked
+              ? {
+                  left: `${dockPos.left}px`,
+                  top: `${dockPos.top}px`,
+                  width: `${dockPos.width}px`,
+                }
+              : {
+                  left:
+                    duckPosition.left !== null
+                      ? `${duckPosition.left}px`
+                      : "auto",
+                  top:
+                    duckPosition.top !== null ? `${duckPosition.top}px` : "auto",
+                  bottom:
+                    duckPosition.bottom !== null
+                      ? `${duckPosition.bottom}px`
+                      : "auto",
+                }
+          }
           onClick={handleClick}
+          onMouseEnter={() => setDuckHover(true)}
+          onMouseLeave={() => setDuckHover(false)}
         >
           <span className="duck-icon" role="img" aria-label="duck">
-            {isPlaying ? (flapFrame ? "ˏ₍⚆ɞ⚆₎ˎ" : "ˋ₍⚆ɞ⚆₎ˊ") : "ˏ₍•ɞ•₎ˎ"}
+            {duckFace()}
           </span>
         </div>
       )}

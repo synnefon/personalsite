@@ -12,6 +12,113 @@ body:has(#app-base.home-colors) {
   --text-color: var(--color-black) !important;
 }
 
+/* ============================================
+   PAGE THEMES
+   ============================================ */
+
+#app-base.home-colors.theme-black {
+  --bg-color: var(--color-black) !important;
+  --text-color: var(--color-text-light) !important;
+}
+
+#app-base.home-colors.theme-amber {
+  --bg-color: var(--color-amber-black) !important;
+  --text-color: var(--color-amber) !important;
+}
+
+#app-base.home-colors.theme-blueprint {
+  --bg-color: var(--color-blueprint) !important;
+  --text-color: var(--color-blueprint-light) !important;
+}
+
+/* Chrome (navbar, footer) follows the dark themes */
+body:has(#app-base.theme-black) {
+  --text-color: var(--color-text-light) !important;
+}
+
+body:has(#app-base.theme-amber) {
+  --text-color: var(--color-amber) !important;
+}
+
+body:has(#app-base.theme-blueprint) {
+  --text-color: var(--color-blueprint-light) !important;
+}
+
+/* Dark themes need light icons; amber tints them */
+.theme-black .audio-fact .audio-hint,
+.theme-blueprint .audio-fact .audio-hint,
+.theme-black .fan-icon,
+.theme-blueprint .fan-icon {
+  filter: brightness(0) saturate(100%) invert(1);
+}
+
+.theme-amber .audio-fact .audio-hint,
+.theme-amber .fan-icon {
+  filter: brightness(0) saturate(100%) invert(70%) sepia(100%) saturate(1500%);
+}
+
+.theme-black .audio-fact:hover .audio-hint,
+.theme-amber .audio-fact:hover .audio-hint,
+.theme-blueprint .audio-fact:hover .audio-hint {
+  filter: brightness(0) saturate(100%);
+}
+
+/* ============================================
+   THEME PICKER
+   ============================================ */
+
+.theme-picker {
+  position: fixed;
+  top: 1rem;
+  right: 1.2rem;
+  display: flex;
+  gap: 0.6rem;
+  z-index: 1000;
+}
+
+.theme-box {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid var(--text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: var(--pointer);
+}
+
+.theme-box-black {
+  background-color: var(--color-black);
+}
+
+.theme-box-white {
+  background-color: var(--color-white);
+}
+
+.theme-box-amber {
+  background-color: var(--color-amber);
+}
+
+.theme-box-blueprint {
+  background-color: var(--color-blueprint);
+}
+
+.theme-box.selected::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+}
+
+.theme-box-black.selected::after,
+.theme-box-blueprint.selected::after {
+  background-color: var(--color-white);
+}
+
+.theme-box-white.selected::after,
+.theme-box-amber.selected::after {
+  background-color: var(--color-black);
+}
+
 #app-base.home-colors {
   --bg-color: var(--color-white) !important;
   --text-color: var(--color-black) !important;
@@ -20,7 +127,7 @@ body:has(#app-base.home-colors) {
   user-select: none;
   -webkit-user-select: none;
   scrollbar-width: thin;
-  scrollbar-color: var(--color-black) transparent;
+  scrollbar-color: var(--text-color) transparent;
 }
 
 #app-base.home-colors::-webkit-scrollbar {
@@ -32,7 +139,7 @@ body:has(#app-base.home-colors) {
 }
 
 #app-base.home-colors::-webkit-scrollbar-thumb {
-  background: var(--color-black);
+  background: var(--text-color);
 }
 
 #app-base.home-colors .title,
@@ -81,14 +188,43 @@ div#app-base {
   transition: left 0.3s ease-out, top 0.3s ease-out, bottom 0.3s ease-out;
 }
 
+.duck-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .duck-icon {
-  display: block;
+  display: inline-block;
   font-size: 26px;
-  line-height: 72px;
+  line-height: 1.4;
+  padding: 0.05em 0.25em;
   text-align: center;
   white-space: nowrap;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Docked: parked under the menu; metrics mirror .nav-link / .nav-item */
+.duck-container.docked {
+  position: fixed;
+  height: auto;
+  padding: 0.4em 0;
+  font-size: calc(16px + 1vmin);
+  justify-content: flex-start;
+  transition: none;
+}
+
+.duck-container.docked .duck-icon {
+  font-size: calc(14px + 1.2vmin);
+  line-height: 1;
+  padding: 0;
+  margin-left: 0.3em;
+  color: var(--text-color);
+}
+
+.duck-container.no-transition {
+  transition: none;
 }
 
 .duck-container.wiggle {

@@ -51,6 +51,8 @@
   --color-blue-slate: #344c64;
   --color-blue-gray: #577b8d;
   --color-blue-light: rgb(2, 2, 171);
+  --color-blueprint: #123a6b;
+  --color-blueprint-light: #dbe9f4;
 
   --color-green-lime: #3cff00;
   --color-green-bright: #80ff00;
@@ -70,6 +72,8 @@
 
   --color-gold: rgb(209, 167, 1);
   --color-gold-dark: #d9a60e;
+  --color-amber: #ffb000;
+  --color-amber-black: #0d0a06;
 
   --color-red-bright: #FF204E;
   --color-red-crimson: #A0153E;
