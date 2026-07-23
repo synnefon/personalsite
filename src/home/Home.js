@@ -1,11 +1,152 @@
 import { useEffect, useRef, useState } from "react";
-import { TypeAnimation } from "react-type-animation";
-
+import { useLocation, useNavigationType } from "react-router-dom";
+import Self from "../about/Self";
+import AsciiTree, { types } from "../components/AsciiTree";
+import PaperPlanes from "../projects/PaperPlanes";
+import { findSafeViewportSpot } from "../util/safeSpot";
 import quackSound from "../assets/home/quack.wav";
-import duckIcon from "../assets/nav_icons/duck.svg";
+import curiosityAudio from "../assets/about/voices/strengths/curiosity.m4a";
+import strategicThinkingAudio from "../assets/about/voices/strengths/strategic-thinking.m4a";
+import jumpInAudio from "../assets/about/voices/strengths/jump-in.m4a";
+import empathyAudio from "../assets/about/voices/strengths/empathy.m4a";
+import perfectionisticStreakAudio from "../assets/about/voices/weaknesses/perfectionistic-streak.m4a";
+import impatienceAudio from "../assets/about/voices/weaknesses/impatience-with-beaurocracy.m4a";
+import milkProductsAudio from "../assets/about/voices/weaknesses/milk-products.m4a";
 import "../styles/app.css";
 import "../styles/home.css";
+import "../styles/projects.css";
+import "../styles/about.css";
 import { playPopSound, playRandom8BitSound } from "./eightBitSynth";
+
+const SECTION_FOR_PATH = {
+  "/": "about-section",
+  "/about": "about-section",
+  "/skills": "skills-section",
+  "/projects": "projects-section",
+  "/contact": "contact-section",
+};
+
+// hidden for now: sea match (/matchgame), work in progress (/wip),
+// toolbox (/toolbox), rpg tabletop, infinite terrain
+const SITE_TREE = {
+  type: types.section,
+  title: "connor hopkins",
+  children: [
+    {
+      type: types.section,
+      title: "about",
+      id: "about-section",
+      children: [
+        {
+          type: types.section,
+          title: "personal info",
+          children: [
+            { type: types.stringContent, title: "job", content: "senior software engineer" },
+            { type: types.stringContent, title: "location", content: "tacoma/seattle" },
+            { type: types.stringContent, title: "current company", content: "yoodli.ai", href: "https://yoodli.ai" },
+          ],
+        },
+        {
+          type: types.section,
+          title: "personality fragments",
+          children: [
+            {
+              type: types.section, title: "fragment 1", children: [
+                { type: types.stringContent, title: "quote", content: "you should sit in meditation for ten minutes every day - except when you are too busy. then you should sit for an hour." },
+                { type: types.stringContent, title: "author", content: "shunryu suzuki" },
+              ]
+            },
+            {
+              type: types.section, title: "fragment 2", children: [
+                { type: types.stringContent, title: "quote", content: '"meow" means "woof" in cat.' },
+                { type: types.stringContent, title: "author", content: "george carlin" },
+              ]
+            },
+          ],
+        }
+      ],
+    },
+    {
+      type: types.section,
+      title: "skills",
+      id: "skills-section",
+      children: [
+        {
+          type: types.section,
+          title: "strengths",
+          children: [
+            { type: types.audioContent, content: "curiosity", audio: curiosityAudio },
+            { type: types.audioContent, content: "strategic thinking", audio: strategicThinkingAudio },
+            { type: types.audioContent, content: "'jump in'", audio: jumpInAudio },
+            { type: types.audioContent, content: "empathy", audio: empathyAudio },
+          ],
+        },
+        {
+          type: types.section,
+          title: "weaknesses",
+          children: [
+            { type: types.audioContent, content: "perfectionistic streak", audio: perfectionisticStreakAudio },
+            { type: types.audioContent, content: "impatience with beaurocracy", audio: impatienceAudio },
+            { type: types.audioContent, content: "milk products", audio: milkProductsAudio },
+          ],
+        },
+      ],
+    },
+    {
+      type: types.section,
+      title: "projects",
+      id: "projects-section",
+      children: [
+        {
+          type: types.section,
+          title: "art",
+          children: [
+            { type: types.hrefContent, title: "mapinator", desc: "procedural terrain map generator", href: "https://synnefon.github.io/mapinator" },
+            { type: types.linkContent, title: "lava lamp radio", desc: "lava lamp + radio", to: "/lava-lamp-radio" },
+            { type: types.linkContent, title: "dendrites", desc: "dendritic growth simulation", to: "/dendrites" },
+            { type: types.linkContent, title: "the migration", desc: "monarch sightings sonified", to: "/monarch-music" },
+          ],
+        },
+        {
+          type: types.section,
+          title: "games",
+          children: [
+            { type: types.linkContent, title: "snek", desc: "snek!", to: "/snek" },
+            { type: types.linkContent, title: "war of the dice", desc: "dice-rolling territory conquest", to: "/war-of-the-dice" },
+            { type: types.linkContent, title: "sudoku", desc: "eternal classic", to: "/sudoku" },
+            { type: types.linkContent, title: "game of life", desc: "cellular automata simulator", to: "/game-of-life" },
+          ],
+        },
+        {
+          type: types.section,
+          title: "tools",
+          children: [
+            { type: types.linkContent, title: "shavian transliterator", desc: "english \u2192 shavian", to: "/shavianator" },
+            { type: types.linkContent, title: "shufflenator", desc: "optimal shuffle pattern calculator", to: "/shufflenator" },
+          ],
+        },
+        {
+          type: types.section,
+          title: "open source",
+          children: [
+            { type: types.hrefContent, title: "3d models", desc: "collection of my 3d-printable work", href: "https://thangs.com/designer/synnefon" },
+            { type: types.hrefContent, title: "img-butler", desc: "image interaction npm package", href: "https://www.npmjs.com/package/img-butler" },
+            { type: types.hrefContent, title: "spagett ql", desc: "lisp-like query language. al dente.", href: "https://github.com/synnefon/spagett" },
+          ],
+        },
+      ],
+    },
+    {
+      type: types.section,
+      title: "contact",
+      id: "contact-section",
+      children: [
+        { type: types.hrefContent, title: "github", href: "https://github.com/synnefon" },
+        { type: types.hrefContent, title: "linkedin", href: "https://www.linkedin.com/in/connor-j-hopkins" },
+      ],
+    },
+  ],
+};
 
 // Sound and animation timing constants (single source of truth)
 const SOUND_DURATION_MS = 1300;
@@ -13,35 +154,10 @@ const MAX_VOLUME_MULTIPLIER = 3;
 const NUM_ARPEGGIO_STEPS = 5;
 const VOLUME_INCREMENT = (MAX_VOLUME_MULTIPLIER - 1) / (NUM_ARPEGGIO_STEPS - 1);
 
-// Flutter timing
-const FLUTTER_STAGGER_S = 1.5; // total time over which letters are staggered in
-const FLUTTER_PERIOD_BASE_S = 0.35; // min duration of one flutter
-const FLUTTER_PERIOD_JITTER_S = 0.3; // additional random duration per flutter
-const FLUTTER_MIN = 2; // min flutter count
-const FLUTTER_MAX = 8; // max flutter count
-const FLUTTER_MODE = 4; // most likely flutter count
-const POST_FLUTTER_DELAY_MS = 5000; // pause after last letter settles before cycling
-
-// Quote timing
-const FIRST_QUOTE_DELAY_MS = 600;
-const SECOND_QUOTE_DELAY_MS = FIRST_QUOTE_DELAY_MS * 1.8;
-
-// Triangular distribution: returns value in [min, max] biased toward mode
-const triangular = (min, max, mode) => {
-  const u = Math.random();
-  const threshold = (mode - min) / (max - min);
-  return u < threshold
-    ? min + Math.sqrt(u * (max - min) * (mode - min))
-    : max - Math.sqrt((1 - u) * (max - min) * (max - mode));
-};
-
 export default function Home() {
-  const [duckOrange, setDuckOrange] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duckVisible, setDuckVisible] = useState(true);
-  const [quoteVisible, setQuoteVisible] = useState(false);
-  const [quote2Visible, setQuote2Visible] = useState(false);
-  const [subtitleVisible, setSubtitleVisible] = useState(false);
+  const [flapFrame, setFlapFrame] = useState(false);
   const [skipAnimations, setSkipAnimations] = useState(false);
   const [duckPosition, setDuckPosition] = useState({ left: null, top: null, bottom: null });
   const [volumeMultiplier, setVolumeMultiplier] = useState(1);
@@ -50,102 +166,63 @@ export default function Home() {
   const soundParamsRef = useRef(null);
   const contentWrapperRef = useRef(null);
   const timeoutRef = useRef(null);
-  const [allFluttersDone, setAllFluttersDone] = useState(false);
-  const fluttersDoneRef = useRef(0);
-  const totalFluttersRef = useRef(0);
 
   const isMobile = windowWidth <= 768;
 
-  // const [color, setColor] = useState(COLORS[0]);
-  // // const maxX = useRef(window.innerWidth);
-  // const maxY = useRef(window.innerHeight);
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  const firstScrollRef = useRef(true);
 
-  // const onMouseMove = useCallback(
-  //   (e) => {
-  //     if (maxY.current > 0) {
-  //       // const percentX = e.clientX / maxX.current;
-  //       const percentY = e.clientY / maxY.current;
-  //       // const average = (percentX + percentY) / 2;
+  // Scroll to the section matching the current route. The first scroll
+  // waits for the webfont so the layout doesn't shift under the target.
+  // Replace navigations are the url keeping up with scrolling — skip.
+  useEffect(() => {
+    const id = SECTION_FOR_PATH[location.pathname];
+    if (!id) return;
+    if (navigationType === "REPLACE") return;
+    const first = firstScrollRef.current;
+    firstScrollRef.current = false;
+    if (first && location.pathname === "/") return;
 
-  //       setColor(interpolateColor(COLORS[0], COLORS[1], percentY));
-  //     }
-  //   },
-  //   []
-  // );
+    const scroll = () => {
+      const behavior = first ? "auto" : "smooth";
+      if (id === "about-section") {
+        // The first section: go all the way to the top of the page
+        document.getElementById("app-base")?.scrollTo({ top: 0, behavior });
+      } else {
+        document.getElementById(id)?.scrollIntoView({ behavior, block: "start" });
+      }
+    };
 
-  // const onResize = () => {
-  //   // maxX.current = window.innerWidth;
-  //   maxY.current = window.innerHeight;
-  // };
-
-  // useEffect(() => {
-  //   window.addEventListener("mousemove", onMouseMove);
-  //   window.addEventListener("resize", onResize);
-  //   return () => window.removeEventListener("mousemove", onMouseMove);
-  // }, [onMouseMove]);
-
-  const descriptors = [
-    "software engineer",
-    "amateur wood worker",
-    "dungeon master",
-    "rock climber",
-    "cat dad",
-    "3d printer mechanic",
-    "bike lane survivor",
-    ["mildly dysleixc", "mildly dyslexic"],
-    "magic player",
-    "part-time audiophile",
-    "full-time wikipedia spelunker",
-    "human band name generator",
-    "lava lamp enthusiast",
-    "lower case advocate",
-    "secretly a gnome",
-    "the ignoble",
-    "bug fact purveyor",
-    "list writer",
-    "rumored fictional character",
-    "have i mentioned software engineer already?",
-    "   ",
-    "...pls look at projects",
-    "...or just click on any link",
-    "is running out of autobiographical subheadings",
-    "   ",
-  ];
+    if (first) {
+      document.fonts.ready.then(scroll);
+    } else {
+      scroll();
+    }
+  }, [location.pathname, navigationType]);
 
   useEffect(() => {
-    document.getElementById("app-base").setAttribute("class", "");
-
     // Set initial random duck position if not loaded from session storage
     if (duckPosition.left === null && duckPosition.top === null) {
-      const initialPosition = calculateSafePosition(duckPosition);
-      setDuckPosition(initialPosition);
+      setDuckPosition(spawnDuckInView());
     }
 
     // Check if animation has been seen before (localStorage persists across visits)
     const hasSeenAnimation = localStorage.getItem("hasSeenHomeAnimation") === "true";
 
     if (hasSeenAnimation) {
-      // Skip flutter, show text immediately, but still wait 5s before cycling descriptors
+      // Skip flutter, show text immediately
       setSkipAnimations(true);
-      setQuoteVisible(true);
-      setQuote2Visible(true);
-      const timer = setTimeout(() => setSubtitleVisible(true), POST_FLUTTER_DELAY_MS);
-      return () => clearTimeout(timer);
     }
-
-    // Trigger quote animations with staggered delays
-    const timer1 = setTimeout(() => {
-      setQuoteVisible(true);
-    }, FIRST_QUOTE_DELAY_MS);
-    const timer2 = setTimeout(() => {
-      setQuote2Visible(true);
-    }, SECOND_QUOTE_DELAY_MS);
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Flap the duck's arms while it sings
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => setFlapFrame((f) => !f), 150);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
 
   // Update window width on resize
   useEffect(() => {
@@ -157,15 +234,11 @@ export default function Home() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Once every letter has finished fluttering, wait POST_FLUTTER_DELAY_MS then cycle subtitles
+  // Once the animation was seen, remember it
   useEffect(() => {
-    if (skipAnimations || !allFluttersDone) return;
+    if (skipAnimations) return;
     localStorage.setItem("hasSeenHomeAnimation", "true");
-    const timer = setTimeout(() => {
-      setSubtitleVisible(true);
-    }, POST_FLUTTER_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [allFluttersDone, skipAnimations]);
+  }, [skipAnimations]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -179,74 +252,21 @@ export default function Home() {
     };
   }, []);
 
-  const calculateSafePosition = (currentPos) => {
-    const duckSize = 72;
-    const navbarSafeZone = { width: 200, height: 200 }; // Avoid top-left navbar area
-    const margin = 20; // Minimum margin from edges
-    const minDistance = 150; // Minimum distance from current position
-
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-
-    // Get current position coordinates (always use top-based)
-    const currentX = currentPos.left;
-    const currentY = currentPos.top;
-
-    // Get content wrapper bounds
-    let contentBounds = null;
-    if (contentWrapperRef.current) {
-      const rect = contentWrapperRef.current.getBoundingClientRect();
-      contentBounds = {
-        left: rect.left,
-        right: rect.right,
-        top: rect.top,
-        bottom: rect.bottom,
-      };
-    }
-
-    // Generate random position until we find a safe one
-    let attempts = 0;
-    const maxAttempts = 100;
-
-    while (attempts < maxAttempts) {
-      const left =
-        margin + Math.random() * (windowWidth - duckSize - 2 * margin);
-      const top =
-        margin + Math.random() * (windowHeight - duckSize - 2 * margin);
-
-      // Calculate distance from current position
-      const distance = Math.sqrt(
-        Math.pow(left - currentX, 2) + Math.pow(top - currentY, 2)
-      );
-
-      // Check if position overlaps with navbar (top-left)
-      const overlapsNavbar =
-        left < navbarSafeZone.width && top < navbarSafeZone.height;
-
-      // Check if position overlaps with content wrapper
-      let overlapsContent = false;
-      if (contentBounds) {
-        overlapsContent = !(
-          left + duckSize < contentBounds.left ||
-          left > contentBounds.right ||
-          top + duckSize < contentBounds.top ||
-          top > contentBounds.bottom
-        );
-      }
-
-      if (!overlapsNavbar && !overlapsContent && distance >= minDistance) {
-        return { left, top, bottom: null };
-      }
-
-      attempts++;
-    }
-
-    // Fallback: place in bottom-right corner
-    return {
-      left: windowWidth - duckSize - margin,
-      top: null,
-      bottom: margin,
-    };
+  // Pick a safe spot in the current view, anchored to page coordinates
+  // so the duck stays put when the page scrolls.
+  const spawnDuckInView = () => {
+    const scroller = document.getElementById("app-base");
+    const scrollTop = scroller ? scroller.scrollTop : 0;
+    const viewportPos =
+      duckPosition.top !== null
+        ? { ...duckPosition, top: duckPosition.top - scrollTop }
+        : duckPosition;
+    const next = findSafeViewportSpot({
+      size: 72,
+      currentPos: viewportPos,
+      minDistance: 150,
+    });
+    return next.top !== null ? { ...next, top: next.top + scrollTop } : next;
   };
 
   const handleClick = () => {
@@ -301,8 +321,8 @@ export default function Home() {
       soundParamsRef.current = null;
     }
 
-    // Move duck to random position
-    setDuckPosition(calculateSafePosition(duckPosition));
+    // Move duck to a random spot in the current view
+    setDuckPosition(spawnDuckInView());
 
     // Start playing sound with current volume multiplier, params, and arpeggio step
     // arpeggioStep is 0-indexed: volume 1.0→step 0, 1.5→step 1, 2.0→step 2, 2.5→step 3, 3.0→step 4
@@ -336,196 +356,18 @@ export default function Home() {
     }, SOUND_DURATION_MS);
   };
 
-  const extractDescription = (descriptor) =>
-    descriptor.constructor === Array
-      ? [descriptor[0], 500, descriptor[1], 3_500]
-      : [descriptor, 3_000];
-
-  const renderAnimatedText = (text) => {
-    if (skipAnimations) {
-      return <span>{text}</span>;
-    }
-
-    const letters = text.replace(/ /g, "");
-    const letterCount = letters.length;
-    totalFluttersRef.current += letterCount;
-
-    const onLetterDone = (e) => {
-      if (e.animationName === "flutter") {
-        fluttersDoneRef.current += 1;
-        if (fluttersDoneRef.current >= totalFluttersRef.current) {
-          setAllFluttersDone(true);
-        }
-      }
-    };
-
-    const words = text.split(" ");
-    let charIndex = 0;
-
-    return (
-      <span className="spinning-text-container">
-        {words.map((word, wordIndex) => (
-          <span key={wordIndex} className="word-container">
-            {word.split("").map((char) => {
-              const delay = Math.random() * FLUTTER_STAGGER_S;
-              const flutterCount = Math.round(triangular(FLUTTER_MIN, FLUTTER_MAX, FLUTTER_MODE));
-              const duration = FLUTTER_PERIOD_BASE_S + Math.random() * FLUTTER_PERIOD_JITTER_S;
-              charIndex++;
-              return (
-                <span
-                  key={charIndex}
-                  className="spin-letter fluttering"
-                  onAnimationEnd={onLetterDone}
-                  style={{
-                    "--flutter-delay": `${delay}s`,
-                    "--flutter-duration": `${duration}s`,
-                    "--flutter-count": flutterCount,
-                  }}
-                >
-                  {char}
-                </span>
-              );
-            })}
-            {wordIndex < words.length - 1 && (
-              <span className="spin-letter settled">{"\u00A0"}</span>
-            )}
-          </span>
-        ))}
-      </span>
-    );
-  };
-
   return (
-    <div
-      id="app-base"
-      className="home-colors"
-      // style={{
-      //   "--bg-color": color,
-      //   "--inv-text-color": color,
-      // }}
-    >
+    <div id="app-base" className="home-colors paper-plane-cursor">
       <div className="content-wrapper home-colors" ref={contentWrapperRef}>
-        <div className="header-line home-vertical">
-          <h2 className="title">connor hopkins</h2>
-          <h5 className="description home-colors home-subtitle">
-            {/* <span className="bracket home-colors">{'{'}&nbsp;</span> */}
-            <TypeAnimation
-              key={subtitleVisible ? "animated" : "static"}
-              className="description-text home-colors"
-              preRenderFirstString={subtitleVisible}
-              sequence={
-                subtitleVisible
-                  ? [
-                      "software engineer",
-                      0,
-                      ...descriptors.slice(1).flatMap((d) => extractDescription(d))
-                    ]
-                  : ["software engineer", 999999999]
-              }
-              wrapper="span"
-              speed={50}
-              deletionSpeed={60}
-              repeat={subtitleVisible ? Infinity : 0}
-              cursor={false}
-            />
-            {/* <span className="bracket home-colors">{"}"}</span> */}
-          </h5>
-        </div>
-        <div className="links home-colors">
-          {/* <Link
-            className="link top left home-colors"
-            to="/projects"
-            rel="noreferrer"
-          >
-            <p className="link-text home-colors">projects</p>
-            <p className="tooltip-text home-colors">
-              an assortment of web-accessible work
-            </p>
-          </Link> */}
-          {/* <Link
-            className="link about home-colors top right"
-            to="/about"
-            rel="noreferrer"
-          >
-            <p className="link-text home-colors">about</p>
-            <p className="tooltip-text home-colors">
-              $ whois connorhopkins.xyz
-            </p>
-          </Link> */}
-          {/* <a
-            className="link bottom left home-colors"
-            href="https://www.linkedin.com/in/connor-j-hopkins"
-            rel="noreferrer"
-          >
-            <p className="link-text home-colors">linkedin</p>
-            <p className="tooltip-text home-colors">let's network!</p>
-          </a>
-          <a
-            className="link resume middle left home-colors"
-            href="https://docs.google.com/document/d/1A77LelAqhLE98pvkOYpHjUAs7l3LW-mcSQr-_MpbP6I"
-            rel="noreferrer"
-          >
-            <p className="link-text home-colors">resume</p>
-            <p className="tooltip-text home-colors">
-              the list of stuff i've done professionally
-            </p>
-          </a>
-          <a
-            className="link middle right home-colors"
-            href="https://github.com/synnefon"
-            rel="noreferrer"
-          >
-            <p className="link-text home-colors">github</p>
-            <p className="tooltip-text home-colors">
-              where you can see some code i've written
-            </p>
-          </a> */}
-          {/* <a
-            className="link bottom right home-colors"
-            href="mailto:connorjhopkins@gmail.com?subject=let's%20collab!%20"
-          >
-            <p className="link-text home-colors">get in touch</p>
-            <p className="tooltip-text home-colors">shoot me an email</p>
-          </a> */}
-        </div>
 
-        <div
-          className={`quotes-section home-colors ${
-            quoteVisible ? "visible" : ""
-          }`}
-        >
-          <blockquote className="quote home-colors">
-            <p className="quote-text home-colors">
-              {quoteVisible &&
-                renderAnimatedText(
-                  "you should sit in meditation for ten minutes every day - " +
-                    "except when you are too busy. then you should sit for an hour."
-                )}
-            </p>
-            <footer className="quote-author home-colors">
-              {quoteVisible && renderAnimatedText("— shunryu suzuki")}
-            </footer>
-          </blockquote>
-        </div>
+        <AsciiTree root={SITE_TREE} />
 
-        <div
-          className={`quotes-section home-colors ${
-            quote2Visible ? "visible" : ""
-          }`}
-        >
-          <blockquote className="quote home-colors">
-            <p className="quote-text home-colors">
-              {quote2Visible &&
-                renderAnimatedText('"meow" means "woof" in cat.')}
-            </p>
-            <footer className="quote-author home-colors">
-              {quote2Visible && renderAnimatedText("— george carlin")}
-            </footer>
-          </blockquote>
-        </div>
+        <Self />
       </div>
 
-      {/* Duck SVG */}
+      <PaperPlanes />
+
+      {/* Duck */}
       {duckVisible && !isMobile && (
         <div
           className={`duck-container ${isPlaying ? "wiggle" : ""}`}
@@ -538,16 +380,11 @@ export default function Home() {
                 ? `${duckPosition.bottom}px`
                 : "auto",
           }}
-          onMouseEnter={() => setDuckOrange(true)}
-          onMouseLeave={() => setDuckOrange(false)}
           onClick={handleClick}
         >
-          <img
-            src={duckIcon}
-            alt="duck"
-            draggable={false}
-            className={`duck-icon ${duckOrange || isPlaying ? "orange" : ""}`}
-          />
+          <span className="duck-icon" role="img" aria-label="duck">
+            {isPlaying ? (flapFrame ? "ˏ₍⚆ɞ⚆₎ˎ" : "ˋ₍⚆ɞ⚆₎ˊ") : "ˏ₍•ɞ•₎ˎ"}
+          </span>
         </div>
       )}
     </div>

@@ -48,6 +48,16 @@ div#app-base {
   margin-top: 1.3em;
 }
 
+.loading-container {
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
 /* ============================================
    TYPOGRAPHY & CONTENT
    ============================================ */
@@ -55,7 +65,7 @@ div#app-base {
 .title {
   position: relative;
   top: 0;
-  margin: 1px;
+  /* margin: 1px; */
   margin-top: 1.3em;
   color: var(--color-orange);
   user-select: none;
@@ -94,8 +104,6 @@ div#app-base {
    ============================================ */
 
 .links-wrapper {
-  background: var(--color-purple-primary-light);
-  border-radius: 8px;
   margin-top: 0.5em;
 }
 
@@ -105,76 +113,7 @@ div#app-base {
   grid-auto-rows: 2.8em;
   margin-bottom: 0;
   user-select: none !important;
-  max-height: 78vh;
-  overflow-y: auto;
-  scrollbar-width: none;
   padding: 0;
-  overscroll-behavior: contain;
-}
-
-.links::-webkit-scrollbar {
-  display: none;
-}
-
-/* ============================================
-   LINKS - BASE STYLES
-   ============================================ */
-
-.link {
-  position: relative;
-  margin-left: 0;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: baseline;
-  overflow: visible;
-  color: inherit;
-  text-decoration: none;
-  cursor: var(--pointer);
-  transition: transform 0.8s ease;
-  user-select: none;
-}
-
-a.link {
-  cursor: var(--pointer);
-}
-
-/* ============================================
-   LINKS - HOVER STATES
-   ============================================ */
-
-a.link:hover {
-  color: var(--inv-text-color);
-  background-color: var(--inv-bg-color);
-}
-
-a.link:hover > p.link-text,
-a.link:hover > .tooltip-text {
-  animation: boing 0.3s ease-in-out alternate;
-}
-
-
-/* ============================================
-   LINKS - TEXT CONTENT
-   ============================================ */
-
-p.link-text {
-  margin: 0;
-  margin-top: 0.75em;
-  margin-left: 14px;
-  margin-right: 0.3em;
-  padding: 0;
-}
-
-.tooltip-text {
-  margin: 0;
-  margin-right: 25px;
-  padding: 0;
-  font-size: calc(9px + 0.75vmin);
-  color: var(--color-purple-primary-light);
-  text-align: right;
-  cursor: var(--pointer);
-  flex-shrink: 0;
 }
 
 /* ============================================

@@ -2,8 +2,42 @@
    COLOR THEME
    ============================================ */
 
+/* Site-wide default bg (non-themed pages) */
 :root {
-  --bg-color: var(--color-purple-primary) !important;
+  --bg-color: var(--color-white) !important;
+  --text-color: var(--color-black) !important;
+}
+
+body:has(#app-base.home-colors) {
+  --text-color: var(--color-black) !important;
+}
+
+#app-base.home-colors {
+  --bg-color: var(--color-white) !important;
+  --text-color: var(--color-black) !important;
+  --inv-text-color: var(--bg-color);
+  --inv-bg-color: var(--text-color);
+  user-select: none;
+  -webkit-user-select: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-black) transparent;
+}
+
+#app-base.home-colors::-webkit-scrollbar {
+  width: 10px;
+}
+
+#app-base.home-colors::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#app-base.home-colors::-webkit-scrollbar-thumb {
+  background: var(--color-black);
+}
+
+#app-base.home-colors .title,
+#app-base.home-colors .description-text::after {
+  color: var(--text-color);
 }
 
 /* ============================================
@@ -25,7 +59,7 @@ div#app-base {
 }
 
 .home-subtitle {
-  color: var(--color-orange) !important;
+  color: var(--text-color) !important;
   margin: 1px !important;
   margin-top: 0.3em !important;
   margin-left: 4px !important;
@@ -37,7 +71,7 @@ div#app-base {
    ============================================ */
 
 .duck-container {
-  position: fixed;
+  position: absolute;
   width: 72px;
   height: 72px;
   cursor: var(--pointer);
@@ -48,14 +82,13 @@ div#app-base {
 }
 
 .duck-icon {
-  width: 100%;
-  height: 100%;
-  filter: brightness(0) saturate(100%) invert(100%);
-  transition: filter 0.2s ease;
-}
-
-.duck-icon.orange {
-  filter: brightness(0) saturate(100%) invert(58%) sepia(85%) saturate(2392%) hue-rotate(0deg) brightness(102%) contrast(104%);
+  display: block;
+  font-size: 26px;
+  line-height: 72px;
+  text-align: center;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .duck-container.wiggle {
@@ -68,14 +101,38 @@ div#app-base {
 }
 
 /* ============================================
+   SECTION CONNECTORS
+   ============================================ */
+
+/* ASCII pipes connecting the three page sections */
+.section-pipes {
+  white-space: pre;
+  font-size: 0.8em;
+  line-height: 1.4;
+  user-select: none;
+  margin-top: 1em;
+}
+
+/* Keep vertical overflow reachable on small screens */
+@media screen and (max-width: 500px) {
+  #app-base.home-colors {
+    overflow-y: auto;
+  }
+
+  #app-base.home-colors .content-wrapper {
+    overflow-y: visible;
+  }
+}
+
+/* ============================================
    QUOTES SECTION
    ============================================ */
 
 .quotes-section {
-  margin-top: 2em;
-  padding: 2em;
-  border: 2px solid var(--color-text-light);
-  border-radius: 8px;
+  margin-top: 1em;
+  /* padding: 2em; */
+  /* border: 2px solid var(--text-color); */
+  /* border-radius: 8px; */
   opacity: 0;
   transform: scale(0.95);
   transition: opacity 0.5s ease, transform 0.5s ease;
@@ -99,14 +156,14 @@ div#app-base {
 .quote-text {
   font-size: calc(10px + 1.2vmin);
   line-height: 1.6;
-  color: var(--color-text-light);
+  color: var(--text-color);
   margin: 0;
   text-align: left;
 }
 
 .quote-author {
   font-size: calc(9px + 1vmin);
-  color: var(--color-text-light);
+  color: var(--text-color);
   margin-top: 0.8em;
   text-align: right;
   font-style: normal;

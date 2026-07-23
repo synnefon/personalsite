@@ -17,7 +17,7 @@
   align-items: center;
   justify-content: center;
   transition: transform 0.2s ease, opacity 0.2s ease;
-  opacity: 0.8;
+  opacity: 1;
   cursor: var(--pointer);
 }
 
@@ -29,13 +29,12 @@
 .social-icon {
   width: 32px;
   height: 32px;
-  filter: brightness(0) saturate(100%) invert(94%) sepia(13%) saturate(124%) hue-rotate(318deg) brightness(106%) contrast(100%);
   transition: filter 0.2s ease;
 }
 
-.social-icon-link:hover .social-icon {
+/* .social-icon-link:hover .social-icon {
   filter: brightness(0) saturate(100%) invert(59%) sepia(89%) saturate(1588%) hue-rotate(360deg) brightness(102%) contrast(101%);
-}
+} */
 
 .social-tooltip {
   position: absolute;
@@ -43,8 +42,8 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 0.4em 0.8em;
-  background-color: var(--color-purple-primary);
-  color: var(--color-orange);
+  /* background-color: var(--inv-bg-color); */
+  color: var(--text-color);
   font-family: JuliaMono, sans-serif;
   font-size: 14px;
   white-space: nowrap;

@@ -1,12 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import selfGif from '../assets/about/self.gif';
-import personIcon from '../assets/nav_icons/child-head.svg';
 
 
-export default function Self({listExpanded}) {
+export default function Self() {
   const [showSelf, setShowSelf] = useState(false);
-  const hasWiggled = useRef(false);
 
   const toggleShowSelf = () => {
     restartGif();
@@ -45,47 +43,22 @@ export default function Self({listExpanded}) {
     return () => clearTimeout(timeoutId);
   }, [showSelf]);
 
-  useEffect(() => {
-    const toggleWiggle = () => {
-      if (!listExpanded || hasWiggled.current) return;
-      const personIcon = document.getElementById('person-icon');
-      personIcon?.classList.toggle('hovered-person');
-    };
-
-    if (!listExpanded || hasWiggled.current) return;
-
-    for (let t of [6, 12, 22, 35]) {
-      const first = t * 1_000;
-      const second = first + 450;
-      const duration = 410;
-      for (let t of [first, first+duration, second, second+duration]) {
-        setTimeout(toggleWiggle, t);
-      }
-    }
-
-    setTimeout(() => {
-      if (!listExpanded || hasWiggled.current) return;
-      hasWiggled.current = true;
-      setShowSelf(true);
-    }, 45_000);
-  }, [listExpanded, hasWiggled]);
-
   return (
     <>
-      <img
+      <span
         id="person-icon"
-        src={personIcon}
+        role="img"
+        aria-label="the author"
         className={`${showSelf ? 'invisible' : ''}`}
-        alt="a pixelated person"
         onClick={toggleShowSelf}
-        onMouseEnter={() => hasWiggled.current = true}
-      />
+      >
+        {"( ͡° ͜ʖ ͡°)"}
+      </span>
       <img
         id="self-gif"
         alt="a gif of the author waving"
         src={selfGif}
         style={{display: showSelf ? 'block' : 'none'}}
-        onMouseEnter={() => hasWiggled.current = true}
       />
     </>
   );

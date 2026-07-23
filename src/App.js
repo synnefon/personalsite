@@ -7,12 +7,10 @@ import GunCursor from "./easter_eggs/GunCursor";
 import Home from "./home/Home";
 
 const Game4096 = lazy(() => import("./4096/Game4096.tsx"));
-const About = lazy(() => import("./about/About"));
 const Dendrites = lazy(() => import("./dendrites/Dendrites.tsx"));
 const GameOfLife = lazy(() => import("./game_of_life/GameOfLife.tsx"));
 const LavaLamp = lazy(() => import("./lava_lamp/LavaLamp.tsx"));
 const MatchGame = lazy(() => import("./match_game/MatchGame"));
-const Projects = lazy(() => import("./projects/Projects"));
 const Wip = lazy(() => import("./projects/Wip"));
 const Shavianator = lazy(() => import("./shavianator/Shavianator"));
 const Shufflenator = lazy(() => import("./shufflenator/Shufflenator"));
@@ -43,15 +41,15 @@ function App() {
         <Navbar />
         <Suspense
           fallback={
-            <div style={{ padding: "2rem", textAlign: "center" }}>
-              Loading...
-            </div>
+            <div className="loading-container"/>
           }
         >
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/about" element={<About />} />
+            <Route path="/about" element={<Home />} />
+            <Route path="/skills" element={<Home />} />
+            <Route path="/projects" element={<Home />} />
+            <Route path="/contact" element={<Home />} />
             <Route path="/snek" element={<Snek />} />
             <Route path="/wip" element={<Wip />} />
             <Route path="/sudoku" element={<Sudoku />} />

@@ -13,7 +13,7 @@
   background-color: transparent;
   font-size: calc(16px + 1vmin);
   user-select: none;
-  pointer-events: none;
+  /* pointer-events: none; */
 }
 
 /* Hide navbar in fullscreen mode */
@@ -38,127 +38,113 @@ body.lava-lamp-fullscreen .navbar {
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin-bottom: 1em;
+  /* margin-bottom: 1em; */
+  padding-bottom: 0.4em;
+  padding-top: 0.4em;
   color: transparent;
   text-decoration: none;
   cursor: var(--arrow) !important;
-  pointer-events: none;
-  transition: color 0.4s, display 0.4s;
+  /* pointer-events: none; */
+  /* transition: color 0.4s, display 0.4s; */
+  width: 100%;
 }
 
 .nav-link:last-child {
   border-right: none;
 }
 
-.nav-link:hover {
-  color: var(--color-orange);
-  animation: boing 0.3s ease-in-out alternate;
-}
-
-.nav-link:hover .nav-icon::before {
-  color: var(--color-orange);
-}
-
 .nav-link-text {
   height: fit-content;
-  margin-left: 0.3em;
-  pointer-events: none;
-  transition: color 0.4s;
+  /* margin-left: 0.3em; */
+  /* pointer-events: none; */
+  /* transition: color 0.4s; */
+  width: 100%;
 }
 
 /* ============================================
    NAV ICONS - BASE STYLES
    ============================================ */
 
-.nav-icon {
-  width: calc(5vmin);
-  height: calc(5vmin);
+.nav-item {
+  font-size: calc(14px + 1.2vmin);
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--text-color);
   cursor: var(--pointer);
   pointer-events: all;
-  filter: brightness(0) saturate(100%) invert(94%) sepia(13%) saturate(124%) hue-rotate(318deg) brightness(106%) contrast(100%);
-  transition: filter 0.4s ease-out;
-  user-drag: none;
-  -webkit-user-drag: none;
+  /* transition: color 0.4s ease-out; */
   user-select: none;
   -webkit-user-select: none;
+  height: 100%;
+  margin-left: 0.3em;
+  margin-right: 0.3em;
 }
 
-/* ============================================
-   ACTIVE STATE
-   ============================================ */
-
-.nav-icon.active,
-.nav-link:hover .nav-icon {
-  filter: brightness(0) saturate(100%) invert(59%) sepia(89%) saturate(1588%) hue-rotate(360deg) brightness(102%) contrast(101%);
+.nav-link.active,
+.nav-link:hover {
+  color: var(--color-white);
+  background-color: var(--color-black);
+  cursor: var(--pointer) !important;
+}
+.nav-link.active .nav-item,
+.nav-link:hover .nav-item {
+  color: var(--color-white);
 }
 
-/* ============================================
-   SHAVIANATOR PAGE OVERRIDE
-   ============================================ */
-
-body:has(#app-base.shavianator-colors) .nav-icon {
-  filter: brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(100%) hue-rotate(360deg) brightness(100%) contrast(100%);
-}
-
-body:has(#app-base.shavianator-colors) .nav-icon.active,
-body:has(#app-base.shavianator-colors) .nav-link:hover .nav-icon {
-  filter: brightness(0) saturate(100%) invert(59%) sepia(89%) saturate(1588%) hue-rotate(360deg) brightness(102%) contrast(101%);
-}
+/* .nav-link:hover .nav-item {
+  animation: boing 0.3s ease-in-out alternate;
+} */
 
 /* ============================================
    DENDRITES PAGE OVERRIDE
    ============================================ */
 
-body:has(.dendrites-canvas) .nav-icon {
-  filter: brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(100%) hue-rotate(360deg) brightness(100%) contrast(100%);
+body:has(.dendrites-canvas) .nav-item {
+  color: var(--color-black);
 }
 
-body:has(.dendrites-canvas) .nav-icon.active,
-body:has(.dendrites-canvas) .nav-link:hover .nav-icon {
-  filter: brightness(0) saturate(100%) invert(59%) sepia(89%) saturate(1588%) hue-rotate(360deg) brightness(102%) contrast(101%);
+body:has(.dendrites-canvas) .nav-item.active,
+body:has(.dendrites-canvas) .nav-link:hover .nav-item {
+  color: var(--color-orange);
 }
 
 /* ============================================
-   RESPONSIVE - MOBILE (max-width: 500px)
+   RESPONSIVE - MOBILE (max-width: 960px)
    ============================================ */
 
-@media screen and (max-width: 500px) {
+@media screen and (max-width: 960px) {
   .navbar {
     left: 0 !important;
-    width: 100%;
     margin-left: 0;
-    display: inline-grid;
-    grid-template-columns: 14% 28% 28% 28% 2%;
-    justify-content: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .hamburger-react {
-    width: 100%;
-    justify-self: center;
-  }
-
+  /* Open menu: a vertical black panel with white items */
   .nav-link {
     width: 100%;
-    flex-direction: column;
-    cursor: var(--pointer) !important;
+    margin-bottom: 0;
+    padding: 0.35em 0.9em;
     pointer-events: all;
+    cursor: var(--pointer) !important;
+    background-color: var(--color-black);
   }
 
-  .nav-link-text {
-    margin-top: 0.4em;
-    margin-left: 0;
-    color: var(--text-color);
+  .nav-link .nav-item {
+    color: var(--color-white);
+    font-size: calc(12px + 1vmin);
   }
 
-  .nav-link:hover > .nav-link-text,
-  .nav-link.active > .nav-link-text {
-    color: var(--color-orange);
+  /* Inverse when highlighted */
+  .nav-link:hover,
+  .nav-link.active {
+    background-color: var(--color-white);
   }
 
-  .nav-icon {
-    width: calc(6vmin);
-    height: calc(6vmin);
-    margin-right: 0 !important;
+  .nav-link:hover .nav-item,
+  .nav-link.active .nav-item {
+    color: var(--color-black);
   }
 }
 

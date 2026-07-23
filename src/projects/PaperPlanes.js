@@ -1,17 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import CustomScrollbar from "../components/CustomScrollbar";
 import fanIcon from "../assets/projects/fan.svg";
+import { findSafeViewportSpot } from "../util/safeSpot";
 import PaperPlaneAnimation from "./PaperPlaneAnimation";
-
-import "../styles/app.css";
-import "../styles/projects.css";
 
 // Fan dimensions - must match .fan-container in projects.css
 const FAN_SIZE = 60;
 const LONG_PRESS_DELAY_MS = 200;
 
-export default function Projects() {
+// Click-anywhere paper planes, plus the fan that blows them around.
+export default function PaperPlanes() {
   const [planes, setPlanes] = useState([]);
   const [gustState, setGustState] = useState({ strength: 0, angle: 0 });
   const [fanVisible, setFanVisible] = useState(false);
@@ -22,12 +19,9 @@ export default function Projects() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [pressActive, setPressActive] = useState(false);
   const fanPositionRef = useRef({ x: null, y: null });
-  const linksRef = useRef(null);
   const fanElementRef = useRef(null);
   const longPressTimeoutRef = useRef(null);
   const longPressMetRef = useRef(false);
-
-  // No random gusts - only fan-generated wind
 
   // Generate strong upward gusts when fan is spinning
   useEffect(() => {
@@ -112,9 +106,12 @@ export default function Projects() {
       }
 
       setHasDragged(true);
+      // Anchor to page coordinates so the fan stays put when scrolling
+      const scroller = document.getElementById("app-base");
+      const scrollTop = scroller ? scroller.scrollTop : 0;
       const newPosition = {
         x: e.clientX - dragOffset.x,
-        y: e.clientY - dragOffset.y,
+        y: e.clientY - dragOffset.y + scrollTop,
       };
       setFanPosition(newPosition);
       fanPositionRef.current = newPosition;
@@ -155,9 +152,11 @@ export default function Projects() {
 
   const handlePageClick = useCallback(
     (e) => {
-      // Check if click is on a link or inside a link
-      const isLink = e.target.closest("a") || e.target.closest(".link");
-      if (isLink) return;
+      // Ignore clicks on interactive elements
+      const isInteractive = e.target.closest(
+        "a, .link, button, .audio-fact, .duck-container, #person-icon, .me-fact-wrapper, .fan-container, .navbar, .social-icons"
+      );
+      if (isInteractive) return;
 
       // Get click position
       const clickPosition = {
@@ -179,9 +178,20 @@ export default function Projects() {
 
       setPlanes((prev) => {
         const updatedPlanes = [...prev, newPlane];
-        // Show fan after 2+ planes
+        // Show fan after 2+ planes, somewhere safe in the current view
         if (updatedPlanes.length >= 2 && !fanVisible) {
           setFanVisible(true);
+          const spot = findSafeViewportSpot({ size: FAN_SIZE });
+          if (spot.top !== null) {
+            const scroller = document.getElementById("app-base");
+            const scrollTop = scroller ? scroller.scrollTop : 0;
+            const position = {
+              x: spot.left + FAN_SIZE / 2,
+              y: spot.top + scrollTop + FAN_SIZE / 2,
+            };
+            setFanPosition(position);
+            fanPositionRef.current = position;
+          }
         }
         return updatedPlanes;
       });
@@ -189,167 +199,18 @@ export default function Projects() {
     [fanVisible]
   );
 
+  // Fire planes from anywhere on the page
+  useEffect(() => {
+    document.addEventListener("click", handlePageClick);
+    return () => document.removeEventListener("click", handlePageClick);
+  }, [handlePageClick]);
+
   const handleAnimationComplete = useCallback((planeId) => {
     setPlanes((prev) => prev.filter((p) => p.id !== planeId));
   }, []);
 
   return (
-    <div
-      id="app-base"
-      className="proj-colors paper-plane-cursor"
-      onClick={handlePageClick}
-    >
-      <div className="content-wrapper proj-colors">
-        <div className="header-line">
-          <h2 className="title proj-colors">projects</h2>
-        </div>
-        <div className="links-wrapper" style={{ position: "relative" }}>
-        <div className="links proj-colors" ref={linksRef}>
-          {/* art */}
-          <div className="proj-subheader proj-colors">art</div>
-          <a
-            className="link proj-colors"
-            href="https://synnefon.github.io/mapinator"
-            rel="noreferrer"
-          >
-            <p className="link-text proj-colors">mapinator</p>
-            <p className="tooltip-text proj-colors">
-              procedural terrain map generator
-            </p>
-          </a>
-          <Link
-            className="link proj-colors"
-            to="/lava-lamp-radio"
-            rel="noreferrer"
-          >
-            <p className="link-text proj-colors">lava lamp radio</p>
-            <p className="tooltip-text proj-colors">
-              lava lamp + radio
-            </p>
-          </Link>
-          <Link className="link proj-colors" to="/dendrites" rel="noreferrer">
-            <p className="link-text proj-colors">dendrites</p>
-            <p className="tooltip-text proj-colors">
-              dendritic growth simulation
-            </p>
-          </Link>
-          <Link
-            className="link proj-colors"
-            to="/monarch-music"
-            rel="noreferrer"
-          >
-            <p className="link-text proj-colors">the migration</p>
-            <p className="tooltip-text proj-colors">
-              monarch sightings sonified
-            </p>
-          </Link>
-
-          {/* games */}
-          <div className="proj-subheader proj-colors">games</div>
-          <Link className="link proj-colors" to="/snek" rel="noreferrer">
-            <p className="link-text proj-colors">snek</p>
-            <p className="tooltip-text proj-colors">snek!</p>
-          </Link>
-          <Link
-            className="link proj-colors"
-            to="/war-of-the-dice"
-            rel="noreferrer"
-          >
-            <p className="link-text proj-colors">war of the dice</p>
-            <p className="tooltip-text proj-colors">
-              dice-rolling territory conquest
-            </p>
-          </Link>
-          <Link className="link proj-colors" to="/sudoku" rel="noreferrer">
-            <p className="link-text proj-colors">sudoku</p>
-            <p className="tooltip-text proj-colors">eternal classic</p>
-          </Link>
-          <Link
-            className="link proj-colors"
-            to="/game-of-life"
-            rel="noreferrer"
-          >
-            <p className="link-text proj-colors">game of life</p>
-            <p className="tooltip-text proj-colors">
-              cellular automata simulator
-            </p>
-          </Link>
-
-          {/* tools */}
-          <div className="proj-subheader proj-colors">tools</div>
-          <Link className="link proj-colors" to="/shavianator" rel="noreferrer">
-            <p className="link-text proj-colors">shavian transliterator</p>
-            <p className="tooltip-text proj-colors">english → shavian</p>
-          </Link>
-          <Link
-            className="link proj-colors"
-            to="/shufflenator"
-            rel="noreferrer"
-          >
-            <p className="link-text proj-colors">shufflenator</p>
-            <p className="tooltip-text proj-colors">
-              optimal shuffle pattern calculator
-            </p>
-          </Link>
-
-          {/* open source */}
-          <div className="proj-subheader proj-colors">open source</div>
-          <a
-            className="link proj-colors"
-            href="https://thangs.com/designer/synnefon"
-            rel="noreferrer"
-          >
-            <p className="link-text proj-colors">3d models</p>
-            <p className="tooltip-text proj-colors">
-              collection of my 3d-printable work
-            </p>
-          </a>
-          <a
-            className="link proj-colors"
-            href="https://www.npmjs.com/package/img-butler"
-            rel="noreferrer"
-          >
-            <p className="link-text proj-colors">img-butler</p>
-            <p className="tooltip-text proj-colors">
-              image interaction npm package
-            </p>
-          </a>
-          <a
-            className="link proj-colors"
-            href="https://github.com/synnefon/spagett"
-            rel="noreferrer"
-          >
-            <p className="link-text proj-colors">spagett ql</p>
-            <p className="tooltip-text proj-colors">
-              lisp-like query language. al dente.{" "}
-            </p>
-          </a>
-          {/* <Link className="link proj-colors" to="/matchgame" rel="noreferrer">
-            <p className="link-text proj-colors">sea match</p>
-            <p className="tooltip-text proj-colors">a sea-themed memory game</p>
-          </Link> */}
-          {/* <Link className="link proj-colors" to="/wip" rel="noreferrer">
-            <p className="link-text proj-colors">work in progress</p>
-            <p className="tooltip-text proj-colors">coming soon to a website near you</p>
-          </Link> */}
-          {/* <Link className="link proj-colors" to="/toolbox" rel="noreferrer">
-            <p className="link-text proj-colors">toolbox</p>
-            <p className="tooltip-text proj-colors">various utilities</p>
-          </Link> */}
-          {/* <Link className="link proj-colors" to="/wip" rel="noreferrer">
-            <p className="link-text proj-colors">rpg tabletop</p>
-            <p className="tooltip-text proj-colors">real-time updating battle maps, world maps, and images</p>
-          </Link> */}
-          {/* <Link className="link proj-colors" to="/wip" rel="noreferrer">
-            <p className="link-text proj-colors">infinite terrain</p>
-            <p className="tooltip-text proj-colors">a godot module that generates infinite terrains</p>
-          </Link> */}
-        </div>
-          <CustomScrollbar containerRef={linksRef} width={9} />
-        </div>
-        {/* <Raincloud showLightning={showLightning} setShowLightning={setShowLightning}/> */}
-      </div>
-
+    <>
       {/* Render all active paper planes */}
       {planes.map((plane) => (
         <PaperPlaneAnimation
@@ -389,6 +250,6 @@ export default function Projects() {
           <img src={fanIcon} alt="fan" className="fan-icon" draggable={false} />
         </div>
       )}
-    </div>
+    </>
   );
 }

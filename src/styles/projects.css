@@ -2,11 +2,69 @@
    COLOR THEME
    ============================================ */
 
-.proj-colors {
-  --bg-color: var(--color-purple-primary) !important;
-  --inv-text-color: var(--bg-color);
-  --inv-bg-color: var(--text-color);
+body:has(#app-base.proj-colors) {
+  --text-color: var(--color-black) !important;
 }
+
+.proj-colors {
+  --bg-color: var(--color-white) !important;
+  --text-color: var(--color-black) !important;
+  --inv-text-color: var(--bg-color) !important;
+  --inv-bg-color: var(--text-color) !important;
+}
+
+.title.proj-colors {
+  color: var(--text-color);
+}
+
+/* ============================================
+   LINKS - BASE STYLES
+   ============================================ */
+
+   .link {
+    position: relative;
+    margin-left: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+    overflow: visible;
+    color: inherit;
+    text-decoration: none;
+    cursor: var(--pointer);
+    /* transition: transform 0.8s ease; */
+    user-select: none;
+  }
+  
+  a.link {
+    cursor: var(--pointer);
+  }
+  
+  /* ============================================
+     LINKS - HOVER STATES
+     ============================================ */
+  
+  a.link:hover {
+    color: var(--inv-text-color);
+    background-color: var(--inv-bg-color);
+  }
+
+  a.link:hover .tooltip-text {
+    color: var(--inv-text-color);
+    opacity: 1;
+  }
+  
+  /* ============================================
+     LINKS - TEXT CONTENT
+     ============================================ */
+  
+  p.link-text {
+    margin: 0;
+    margin-top: 0.75em;
+    margin-left: 14px;
+    margin-right: 0.3em;
+    padding: 0;
+  }  
 
 
 /* ============================================
@@ -14,55 +72,100 @@
    ============================================ */
 
 .proj-subheader {
-  display: flex;
-  align-items: flex-end;
-  margin-left: 14px;
-  padding-bottom: 0.25em;
-  color: var(--color-orange);
+  color: var(--text-color);
   font-weight: 700;
   font-size: calc(8px + 1.2vmin);
-  line-height: 1;
   letter-spacing: 0.12em;
   text-transform: lowercase;
   user-select: none;
   -webkit-user-select: none;
 }
 
-/* First row hugs its content; remaining rows set item/section spacing. */
-.links.proj-colors {
-  grid-template-rows: min-content;
-  grid-auto-rows: 2.5em;
-}
-
-/* Lead space above the first header, matched to the gap below it. */
-.links.proj-colors > .proj-subheader:first-child {
-  padding-top: 1em;
-}
-
-/* Indent item names under their section header (descriptions unaffected). */
-.links.proj-colors p.link-text {
-  margin-left: 28px;
-}
-
-
 /* ============================================
-   SPECIAL EFFECTS
+   ASCII TREE
    ============================================ */
 
-div#app.lightning {
-  height: 100%;
-  overflow-y: hidden;
-  background-color: var(--color-transparent);
-  background-image: url('../assets/raincloud/bolt_backgroud.gif') !important;
-  background-size: cover;
+.ascii-tree {
+  margin-top: 0.5em;
+  font-size: 0.8em;
+  line-height: 1.4;
 }
+
+.tree-row {
+  display: flex;
+  align-items: baseline;
+  position: relative;
+}
+
+/* Continue ancestor pipes through wrapped lines of multi-line rows */
+.tree-row::before {
+  content: attr(data-pipes);
+  position: absolute;
+  left: 0;
+  top: 1.4em;
+  bottom: 0;
+  overflow: hidden;
+  white-space: pre;
+  pointer-events: none;
+}
+
+/* The root (title) row sits flush with the tree below it */
+.ascii-tree .tree-row.root .title {
+  margin: 0;
+}
+
+/* Section labels scale down with tree depth */
+.ascii-tree .tree-row .proj-subheader {
+  font-size: max(
+    calc(14px + 1.8vmin - var(--tree-depth, 0) * (4px + 0.3vmin)),
+    calc(8px + 1.2vmin)
+  );
+}
+
+.ascii-tree .tree-row.root .proj-subheader {
+  font-size: calc(18px + 2.2vmin);
+}
+
+.tree-row.spacer,
+.tree-prefix {
+  white-space: pre;
+  user-select: none;
+}
+
+.tree-row .link {
+  flex: 1;
+}
+
+.ascii-tree p.link-text {
+  margin: 0 0.3em 0 0;
+  white-space: nowrap;
+}
+
+.ascii-tree .tooltip-text {
+  flex-shrink: 1;
+  white-space: normal;
+}
+
+.tooltip-text {
+  margin: 0;
+  margin-right: 25px;
+  padding: 0;
+  font-size: calc(9px + 0.75vmin);
+  color: var(--text-color);
+  text-align: right;
+  cursor: var(--pointer);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
 
 /* ============================================
    FAN
    ============================================ */
 
 .fan-container {
-  position: fixed;
+  position: absolute;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
@@ -79,7 +182,6 @@ div#app.lightning {
   width: 100%;
   height: 100%;
   transition: filter 0.3s ease;
-  filter: brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(0%) contrast(100%);
 }
 
 .fan-container:hover .fan-icon {
@@ -88,7 +190,7 @@ div#app.lightning {
 
 .fan-container.spinning .fan-icon {
   animation: spin 0.5s linear infinite;
-  filter: brightness(0) saturate(100%) invert(58%) sepia(85%) saturate(2392%) hue-rotate(0deg) brightness(102%) contrast(104%);
+  /* filter: brightness(0) saturate(100%) invert(58%) sepia(85%) saturate(2392%) hue-rotate(0deg) brightness(102%) contrast(104%); */
 }
 
 @keyframes spin {
