@@ -13,16 +13,20 @@ export const types = {
   audioContent: "audioContent",
 };
 
-const VS = "|";
-const SP = " ";
-const LN = "*- ";
-
-// `ancestors` holds one flag per level above: true when that ancestor
-// has more siblings below, so its pipe continues; false leaves a gap.
-const indentText = (ancestors) =>
-  SP + ancestors.map((more) => (more ? `${VS}   ` : "    ")).join("");
-const spacerText = (ancestors) => indentText(ancestors) + VS;
-const prefixText = (ancestors) => indentText(ancestors) + LN;
+// One positioned cell per tree level, drawn with CSS borders instead of
+// glyphs. `ancestors` holds one flag per level above: true when that
+// ancestor has more siblings below, so its line continues; false leaves
+// a gap. The tail cell is `pipe` for spacer rows, or the row's own
+// connector: `branch` (curve into the label) plus `tee` when siblings
+// follow below.
+const TreeLines = ({ ancestors, tail }) => (
+  <span className="tree-lines" aria-hidden="true">
+    {ancestors.map((more, i) => (
+      <span key={i} className={`tree-cell${more ? " pipe" : ""}`} />
+    ))}
+    <span className={`tree-cell ${tail}`} />
+  </span>
+);
 
 // One shared player so starting a clip stops the previous one
 const sfx = new PersonalAudio();
@@ -129,19 +133,19 @@ const renderNodes = (nodes, ancestors) =>
     return (
       <Fragment key={`${node.title ?? node.content}-${i}`}>
         {(node.type === types.section || i === 0) && (
-          <div className="tree-row spacer">{spacerText(ancestors)}</div>
+          <div className="tree-row spacer">
+            <TreeLines ancestors={ancestors} tail="pipe" />
+          </div>
         )}
         <div
-          className="tree-row"
+          className={`tree-row${node.type === types.section ? " section" : ""}`}
           id={node.id}
           style={{ "--tree-depth": ancestors.length }}
-          data-pipes={
-            node.type === types.section
-              ? undefined
-              : (spacerText(ancestors) + "\n").repeat(12)
-          }
         >
-          <span className="tree-prefix">{prefixText(ancestors)}</span>
+          <TreeLines
+            ancestors={ancestors}
+            tail={hasMoreSiblings ? "branch tee" : "branch"}
+          />
           <NodeContent node={node} />
         </div>
         {node.children?.length > 0 &&

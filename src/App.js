@@ -1,10 +1,10 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Route, HashRouter as Router, Routes, useLocation } from "react-router-dom";
+import { Navigate, Route, HashRouter as Router, Routes, useLocation } from "react-router-dom";
 import Footer from "./Footer";
 import Navbar from "./Navbar";
 import { ColorBlindModeProvider } from "./context/ColorBlindModeContext";
 import GunCursor from "./easter_eggs/GunCursor";
-import Home from "./home/Home";
+import Home, { SECTIONS } from "./home/Home";
 
 const Game4096 = lazy(() => import("./4096/Game4096.tsx"));
 const Dendrites = lazy(() => import("./dendrites/Dendrites.tsx"));
@@ -46,10 +46,10 @@ function App() {
         >
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/about" element={<Home />} />
-            <Route path="/skills" element={<Home />} />
-            <Route path="/projects" element={<Home />} />
-            <Route path="/contact" element={<Home />} />
+            {SECTIONS.map(({ slug }) => (
+              <Route key={slug} path={`/${slug}`} element={<Home />} />
+            ))}
+            <Route path="/about" element={<Navigate to="/personal-info" replace />} />
             <Route path="/snek" element={<Snek />} />
             <Route path="/wip" element={<Wip />} />
             <Route path="/sudoku" element={<Sudoku />} />

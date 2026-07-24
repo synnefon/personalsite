@@ -2,21 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Hamburger from 'hamburger-react'
 
+import { SECTIONS } from './home/Home';
+
 import './styles/navbar.css'
-
-const iconMap = {
-  about:    "about",
-  skills:   "skills",
-  projects: "projects",
-  contact:  "contact",
-};
-
-const SECTION_IDS = {
-  about: "about-section",
-  skills: "skills-section",
-  projects: "projects-section",
-  contact: "contact-section",
-};
 
 const Navbar=()=>{
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
@@ -37,23 +25,26 @@ const Navbar=()=>{
   // view and keep the url in step with it.
   useEffect(() => {
     const scroller = document.getElementById("app-base");
-    if (!scroller || !document.getElementById(SECTION_IDS.about)) {
+    if (!scroller || !document.getElementById(SECTIONS[0].id)) {
       setActiveSection(null);
       return;
     }
 
+    // At the extremes the first/last section wins outright, since
+    // several section headers can share the viewport there.
     const currentSection = () => {
-      let current = "about";
+      const atTop = scroller.scrollTop <= 2;
+      if (atTop) return SECTIONS[0].slug;
+
       const atBottom =
         scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
-      if (atBottom) {
-        current = Object.keys(SECTION_IDS).at(-1);
-      } else {
-        for (const [title, id] of Object.entries(SECTION_IDS)) {
-          const el = document.getElementById(id);
-          if (el && el.getBoundingClientRect().top <= window.innerHeight * 0.4) {
-            current = title;
-          }
+      if (atBottom) return SECTIONS.at(-1).slug;
+
+      let current = SECTIONS[0].slug;
+      for (const { slug, id } of SECTIONS) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= window.innerHeight * 0.4) {
+          current = slug;
         }
       }
       return current;
@@ -74,31 +65,27 @@ const Navbar=()=>{
   }, [location.pathname, navigate]);
 
   // The menu only exists on the homepage sections
-  if (!Object.keys(SECTION_IDS).some((t) => location.pathname === `/${t}`) && location.pathname !== "/") {
+  if (!SECTIONS.some((s) => location.pathname === `/${s.slug}`) && location.pathname !== "/") {
     return null;
   }
 
-  const NavItem = ({title, to}) => {
+  const NavItem = ({slug, label}) => {
     const closePopup = () => setTimeout(() => setHamburgerOpen(false), 200);
-    const isActive = activeSection ? activeSection === title : location.pathname === to;
+    const to = `/${slug}`;
+    const isActive = activeSection ? activeSection === slug : location.pathname === to;
     return (
-      <Link className={`nav-link ${title} ${isActive ? 'active' : ''}`} to={to} onClick={closePopup}>
-        <span aria-label={title} className={`nav-item ${title} ${isActive ? 'active' : ''}`}>{iconMap[title]}</span>
+      <Link className={`nav-link ${slug} ${isActive ? 'active' : ''}`} to={to} onClick={closePopup}>
+        <span aria-label={label} className={`nav-item ${slug} ${isActive ? 'active' : ''}`}>{label}</span>
       </Link>
     );
   };
 
-  return (    
+  return (
     <div className='navbar'>
       { isMobile && <Hamburger toggled={hamburgerOpen} toggle={setHamburgerOpen}/> }
       {
-        (hamburgerOpen || !isMobile) && 
-        <>
-          <NavItem title={"about"} to={"/about"}/>
-          <NavItem title={"skills"} to={"/skills"}/>
-          <NavItem title={"projects"} to={"/projects"}/>
-          <NavItem title={"contact"} to={"/contact"}/>
-        </>
+        (hamburgerOpen || !isMobile) &&
+        SECTIONS.map(({slug, label}) => <NavItem key={slug} slug={slug} label={label}/>)
       }
     </div>
   );

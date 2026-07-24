@@ -163,15 +163,17 @@ export function computeNetForces(lift, drag, airRelativeFlightPathAngle) {
  * @param {Object} state - Current flight state {V: speed, Gam: heading}
  * @param {number} xAcceleration - Acceleration in x (downrange) (m/s^2)
  * @param {number} yAcceleration - Acceleration in y (vertical) (m/s^2)
+ * @param {number} dt - Integration time step (s)
  * @returns {Object} Ground-relative velocity components {vxGround, vyGround}
  */
 export function stepVelocityGroundRelative(
   state,
   xAcceleration,
-  yAcceleration
+  yAcceleration,
+  dt
 ) {
-  const vxGround = state.V * Math.cos(state.Gam) + xAcceleration * TIME_STEP;
-  const vyGround = state.V * Math.sin(state.Gam) + yAcceleration * TIME_STEP;
+  const vxGround = state.V * Math.cos(state.Gam) + xAcceleration * dt;
+  const vyGround = state.V * Math.sin(state.Gam) + yAcceleration * dt;
   return { vxGround, vyGround };
 }
 
@@ -180,20 +182,22 @@ export function stepVelocityGroundRelative(
  * @param {Object} state - Flight state (mutates object)
  * @param {number} vxGround - New ground-relative velocity in x
  * @param {number} vyGround - New ground-relative velocity in y
+ * @param {number} dt - Integration time step (s)
  */
-export function updateFlightStateWithVelocities(state, vxGround, vyGround) {
+export function updateFlightStateWithVelocities(state, vxGround, vyGround, dt) {
   state.V = Math.sqrt(vxGround * vxGround + vyGround * vyGround);
   state.Gam = Math.atan2(vyGround, vxGround);
-  state.H += vyGround * TIME_STEP;
-  state.Range += vxGround * TIME_STEP;
+  state.H += vyGround * dt;
+  state.Range += vxGround * dt;
 }
 
 /**
  * Advance physics simulation one time step for plane state, given wind (mutates state).
  * @param {Object} state - Flight state {V, Gam, H, Range} (mutated)
  * @param {Object} wind - Wind velocity {vx, vy}
+ * @param {number} [dt] - Integration time step (s), at most TIME_STEP for stability
  */
-export function updatePhysicsState(state, wind) {
+export function updatePhysicsState(state, wind, dt = TIME_STEP) {
   // 1. Air-relative velocity and angle
   const { vxAir, vyAir } = computeAirRelativeVelocity(state, wind);
   const airspeed = Math.sqrt(vxAir * vxAir + vyAir * vyAir);
@@ -217,9 +221,10 @@ export function updatePhysicsState(state, wind) {
   const { vxGround, vyGround } = stepVelocityGroundRelative(
     state,
     xAcceleration,
-    yAcceleration
+    yAcceleration,
+    dt
   );
 
   // 6. Update global flight state
-  updateFlightStateWithVelocities(state, vxGround, vyGround);
+  updateFlightStateWithVelocities(state, vxGround, vyGround, dt);
 }

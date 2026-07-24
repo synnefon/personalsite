@@ -4,6 +4,7 @@ import {
   calculateCoordinateScale,
   getInitialConditions,
   RADIANS_TO_DEGREES,
+  TIME_STEP,
   updatePhysicsState,
 } from "./paperPlanePhysics";
 
@@ -23,6 +24,9 @@ const GLOBAL_GUST_STRENGTH_MULTIPLIER = 0.3;
 
 // Offscreen detection buffer (pixels)
 const OFFSCREEN_BUFFER = 100;
+
+// Longest real-time gap a single frame is allowed to simulate
+const MAX_FRAME_DELTA_MS = 100;
 
 // UI constants
 const TRANSLATE_OFFSET = "-50%";
@@ -66,6 +70,7 @@ const PaperPlaneAnimation = ({
   const lastGustTimestampRef = useRef(0);
   const offscreenCheckRef = useRef(null);
   const wasOffscreenRef = useRef(false);
+  const lastFrameTimeRef = useRef(null);
   const windVelocityRef = useRef({ vx: 0, vy: 0 }); // Current wind velocity affecting the plane
 
   // Helper functions for gust handling
@@ -174,6 +179,7 @@ const PaperPlaneAnimation = ({
       ? { ...initialState, H: 0, Range: 0 }
       : getInitialConditions();
     stateRef.current = { ...initialConditions };
+    lastFrameTimeRef.current = null;
 
     // Calculate scale based on current screen width for consistent relative speed
     const scale = calculateCoordinateScale(window.innerWidth);
@@ -201,14 +207,22 @@ const PaperPlaneAnimation = ({
       );
     }
 
-    const animate = () => {
+    const animate = (frameTime) => {
       const state = stateRef.current;
       if (!state) return;
 
       const wind = windVelocityRef.current;
 
-      // Update physics state
-      updatePhysicsState(state, wind);
+      // Advance the sim by real elapsed time so speed is refresh-rate
+      // independent, substepping to keep the integration stable
+      const lastTime = lastFrameTimeRef.current ?? frameTime;
+      lastFrameTimeRef.current = frameTime;
+      let remainingSec =
+        Math.min(frameTime - lastTime, MAX_FRAME_DELTA_MS) / 1000;
+      while (remainingSec > 0) {
+        updatePhysicsState(state, wind, Math.min(remainingSec, TIME_STEP));
+        remainingSec -= TIME_STEP;
+      }
 
       // 7. Convert to screen coords
       const directionMultiplier =

@@ -13,7 +13,8 @@
   background-color: transparent;
   font-size: calc(16px + 1vmin);
   user-select: none;
-  /* pointer-events: none; */
+  /* scrolls pass through to the page; items re-enable their own hits */
+  pointer-events: none;
 }
 
 /* Hide navbar in fullscreen mode */
@@ -44,7 +45,7 @@ body.lava-lamp-fullscreen .navbar {
   color: transparent;
   text-decoration: none;
   cursor: var(--arrow) !important;
-  /* pointer-events: none; */
+  pointer-events: all;
   /* transition: color 0.4s, display 0.4s; */
   width: 100%;
 }
@@ -71,7 +72,6 @@ body.lava-lamp-fullscreen .navbar {
   white-space: nowrap;
   color: var(--text-color);
   cursor: var(--pointer);
-  pointer-events: all;
   /* transition: color 0.4s ease-out; */
   user-select: none;
   -webkit-user-select: none;
@@ -162,7 +162,6 @@ body:has(.dendrites-canvas) .nav-item.active {
     width: 100%;
     margin-bottom: 0;
     padding: 0.35em 0.9em;
-    pointer-events: all;
     cursor: var(--pointer) !important;
     background-color: var(--color-black);
   }

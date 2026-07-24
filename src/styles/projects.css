@@ -86,6 +86,8 @@ body:has(#app-base.proj-colors) {
    ============================================ */
 
 .ascii-tree {
+  --tree-line-w: 1.5px;
+  --tree-curve: 6px;
   margin-top: 0.5em;
   font-size: 0.8em;
   line-height: 1.4;
@@ -95,18 +97,16 @@ body:has(#app-base.proj-colors) {
   display: flex;
   align-items: baseline;
   position: relative;
+  /* Where the branch curve meets the label: center of the first line */
+  --branch-y: 0.7em;
+  --section-font: max(
+    calc(14px + 1.8vmin - var(--tree-depth, 0) * (4px + 0.3vmin)),
+    calc(8px + 1.2vmin)
+  );
 }
 
-/* Continue ancestor pipes through wrapped lines of multi-line rows */
-.tree-row::before {
-  content: attr(data-pipes);
-  position: absolute;
-  left: 0;
-  top: 1.4em;
-  bottom: 0;
-  overflow: hidden;
-  white-space: pre;
-  pointer-events: none;
+.tree-row.section {
+  --branch-y: calc(0.7 * var(--section-font));
 }
 
 /* The root (title) row sits flush with the tree below it */
@@ -116,20 +116,58 @@ body:has(#app-base.proj-colors) {
 
 /* Section labels scale down with tree depth */
 .ascii-tree .tree-row .proj-subheader {
-  font-size: max(
-    calc(14px + 1.8vmin - var(--tree-depth, 0) * (4px + 0.3vmin)),
-    calc(8px + 1.2vmin)
-  );
+  font-size: var(--section-font);
 }
 
 .ascii-tree .tree-row.root .proj-subheader {
   font-size: calc(18px + 2.2vmin);
 }
 
-.tree-row.spacer,
-.tree-prefix {
-  white-space: pre;
-  user-select: none;
+/* Connector lines: one positioned cell per tree level */
+.tree-lines {
+  display: flex;
+  align-self: stretch;
+  flex-shrink: 0;
+  margin-left: 2ch;
+}
+
+.tree-cell {
+  position: relative;
+  width: 4ch;
+}
+
+.tree-cell.branch {
+  width: 3ch;
+}
+
+/* Vertical through-line: ancestor levels, spacers, and rows with
+   more siblings below */
+.tree-cell.pipe::before,
+.tree-cell.tee::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(0.5ch - var(--tree-line-w) / 2);
+  border-left: var(--tree-line-w) solid;
+}
+
+/* Curve out of the vertical into a horizontal pointing at the label */
+.tree-cell.branch::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: calc(0.5ch - var(--tree-line-w) / 2);
+  right: 0.5ch;
+  height: calc(var(--branch-y) + var(--tree-line-w) / 2);
+  border-left: var(--tree-line-w) solid;
+  border-bottom: var(--tree-line-w) solid;
+  border-bottom-left-radius: var(--tree-curve);
+}
+
+/* Spacer rows keep the verticals flowing between groups */
+.tree-row.spacer {
+  height: 1.4em;
 }
 
 .tree-row .link {

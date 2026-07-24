@@ -18,14 +18,6 @@ import "../styles/projects.css";
 import "../styles/about.css";
 import { playPopSound, playRandom8BitSound } from "./eightBitSynth";
 
-const SECTION_FOR_PATH = {
-  "/": "about-section",
-  "/about": "about-section",
-  "/skills": "skills-section",
-  "/projects": "projects-section",
-  "/contact": "contact-section",
-};
-
 // hidden for now: sea match (/matchgame), work in progress (/wip),
 // toolbox (/toolbox), rpg tabletop, infinite terrain
 const SITE_TREE = {
@@ -35,35 +27,13 @@ const SITE_TREE = {
     {
       type: types.section,
       title: "about",
-      id: "about-section",
+      id: "personal-info-section",
       children: [
-        {
-          type: types.section,
-          title: "personal info",
-          children: [
-            { type: types.stringContent, title: "job", content: "senior software engineer" },
-            { type: types.stringContent, title: "location", content: "tacoma/seattle" },
-            { type: types.stringContent, title: "current company", content: "yoodli.ai", href: "https://yoodli.ai" },
-          ],
-        },
-        {
-          type: types.section,
-          title: "personality fragments",
-          children: [
-            {
-              type: types.section, title: "fragment 1", children: [
-                { type: types.stringContent, title: "quote", content: "you should sit in meditation for ten minutes every day - except when you are too busy. then you should sit for an hour." },
-                { type: types.stringContent, title: "author", content: "shunryu suzuki" },
-              ]
-            },
-            {
-              type: types.section, title: "fragment 2", children: [
-                { type: types.stringContent, title: "quote", content: '"meow" means "woof" in cat.' },
-                { type: types.stringContent, title: "author", content: "george carlin" },
-              ]
-            },
-          ],
-        }
+        { type: types.stringContent, title: "title", content: "senior software engineer" },
+        { type: types.stringContent, title: "company", content: "yoodli.ai", href: "https://yoodli.ai" },
+        { type: types.stringContent, title: "location", content: "tacoma/seattle" },
+        { type: types.hrefContent, title: "github", href: "https://github.com/synnefon" },
+        { type: types.hrefContent, title: "linkedin", href: "https://www.linkedin.com/in/connor-j-hopkins" },
       ],
     },
     {
@@ -150,15 +120,40 @@ const SITE_TREE = {
     },
     {
       type: types.section,
-      title: "contact",
-      id: "contact-section",
+      title: "personality",
+      id: "personality-fragments-section",
       children: [
-        { type: types.hrefContent, title: "github", href: "https://github.com/synnefon" },
-        { type: types.hrefContent, title: "linkedin", href: "https://www.linkedin.com/in/connor-j-hopkins" },
+        {
+          type: types.section, title: "fragment 1", children: [
+            { type: types.stringContent, title: "quote", content: "you should sit in meditation for ten minutes every day - except when you are too busy. then you should sit for an hour." },
+            { type: types.stringContent, title: "author", content: "shunryu suzuki" },
+          ]
+        },
+        {
+          type: types.section, title: "fragment 2", children: [
+            { type: types.stringContent, title: "quote", content: '"meow" means "woof" in cat.' },
+            { type: types.stringContent, title: "author", content: "george carlin" },
+          ]
+        },
       ],
     },
   ],
 };
+
+// Top-level tree sections drive the navbar, home routes, and scroll
+// targets: label from the node title, url slug from the node id.
+export const SECTIONS = SITE_TREE.children
+  .filter((node) => node.id)
+  .map((node) => ({
+    label: node.title,
+    id: node.id,
+    slug: node.id.replace(/-section$/, ""),
+  }));
+
+const SECTION_FOR_PATH = Object.fromEntries([
+  ["/", SECTIONS[0].id],
+  ...SECTIONS.map((s) => [`/${s.slug}`, s.id]),
+]);
 
 const THEMES = ["black", "white", "amber", "blueprint"];
 
@@ -212,7 +207,7 @@ export default function Home() {
 
     const scroll = () => {
       const behavior = first ? "auto" : "smooth";
-      if (id === "about-section") {
+      if (id === SECTIONS[0].id) {
         // The first section: go all the way to the top of the page
         document.getElementById("app-base")?.scrollTo({ top: 0, behavior });
       } else {
@@ -475,28 +470,27 @@ export default function Home() {
       {duckVisible && !isMobile && (!docked || dockPos !== null) && (
         <div
           ref={duckRef}
-          className={`duck-container ${docked ? "docked" : ""} ${
-            isPlaying ? "wiggle" : ""
-          } ${noTransition ? "no-transition" : ""}`}
+          className={`duck-container ${docked ? "docked" : ""} ${isPlaying ? "wiggle" : ""
+            } ${noTransition ? "no-transition" : ""}`}
           style={
             docked
               ? {
-                  left: `${dockPos.left}px`,
-                  top: `${dockPos.top}px`,
-                  width: `${dockPos.width}px`,
-                }
+                left: `${dockPos.left}px`,
+                top: `${dockPos.top}px`,
+                width: `${dockPos.width}px`,
+              }
               : {
-                  left:
-                    duckPosition.left !== null
-                      ? `${duckPosition.left}px`
-                      : "auto",
-                  top:
-                    duckPosition.top !== null ? `${duckPosition.top}px` : "auto",
-                  bottom:
-                    duckPosition.bottom !== null
-                      ? `${duckPosition.bottom}px`
-                      : "auto",
-                }
+                left:
+                  duckPosition.left !== null
+                    ? `${duckPosition.left}px`
+                    : "auto",
+                top:
+                  duckPosition.top !== null ? `${duckPosition.top}px` : "auto",
+                bottom:
+                  duckPosition.bottom !== null
+                    ? `${duckPosition.bottom}px`
+                    : "auto",
+              }
           }
           onClick={handleClick}
           onMouseEnter={() => setDuckHover(true)}

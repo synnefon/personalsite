@@ -15,12 +15,17 @@
   -ms-user-select: none;
 }
 
-/* The held plane rides along with the mouse */
+/* The held plane rides along with the mouse; its nose turns to follow the drag */
 .paper-plane-held {
   position: fixed;
-  transform: translate(-50%, -50%) rotate(45deg);
+  transform: translate(-50%, -50%) perspective(400px) rotateY(0deg) rotate(45deg);
+  transition: transform 0.25s ease;
   pointer-events: none;
   z-index: 9999;
+}
+
+.paper-plane-held.facing-left {
+  transform: translate(-50%, -50%) perspective(400px) rotateY(180deg) rotate(45deg);
 }
 
 /* Full-viewport layer that carries the grabbing cursor while a plane is held */

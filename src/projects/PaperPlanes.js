@@ -14,6 +14,9 @@ const MIN_SAMPLE_SPAN_MS = 30;
 const DRAG_THRESHOLD_PX = 6;
 const MIN_THROW_SPEED_PX_PER_SEC = 50;
 
+// Horizontal movement (within the velocity window) needed to flip the held plane's nose
+const FACING_FLIP_THRESHOLD_PX = 8;
+
 // Press-and-drag paper planes, plus the fan that blows them around.
 // Pressing picks up a plane (the cursor becomes it), releasing throws
 // it with the mouse's velocity; a plain click just drops it.
@@ -29,6 +32,7 @@ export default function PaperPlanes() {
   const [pressActive, setPressActive] = useState(false);
   const [holding, setHolding] = useState(false);
   const [heldPos, setHeldPos] = useState(null);
+  const [heldFacing, setHeldFacing] = useState("right");
   const fanPositionRef = useRef({ x: null, y: null });
   const fanElementRef = useRef(null);
   const longPressTimeoutRef = useRef(null);
@@ -166,18 +170,19 @@ export default function PaperPlanes() {
 
   // --- Plane hold / throw ---
 
-  const beginHold = useCallback((x, y) => {
+  const beginHold = useCallback((x, y, facing = "right") => {
     throwSamplesRef.current = [{ x, y, t: performance.now() }];
     holdStartRef.current = { x, y };
     holdDraggedRef.current = false;
     setHeldPos({ x, y });
+    setHeldFacing(facing);
     setHolding(true);
   }, []);
 
   const catchPlane = useCallback(
-    (planeId, x, y) => {
-      setPlanes((prev) => prev.filter((p) => p.id !== planeId));
-      beginHold(x, y);
+    (plane, x, y) => {
+      setPlanes((prev) => prev.filter((p) => p.id !== plane.id));
+      beginHold(x, y, plane.direction);
     },
     [beginHold]
   );
@@ -187,8 +192,8 @@ export default function PaperPlanes() {
       let direction;
       let initial;
       if (Math.hypot(vx, vy) < MIN_THROW_SPEED_PX_PER_SEC) {
-        // A plain click or a still release: just drop the plane
-        direction = "right";
+        // A plain click or a still release: just drop the plane nose-first
+        direction = heldFacing;
         initial = { V: 0, Gam: 0 };
       } else {
         // Screen px/s -> sim m/s; sim y is up, and horizontal speed
@@ -227,7 +232,7 @@ export default function PaperPlanes() {
         return updatedPlanes;
       });
     },
-    [fanVisible]
+    [fanVisible, heldFacing]
   );
 
   const handleHoldMove = useCallback((e) => {
@@ -240,6 +245,11 @@ export default function PaperPlanes() {
     const start = holdStartRef.current;
     if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > DRAG_THRESHOLD_PX) {
       holdDraggedRef.current = true;
+    }
+    // Nose follows sustained horizontal movement; small drifts don't flip it
+    const dx = e.clientX - samples[0].x;
+    if (Math.abs(dx) > FACING_FLIP_THRESHOLD_PX) {
+      setHeldFacing(dx > 0 ? "right" : "left");
     }
     setHeldPos({ x: e.clientX, y: e.clientY });
   }, []);
@@ -318,7 +328,7 @@ export default function PaperPlanes() {
           direction={plane.direction}
           initialState={plane.initial}
           gustState={gustState}
-          onCatch={(pos) => catchPlane(plane.id, pos.x, pos.y)}
+          onCatch={(pos) => catchPlane(plane, pos.x, pos.y)}
           onComplete={() => handleAnimationComplete(plane.id)}
         />
       ))}
@@ -327,7 +337,9 @@ export default function PaperPlanes() {
       {holding && heldPos && (
         <>
           <div
-            className="paper-plane-held"
+            className={`paper-plane-held${
+              heldFacing === "left" ? " facing-left" : ""
+            }`}
             style={{ left: `${heldPos.x}px`, top: `${heldPos.y}px` }}
           >
             <PaperPlaneIcon />

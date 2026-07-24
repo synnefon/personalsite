@@ -10,6 +10,9 @@
 
 body:has(#app-base.home-colors) {
   --text-color: var(--color-black) !important;
+  /* #app-base owns page scroll; the body (navbar layer) stays pinned */
+  overflow-y: hidden;
+  overscroll-behavior: none;
 }
 
 /* ============================================
