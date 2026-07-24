@@ -354,6 +354,12 @@ export default function Home() {
     );
   };
 
+  // Fixed overlays swallow wheel scrolls; hand them to the page scroller.
+  const forwardWheel = (e) => {
+    const scroller = document.getElementById("app-base");
+    if (scroller) scroller.scrollTop += e.deltaY * (e.deltaMode === 1 ? 32 : 1);
+  };
+
   const handleClick = () => {
     // Check if we should replay the same sound (either playing or within buffer period)
     const shouldReplaySameSound = isPlaying || soundParamsRef.current !== null;
@@ -447,7 +453,7 @@ export default function Home() {
 
   return (
     <div id="app-base" className={`home-colors theme-${theme}`}>
-      <div className="theme-picker">
+      <div className="theme-picker" onWheel={forwardWheel}>
         {THEMES.map((t) => (
           <button
             key={t}
@@ -493,6 +499,7 @@ export default function Home() {
               }
           }
           onClick={handleClick}
+          onWheel={docked ? forwardWheel : undefined}
           onMouseEnter={() => setDuckHover(true)}
           onMouseLeave={() => setDuckHover(false)}
         >
