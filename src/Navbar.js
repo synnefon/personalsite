@@ -80,8 +80,14 @@ const Navbar=()=>{
     );
   };
 
+  // The overlay eats wheel events, so hand them to the page scroller.
+  const forwardWheel = (e) => {
+    const scroller = document.getElementById("app-base");
+    if (scroller) scroller.scrollTop += e.deltaY * (e.deltaMode === 1 ? 32 : 1);
+  };
+
   return (
-    <div className='navbar'>
+    <div className='navbar' onWheel={forwardWheel}>
       { isMobile && <Hamburger toggled={hamburgerOpen} toggle={setHamburgerOpen}/> }
       {
         (hamburgerOpen || !isMobile) &&
