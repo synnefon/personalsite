@@ -88,6 +88,8 @@ body:has(#app-base.proj-colors) {
 .ascii-tree {
   --tree-line-w: 1.5px;
   --tree-curve: 6px;
+  --header-font: calc(14px + 1.8vmin);
+  --root-font: calc(18px + 2.2vmin);
   margin-top: 0.5em;
   font-size: 0.8em;
   line-height: 1.4;
@@ -99,14 +101,10 @@ body:has(#app-base.proj-colors) {
   position: relative;
   /* Where the branch curve meets the label: center of the first line */
   --branch-y: 0.7em;
-  --section-font: max(
-    calc(14px + 1.8vmin - var(--tree-depth, 0) * (4px + 0.3vmin)),
-    calc(8px + 1.2vmin)
-  );
 }
 
 .tree-row.section {
-  --branch-y: calc(0.7 * var(--section-font));
+  --branch-y: calc(0.7 * var(--header-font));
 }
 
 /* The root (title) row sits flush with the tree below it */
@@ -114,13 +112,12 @@ body:has(#app-base.proj-colors) {
   margin: 0;
 }
 
-/* Section labels scale down with tree depth */
 .ascii-tree .tree-row .proj-subheader {
-  font-size: var(--section-font);
+  font-size: var(--header-font);
 }
 
 .ascii-tree .tree-row.root .proj-subheader {
-  font-size: calc(18px + 2.2vmin);
+  font-size: var(--root-font);
 }
 
 /* Connector lines: one positioned cell per tree level */
@@ -165,6 +162,25 @@ body:has(#app-base.proj-colors) {
   border-bottom-left-radius: var(--tree-curve);
 }
 
+/* The line to a row's children sprouts from the tip of its label */
+.tree-row.parent::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  height: 0.3em;
+  left: calc(2ch + (var(--tree-depth, 0) + 1) * 4ch + 0.5ch - var(--tree-line-w) / 2);
+  border-left: var(--tree-line-w) solid;
+}
+
+.tree-row.section.parent::after {
+  height: calc(0.3 * var(--header-font));
+}
+
+.tree-row.root.parent::after {
+  left: calc(2.5ch - var(--tree-line-w) / 2);
+  height: calc(0.3 * var(--root-font));
+}
+
 /* Spacer rows keep the verticals flowing between groups */
 .tree-row.spacer {
   height: 1.4em;
@@ -194,7 +210,6 @@ body:has(#app-base.proj-colors) {
   cursor: var(--pointer);
   flex-shrink: 0;
   opacity: 0;
-  transition: opacity 0.15s ease;
 }
 
 

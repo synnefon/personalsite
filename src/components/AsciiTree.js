@@ -138,7 +138,9 @@ const renderNodes = (nodes, ancestors) =>
           </div>
         )}
         <div
-          className={`tree-row${node.type === types.section ? " section" : ""}`}
+          className={`tree-row${node.type === types.section ? " section" : ""}${
+            node.children?.length > 0 ? " parent" : ""
+          }`}
           id={node.id}
           style={{ "--tree-depth": ancestors.length }}
         >
@@ -161,7 +163,10 @@ const renderNodes = (nodes, ancestors) =>
 export default function AsciiTree({ root }) {
   return (
     <div className="ascii-tree">
-      <div className="tree-row root" id={root.id}>
+      <div
+        className={`tree-row root${root.children?.length > 0 ? " parent" : ""}`}
+        id={root.id}
+      >
         <NodeContent node={root} />
       </div>
       {root.children?.length > 0 && renderNodes(root.children, [])}

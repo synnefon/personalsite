@@ -90,7 +90,6 @@ body:has(#app-base.about-colors) {
   align-self: center;
   opacity: 0;
   filter: brightness(0) saturate(100%);
-  transition: opacity 0.2s ease;
 }
 
 .tree-row:hover .audio-hint,
@@ -179,7 +178,6 @@ body:has(#app-base.about-colors) {
   min-height: 24px;
   opacity: 0;
   filter: brightness(0) saturate(100%);
-  transition: opacity 0.2s ease;
   pointer-events: none;
 }
 
