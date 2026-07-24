@@ -292,7 +292,7 @@ export default function PaperPlanes() {
       if (e.button !== 0) return;
       // Ignore presses on interactive elements
       const isInteractive = e.target.closest(
-        "a, .link, button, .audio-fact, .duck-container, #person-icon, .me-fact-wrapper, .fan-container, .navbar, .social-icons"
+        "a, .link, button, .audio-fact, .duck-container, #person-footer, .me-fact-wrapper, .fan-container, .navbar, .social-icons"
       );
       if (isInteractive) return;
       // Ignore presses on the scrollbar (clientWidth excludes it)

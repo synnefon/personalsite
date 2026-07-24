@@ -6,6 +6,9 @@
   position: absolute !important;
   left: 0;
   margin-top: 0.5em;
+  /* Lines the first chip up with the tree root chip at scroll top:
+     offsets the wrapper margin and the chips' differing paddings */
+  padding-top: calc(1.5px + 0.6vmin);
   margin-left: 0.4em;
   z-index: 999;
   display: flex;
@@ -23,14 +26,6 @@ body.lava-lamp-fullscreen .navbar {
 }
 
 
-.hamburger-react {
-  position: relative;
-  z-index: 999;
-  background-color: transparent;
-  color: var(--text-color);
-  pointer-events: auto;
-}
-
 /* ============================================
    NAV LINKS
    ============================================ */
@@ -40,14 +35,16 @@ body.lava-lamp-fullscreen .navbar {
   flex-direction: row;
   align-items: center;
   /* margin-bottom: 1em; */
-  padding-bottom: 0.4em;
-  padding-top: 0.4em;
+  /* Same vertical padding as .proj-subheader: chips match heights */
+  padding-bottom: 5px;
+  padding-top: 5px;
   color: transparent;
   text-decoration: none;
   cursor: var(--arrow) !important;
   pointer-events: all;
   /* transition: color 0.4s, display 0.4s; */
   width: 100%;
+  border-radius: 15px;
 }
 
 .nav-link:last-child {
@@ -67,7 +64,11 @@ body.lava-lamp-fullscreen .navbar {
    ============================================ */
 
 .nav-item {
-  font-size: calc(14px + 1.2vmin);
+  /* Match the tree's section chip typography: 0.8 × content-wrapper font */
+  font-size: calc(6.4px + 1.6vmin);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
   line-height: 1;
   white-space: nowrap;
   color: var(--text-color);
@@ -110,8 +111,6 @@ body.lava-lamp-fullscreen .navbar {
    THEME OVERRIDES
    ============================================ */
 
-/* Dark themes: highlight chip inverts to the theme's colors */
-body:has(#app-base.theme-blueprint) .nav-link.active,
 body:has(#app-base.theme-black) .nav-link.active {
   background-color: var(--color-white);
 }
@@ -120,16 +119,34 @@ body:has(#app-base.theme-black) .nav-link.active .nav-item {
   color: var(--color-black);
 }
 
-body:has(#app-base.theme-blueprint) .nav-link.active .nav-item {
-  color: var(--color-blueprint);
+body:has(#app-base.theme-black) .nav-link:hover .nav-item::after {
+  color: var(--color-white);
 }
 
-body:has(#app-base.theme-amber) .nav-link.active {
-  background-color: var(--color-amber);
+body:has(#app-base.theme-white) .nav-link:hover .nav-item::after {
+  color: var(--color-black);
 }
 
-body:has(#app-base.theme-amber) .nav-link.active .nav-item {
-  color: var(--color-amber-black);
+body:has(#app-base.scheme-rainbow) .nav-link.active {
+  background-color: var(--section-color, var(--color-black));
+}
+
+body:has(#app-base.scheme-rainbow) .nav-link.active .nav-item {
+  color: var(--color-black);
+}
+
+body:has(#app-base.scheme-rainbow) .nav-item::after {
+  color: var(--section-color);
+}
+
+body:has(#app-base.scheme-rainbow), body:has(#app-base.theme-black) .nav-link.active:hover .nav-item.active::after {
+  visibility: visible;
+  color: var(--color-black);
+}
+
+body:has(#app-base.scheme-rainbow), body:has(#app-base.theme-white) .nav-link.active:hover .nav-item.active::after {
+  visibility: visible;
+  color: var(--color-white);
 }
 
 /* ============================================
@@ -150,43 +167,6 @@ body:has(.dendrites-canvas) .nav-item.active {
 
 @media screen and (max-width: 960px) {
   .navbar {
-    left: 0 !important;
-    margin-left: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  /* Open menu: a vertical black panel with white items */
-  .nav-link {
-    width: 100%;
-    margin-bottom: 0;
-    padding: 0.35em 0.9em;
-    cursor: var(--pointer) !important;
-    background-color: var(--color-black);
-  }
-
-  .nav-link .nav-item {
-    color: var(--color-white);
-    font-size: calc(12px + 1vmin);
-  }
-
-  /* Inverse when selected */
-  .nav-link.active {
-    background-color: var(--color-white);
-  }
-
-  .nav-link.active .nav-item {
-    color: var(--color-black);
-  }
-}
-
-/* ============================================
-   RESPONSIVE - EXTRA SMALL (max-width: 230px)
-   ============================================ */
-
-@media screen and (max-width: 230px) {
-  .nav-link-text {
-    margin: 0.4em;
+    display: none;
   }
 }

@@ -146,7 +146,7 @@ const LinkParts = ({ node }) => (
   </>
 );
 
-const renderNodes = (nodes, ancestors, x) =>
+const renderNodes = (nodes, ancestors, x, parentColor) =>
   nodes.map((node, i) => {
     const hasMoreSiblings = i < nodes.length - 1;
     const labelLen = (node.title ?? "").length;
@@ -155,6 +155,7 @@ const renderNodes = (nodes, ancestors, x) =>
       node.children?.length > 0
         ? { chs: x.chs + 2.5 + labelLen + 2.5, sp: x.sp + labelLen }
         : null;
+    const color = node.color ?? parentColor;
     return (
       <Fragment key={`${node.title ?? node.content}-${i}`}>
         {(node.type === types.section || i === 0) && (
@@ -165,6 +166,7 @@ const renderNodes = (nodes, ancestors, x) =>
         <div
           className={`tree-row${node.type === types.section ? " section" : ""}`}
           id={node.id}
+          style={color ? { "--section-color": color } : undefined}
         >
           <TreeLines
             ancestors={ancestors}
@@ -178,7 +180,8 @@ const renderNodes = (nodes, ancestors, x) =>
           renderNodes(
             node.children,
             [...ancestors, { more: hasMoreSiblings, x }],
-            childX
+            childX,
+            color
           )}
       </Fragment>
     );
@@ -186,19 +189,24 @@ const renderNodes = (nodes, ancestors, x) =>
 
 // Renders one nested data structure as an ascii tree. Nodes are plain
 // data ({ type, title, content?, desc?, href?, to?, audio?, id?,
-// children? }); every level follows the same rules. The root's row
-// renders unprefixed.
+// color?, children? }); every level follows the same rules. The root's
+// row renders unprefixed. Rows carry --section-color (their own color,
+// or the nearest ancestor's) for chips and hover highlights.
 export default function AsciiTree({ root }) {
   const rootLen = (root.title ?? "").length;
   const rootChildX =
     root.children?.length > 0 ? { chs: rootLen + 2.5, sp: rootLen } : null;
   return (
     <div className="ascii-tree">
-      <div className="tree-row root" id={root.id}>
+      <div
+        className="tree-row root"
+        id={root.id}
+        style={root.color ? { "--section-color": root.color } : undefined}
+      >
         {rootChildX && <TreeLines ancestors={[]} dangleX={rootChildX} />}
         <NodeContent node={root} />
       </div>
-      {rootChildX && renderNodes(root.children, [], rootChildX)}
+      {rootChildX && renderNodes(root.children, [], rootChildX, root.color)}
     </div>
   );
 }

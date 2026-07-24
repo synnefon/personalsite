@@ -43,11 +43,18 @@ body:has(#app-base.about-colors) {
   margin: 0;
 }
 
+.tree-text {
+  border-radius: 15px;
+  padding: 5px;
+}
+
 .tree-text-title {
   font-weight: 700;
 }
 
 .tree-inline-link {
+  border-radius: 15px;
+  padding: 5px;
   color: inherit;
   text-decoration: underline;
   cursor: var(--pointer);
@@ -56,6 +63,12 @@ body:has(#app-base.about-colors) {
 .tree-inline-link:hover {
   color: var(--inv-text-color);
   background-color: var(--inv-bg-color);
+}
+
+/* Rainbow: highlights take the parent section's color */
+.scheme-rainbow .tree-inline-link:hover {
+  color: var(--color-black);
+  background-color: var(--section-color, var(--inv-bg-color));
 }
 
 /* Indent quotes under the "quotes i like" branch */
@@ -72,6 +85,8 @@ body:has(#app-base.about-colors) {
   justify-content: space-between;
   align-items: baseline;
   cursor: var(--pointer);
+  border-radius: 15px;
+  padding: 5px;
 }
 
 .audio-fact:hover {
@@ -83,16 +98,26 @@ body:has(#app-base.about-colors) {
   filter: brightness(0) saturate(100%) invert(1);
 }
 
+/* Rainbow: highlights take the parent section's color */
+.scheme-rainbow .audio-fact:hover {
+  color: var(--color-black);
+  background-color: var(--section-color, var(--inv-bg-color));
+}
+
+.scheme-rainbow .audio-fact:hover .audio-hint {
+  filter: brightness(0) saturate(100%);
+}
+
 .audio-fact .audio-hint {
   height: 1.1em;
   margin-left: 1.5em;
-  margin-right: 25px;
+  margin-right: 5px;
   align-self: center;
   opacity: 0;
   filter: brightness(0) saturate(100%);
 }
 
-.tree-row:hover .audio-hint,
+.audio-fact:hover .audio-hint,
 .audio-fact.playing .audio-hint {
   opacity: 1;
 }
@@ -244,42 +269,42 @@ button#skip-button:hover::before {
    PERSON ICON
    ============================================ */
 
-/* Sits in the page flow after the text; margin-top pushes it to the
-   bottom of the viewport when the text is short. */
-#person-icon {
+/* Lenny + copyright: one clickable unit at the end of the page flow.
+   Slides offscreen while the gif plays. */
+#person-footer {
   position: relative;
-  left: -50%;
+  left: 0;
   margin-top: 2em;
-  margin-bottom: 1em;
+  margin-bottom: 2em;
   align-self: flex-start;
-  font-size: min(1.2em, 2.8vw);
-  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  width: max-content;
   user-select: none;
   cursor: var(--pointer);
   transition: left 0.7s ease-in-out;
+  padding-bottom: 20px;
+}
+
+#person-icon {
+  font-size: min(0.85em, 2vw);
+  white-space: nowrap;
+  padding-bottom: 6px;
+}
+
+#person-copyright {
+  font-size: 0.6em;
+  white-space: nowrap;
 }
 
 *.hovered-person {
   pointer-events: auto;
-  animation: wiggle 0.3s linear;
+  /* animation: wiggle 0.3s linear; */
 }
 
 .invisible {
   left: -100vw !important;
-}
-
-/* The wrapper widens at smaller breakpoints, so a -50% shift would push
-   the person icon off-screen; ease it off as the page narrows. */
-@media screen and (max-width: 1255px) {
-  #person-icon {
-    left: -10%;
-  }
-}
-
-@media screen and (max-width: 600px) {
-  #person-icon {
-    left: 0;
-  }
 }
 
 img#self-gif {

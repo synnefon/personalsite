@@ -38,6 +38,8 @@ body:has(#app-base.proj-colors) {
   
   a.link {
     cursor: var(--pointer);
+    border-radius: 15px;
+    padding: 5px;
   }
   
   /* ============================================
@@ -53,6 +55,16 @@ body:has(#app-base.proj-colors) {
     color: var(--inv-text-color);
     opacity: 1;
   }
+
+  /* Rainbow: highlights take the parent section's color */
+  .scheme-rainbow a.link:hover {
+    color: var(--color-black);
+    background-color: var(--section-color, var(--inv-bg-color));
+  }
+
+  .scheme-rainbow a.link:hover .tooltip-text {
+    color: var(--color-black);
+  }
   
   /* ============================================
      LINKS - TEXT CONTENT
@@ -60,9 +72,9 @@ body:has(#app-base.proj-colors) {
   
   p.link-text {
     margin: 0;
-    margin-top: 0.75em;
-    margin-left: 14px;
-    margin-right: 0.3em;
+    /* margin-top: 0.75em; */
+    /* margin-left: 14px; */
+    /* margin-right: 0.3em; */
     padding: 0;
   }  
 
@@ -79,6 +91,21 @@ body:has(#app-base.proj-colors) {
   text-transform: lowercase;
   user-select: none;
   -webkit-user-select: none;
+  /* background-color: var(--bg-color); */
+  border-radius: 15px;
+  padding: 5px;
+  transform: translateX(-5%);
+}
+
+/* Rainbow: per-node colors. Highlight: inverted text/bg */
+.scheme-rainbow .proj-subheader {
+  background-color: var(--section-color, transparent);
+  color: var(--color-black);
+}
+
+.scheme-highlight .proj-subheader {
+  background-color: var(--text-color);
+  color: var(--bg-color);
 }
 
 /* ============================================
@@ -206,7 +233,7 @@ body:has(#app-base.proj-colors) {
 }
 
 .ascii-tree p.link-text {
-  margin: 0 1.5em 0 0;
+  /* margin: 0 1.5em 0 0; */
   white-space: nowrap;
 }
 
@@ -215,9 +242,22 @@ body:has(#app-base.proj-colors) {
   white-space: normal;
 }
 
+/* Narrow screens: hold a readable measure instead of scrunching into
+   the space left of the indent; the page scrolls sideways. Boxes hug
+   their text so the scroll extent tracks the longest line. */
+@media screen and (max-width: 960px) {
+  .ascii-tree .tree-text {
+    width: max-content;
+    max-width: 60ch;
+    flex-shrink: 0;
+    padding-right: 1em;
+  }
+}
+
 .tooltip-text {
   margin: 0;
-  margin-right: 25px;
+  margin-right: 5px;
+  margin-left: 50px;
   padding: 0;
   font-size: calc(9px + 0.75vmin);
   color: var(--text-color);

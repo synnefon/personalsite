@@ -24,14 +24,14 @@ export default function Self() {
   }
 
   useEffect(() => {
-    const personIcon = document.getElementById('person-icon');
-    const toggleWiggle = () =>  personIcon.classList.toggle('hovered-person');
-    personIcon.addEventListener("mouseover", toggleWiggle);
-    personIcon.addEventListener("mouseleave", toggleWiggle);
+    const personFooter = document.getElementById('person-footer');
+    const toggleWiggle = () => personFooter.classList.toggle('hovered-person');
+    personFooter.addEventListener("mouseover", toggleWiggle);
+    personFooter.addEventListener("mouseleave", toggleWiggle);
 
     return () => {
-      personIcon.removeEventListener("mouseover", toggleWiggle);
-      personIcon.removeEventListener("mouseleave", toggleWiggle);
+      personFooter.removeEventListener("mouseover", toggleWiggle);
+      personFooter.removeEventListener("mouseleave", toggleWiggle);
     };
   }, []);
 
@@ -45,15 +45,18 @@ export default function Self() {
 
   return (
     <>
-      <span
-        id="person-icon"
-        role="img"
-        aria-label="the author"
+      <div
+        id="person-footer"
         className={`${showSelf ? 'invisible' : ''}`}
         onClick={toggleShowSelf}
       >
-        {"( ͡° ͜ʖ ͡°)"}
-      </span>
+        <span id="person-icon" role="img" aria-label="the author">
+          {"( ͡° ͜ʖ ͡°)"}
+        </span>
+        <span id="person-copyright">
+          © connor hopkins, {new Date().getFullYear()}
+        </span>
+      </div>
       <img
         id="self-gif"
         alt="a gif of the author waving"

@@ -6,7 +6,6 @@
   "dependencies": {
     "cra-template": "1.2.0",
     "firebase": "^11.3.1",
-    "hamburger-react": "^2.5.2",
     "hls.js": "^1.6.15",
     "multi-range-slider-react": "^2.0.7",
     "react": "^19.0.0",

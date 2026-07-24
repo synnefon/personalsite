@@ -32,17 +32,18 @@ body:has(#app-base.home-colors) {
   /* Overflow spills right (scrollable), never left under the menu */
   #app-base.home-colors {
     justify-content: flex-start;
+    --menu-clearance: max(calc((6.4px + 1.6vmin) * 6.5), calc(50vw - 21em));
   }
 
   #app-base.home-colors .content-wrapper {
     width: 100%;
     padding-left: 0;
-    margin-left: max(calc((14px + 1.2vmin) * 6.5), calc(50vw - 21em));
+    margin-left: var(--menu-clearance);
   }
 
-  /* The person icon's -50% shift assumes the narrow centered wrapper */
-  #app-base.home-colors #person-icon {
-    left: 0;
+  /* Lenny + copyright hug the page's left edge, under the menu */
+  #app-base.home-colors #person-footer {
+    margin-left: calc(0.4em - var(--menu-clearance));
   }
 }
 
@@ -55,45 +56,18 @@ body:has(#app-base.home-colors) {
   --text-color: var(--color-text-light) !important;
 }
 
-#app-base.home-colors.theme-amber {
-  --bg-color: var(--color-amber-black) !important;
-  --text-color: var(--color-amber) !important;
-}
-
-#app-base.home-colors.theme-blueprint {
-  --bg-color: var(--color-blueprint) !important;
-  --text-color: var(--color-blueprint-light) !important;
-}
-
-/* Chrome (navbar, footer) follows the dark themes */
+/* Chrome (navbar, footer) follows the dark bg */
 body:has(#app-base.theme-black) {
   --text-color: var(--color-text-light) !important;
 }
 
-body:has(#app-base.theme-amber) {
-  --text-color: var(--color-amber) !important;
-}
-
-body:has(#app-base.theme-blueprint) {
-  --text-color: var(--color-blueprint-light) !important;
-}
-
-/* Dark themes need light icons; amber tints them */
+/* The dark bg needs light icons */
 .theme-black .audio-fact .audio-hint,
-.theme-blueprint .audio-fact .audio-hint,
-.theme-black .fan-icon,
-.theme-blueprint .fan-icon {
+.theme-black .fan-icon {
   filter: brightness(0) saturate(100%) invert(1);
 }
 
-.theme-amber .audio-fact .audio-hint,
-.theme-amber .fan-icon {
-  filter: brightness(0) saturate(100%) invert(70%) sepia(100%) saturate(1500%);
-}
-
-.theme-black .audio-fact:hover .audio-hint,
-.theme-amber .audio-fact:hover .audio-hint,
-.theme-blueprint .audio-fact:hover .audio-hint {
+.theme-black .audio-fact:hover .audio-hint {
   filter: brightness(0) saturate(100%);
 }
 
@@ -129,12 +103,29 @@ body:has(#app-base.theme-blueprint) {
   background-color: var(--color-white);
 }
 
-.theme-box-amber {
-  background-color: var(--color-amber);
+.scheme-box-rainbow {
+  background: linear-gradient(
+    135deg,
+    #048ba8,
+    #16db93,
+    #b9e769,
+    #efea5a,
+    #f29e4c
+  );
 }
 
-.theme-box-blueprint {
-  background-color: var(--color-blueprint);
+.scheme-box-highlight {
+  background: linear-gradient(
+    135deg,
+    var(--color-black) 50%,
+    var(--color-white) 50%
+  );
+}
+
+.picker-divider {
+  width: 2px;
+  align-self: stretch;
+  background-color: var(--text-color);
 }
 
 .theme-box.selected::after {
@@ -143,14 +134,18 @@ body:has(#app-base.theme-blueprint) {
   height: 8px;
 }
 
-.theme-box-black.selected::after,
-.theme-box-blueprint.selected::after {
+.theme-box-black.selected::after {
   background-color: var(--color-white);
 }
 
 .theme-box-white.selected::after,
-.theme-box-amber.selected::after {
+.scheme-box-rainbow.selected::after {
   background-color: var(--color-black);
+}
+
+.scheme-box-highlight.selected::after {
+  background-color: var(--color-white);
+  outline: 2px solid var(--color-black);
 }
 
 #app-base.home-colors {
@@ -243,14 +238,14 @@ div#app-base {
 .duck-container.docked {
   position: fixed;
   height: auto;
-  padding: 0.4em 0;
+  padding: 5px 0;
   font-size: calc(16px + 1vmin);
   justify-content: flex-start;
   transition: none;
 }
 
 .duck-container.docked .duck-icon {
-  font-size: calc(14px + 1.2vmin);
+  font-size: calc(6.4px + 1.6vmin);
   line-height: 1;
   padding: 0;
   margin-left: 0.3em;

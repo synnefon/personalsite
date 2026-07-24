@@ -23,11 +23,13 @@ import { playPopSound, playRandom8BitSound } from "./eightBitSynth";
 const SITE_TREE = {
   type: types.section,
   title: "connor hopkins",
+  color: "#048ba8",
   children: [
     {
       type: types.section,
       title: "about",
       id: "personal-info-section",
+      color: "#16db93",
       children: [
         { type: types.stringContent, title: "title", content: "senior software engineer" },
         { type: types.stringContent, title: "company", content: "yoodli.ai", href: "https://yoodli.ai" },
@@ -40,10 +42,12 @@ const SITE_TREE = {
       type: types.section,
       title: "skills",
       id: "skills-section",
+      color: "#b9e769",
       children: [
         {
           type: types.section,
           title: "technical",
+          color: "#C1EA7B",
           children: [
             { type: types.stringContent, content: "system architecture" },
             { type: types.stringContent, content: "cloud computing" },
@@ -56,6 +60,7 @@ const SITE_TREE = {
         {
           type: types.section,
           title: "strengths",
+          color: "#CEEE95",
           children: [
             { type: types.audioContent, content: "curiosity", audio: curiosityAudio },
             { type: types.audioContent, content: "strategic thinking", audio: strategicThinkingAudio },
@@ -66,6 +71,7 @@ const SITE_TREE = {
         {
           type: types.section,
           title: "weaknesses",
+          color: "#DAF2AF",
           children: [
             { type: types.audioContent, content: "perfectionistic streak", audio: perfectionisticStreakAudio },
             { type: types.audioContent, content: "impatience with beaurocracy", audio: impatienceAudio },
@@ -78,10 +84,12 @@ const SITE_TREE = {
       type: types.section,
       title: "work",
       id: "projects-section",
+      color: "#efea5a",
       children: [
         {
           type: types.section,
           title: "art",
+          color: "#F1EC6D",
           children: [
             { type: types.hrefContent, title: "mapinator", desc: "procedural terrain map generator", href: "https://synnefon.github.io/mapinator" },
             { type: types.linkContent, title: "lava lamp radio", desc: "lava lamp + radio", to: "/lava-lamp-radio" },
@@ -92,6 +100,7 @@ const SITE_TREE = {
         {
           type: types.section,
           title: "games",
+          color: "#F3EF84",
           children: [
             { type: types.linkContent, title: "snek", desc: "snek!", to: "/snek" },
             { type: types.linkContent, title: "war of the dice", desc: "dice-rolling territory conquest", to: "/war-of-the-dice" },
@@ -102,6 +111,7 @@ const SITE_TREE = {
         {
           type: types.section,
           title: "tools",
+          color: "#F5F29B",
           children: [
             { type: types.linkContent, title: "shavian transliterator", desc: "english \u2192 shavian", to: "/shavianator" },
             { type: types.linkContent, title: "shufflenator", desc: "optimal shuffle pattern calculator", to: "/shufflenator" },
@@ -110,6 +120,7 @@ const SITE_TREE = {
         {
           type: types.section,
           title: "open source",
+          color: "#F8F5B2",
           children: [
             { type: types.hrefContent, title: "3d models", desc: "collection of my 3d-printable work", href: "https://thangs.com/designer/synnefon" },
             { type: types.hrefContent, title: "img-butler", desc: "image interaction npm package", href: "https://www.npmjs.com/package/img-butler" },
@@ -122,21 +133,22 @@ const SITE_TREE = {
       type: types.section,
       title: "self",
       id: "personality-fragments-section",
+      color: "#f29e4c",
       children: [
         {
-          type: types.section, title: "frag 1", children: [
+          type: types.section, title: "frag 1", color: "#F3A85F", children: [
             { type: types.stringContent, title: "quote", content: "you should sit in meditation for ten minutes every day - except when you are too busy. then you should sit for an hour." },
             { type: types.stringContent, title: "author", content: "shunryu suzuki" },
           ]
         },
         {
-          type: types.section, title: "frag 2", children: [
+          type: types.section, title: "frag 2", color: "#F5B87C", children: [
             { type: types.stringContent, title: "quote", content: 'it requires a genuine fight to produce one well designed object of relatively permanent value' },
             { type: types.stringContent, title: "author", content: "george nakashima" },
           ]
         },
         {
-          type: types.section, title: "frag 3", children: [
+          type: types.section, title: "frag 3", color: "#F8C798", children: [
             { type: types.stringContent, title: "quote", content: '"meow" means "woof" in cat.' },
             { type: types.stringContent, title: "author", content: "george carlin" },
           ]
@@ -147,13 +159,15 @@ const SITE_TREE = {
 };
 
 // Top-level tree sections drive the navbar, home routes, and scroll
-// targets: label from the node title, url slug from the node id.
+// targets: label from the node title, url slug from the node id,
+// highlight color from the node color.
 export const SECTIONS = SITE_TREE.children
   .filter((node) => node.id)
   .map((node) => ({
     label: node.title,
     id: node.id,
     slug: node.id.replace(/-section$/, ""),
+    color: node.color,
   }));
 
 const SECTION_FOR_PATH = Object.fromEntries([
@@ -161,7 +175,8 @@ const SECTION_FOR_PATH = Object.fromEntries([
   ...SECTIONS.map((s) => [`/${s.slug}`, s.id]),
 ]);
 
-const THEMES = ["black", "white", "amber", "blueprint"];
+const BGS = ["white", "black"];
+const SCHEMES = ["rainbow", "highlight"];
 
 // px; must match .duck-container size in home.css
 const DUCK_SIZE = 72;
@@ -177,13 +192,17 @@ export default function Home() {
   const [duckVisible, setDuckVisible] = useState(true);
   const [duckHover, setDuckHover] = useState(false);
   const [flapFrame, setFlapFrame] = useState(false);
-  const [theme, setTheme] = useState(() => {
+  const [bg, setBg] = useState(() => {
     const saved = localStorage.getItem("homeTheme");
-    if (THEMES.includes(saved)) return saved;
-    // Until a theme is picked, default to the browser's requested mode
+    if (BGS.includes(saved)) return saved;
+    // Until a bg is picked, default to the browser's requested mode
     return window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "black"
       : "white";
+  });
+  const [scheme, setScheme] = useState(() => {
+    const saved = localStorage.getItem("homeScheme");
+    return SCHEMES.includes(saved) ? saved : "rainbow";
   });
   const [skipAnimations, setSkipAnimations] = useState(false);
   const [duckPosition, setDuckPosition] = useState({ left: null, top: null, bottom: null });
@@ -243,7 +262,7 @@ export default function Home() {
   }, []);
 
   // While docked, the duck is pinned just under the last menu item.
-  // Track the navbar through resizes, hamburger toggles, and font loads.
+  // Track the navbar through resizes and font loads.
   useEffect(() => {
     if (!docked) return;
     const navbar = document.querySelector(".navbar");
@@ -291,11 +310,15 @@ export default function Home() {
     localStorage.setItem("hasSeenHomeAnimation", "true");
   }, [skipAnimations]);
 
-  // Remember explicit picks only, so an unpicked theme keeps
+  // Remember explicit picks only, so an unpicked bg keeps
   // following the browser's mode on future visits
-  const pickTheme = (t) => {
-    setTheme(t);
-    localStorage.setItem("homeTheme", t);
+  const pickBg = (b) => {
+    setBg(b);
+    localStorage.setItem("homeTheme", b);
+  };
+  const pickScheme = (s) => {
+    setScheme(s);
+    localStorage.setItem("homeScheme", s);
   };
 
   // Cleanup on unmount
@@ -464,14 +487,23 @@ export default function Home() {
   };
 
   return (
-    <div id="app-base" className={`home-colors theme-${theme}`}>
+    <div id="app-base" className={`home-colors theme-${bg} scheme-${scheme}`}>
       <div className="theme-picker" onWheel={forwardWheel}>
-        {THEMES.map((t) => (
+        {BGS.map((b) => (
           <button
-            key={t}
-            aria-label={`${t} theme`}
-            className={`theme-box theme-box-${t} ${theme === t ? "selected" : ""}`}
-            onClick={() => pickTheme(t)}
+            key={b}
+            aria-label={`${b} background`}
+            className={`theme-box theme-box-${b} ${bg === b ? "selected" : ""}`}
+            onClick={() => pickBg(b)}
+          />
+        ))}
+        <span className="picker-divider" />
+        {SCHEMES.map((s) => (
+          <button
+            key={s}
+            aria-label={`${s} color scheme`}
+            className={`theme-box scheme-box-${s} ${scheme === s ? "selected" : ""}`}
+            onClick={() => pickScheme(s)}
           />
         ))}
       </div>

@@ -1,25 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import Hamburger from 'hamburger-react'
 
 import { SECTIONS } from './home/Home';
 
 import './styles/navbar.css'
 
 const Navbar=()=>{
-  const [hamburgerOpen, setHamburgerOpen] = useState(false);
-  const [width, setWidth] = useState(window.innerWidth);
   const [activeSection, setActiveSection] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
-
-  const isMobile = width <= 960;
-
-  useEffect(() => {
-    const handleWindowSizeChange = () => setWidth(window.innerWidth);
-      window.addEventListener('resize', handleWindowSizeChange);
-      return () => window.removeEventListener('resize', handleWindowSizeChange);
-  }, [setWidth]);
 
   // Scroll-spy: on the merged page, highlight the section currently in
   // view and keep the url in step with it.
@@ -69,12 +58,15 @@ const Navbar=()=>{
     return null;
   }
 
-  const NavItem = ({slug, label}) => {
-    const closePopup = () => setTimeout(() => setHamburgerOpen(false), 200);
+  const NavItem = ({slug, label, color}) => {
     const to = `/${slug}`;
     const isActive = activeSection ? activeSection === slug : location.pathname === to;
     return (
-      <Link className={`nav-link ${slug} ${isActive ? 'active' : ''}`} to={to} onClick={closePopup}>
+      <Link
+        className={`nav-link ${slug} ${isActive ? 'active' : ''}`}
+        to={to}
+        style={color ? { "--section-color": color } : undefined}
+      >
         <span aria-label={label} className={`nav-item ${slug} ${isActive ? 'active' : ''}`}>{label}</span>
       </Link>
     );
@@ -88,11 +80,7 @@ const Navbar=()=>{
 
   return (
     <div className='navbar' onWheel={forwardWheel}>
-      { isMobile && <Hamburger toggled={hamburgerOpen} toggle={setHamburgerOpen}/> }
-      {
-        (hamburgerOpen || !isMobile) &&
-        SECTIONS.map(({slug, label}) => <NavItem key={slug} slug={slug} label={label}/>)
-      }
+      {SECTIONS.map(({slug, label, color}) => <NavItem key={slug} slug={slug} label={label} color={color}/>)}
     </div>
   );
 }
