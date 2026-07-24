@@ -86,10 +86,10 @@ body:has(#app-base.proj-colors) {
    ============================================ */
 
 .ascii-tree {
-  --tree-line-w: 1.5px;
+  /* Whole pixels only: browsers snap fractional borders per-side,
+     which knocks abutting segments out of line */
+  --tree-line-w: 2px;
   --tree-curve: 6px;
-  --header-font: calc(14px + 1.8vmin);
-  --root-font: calc(18px + 2.2vmin);
   margin-top: 0.5em;
   font-size: 0.8em;
   line-height: 1.4;
@@ -103,82 +103,101 @@ body:has(#app-base.proj-colors) {
   --branch-y: 0.7em;
 }
 
-.tree-row.section {
-  --branch-y: calc(0.7 * var(--header-font));
-}
-
 /* The root (title) row sits flush with the tree below it */
 .ascii-tree .tree-row.root .title {
   margin: 0;
 }
 
+/* Labels must not wrap: children hang from the unwrapped text end */
 .ascii-tree .tree-row .proj-subheader {
-  font-size: var(--header-font);
+  font-size: inherit;
+  white-space: nowrap;
 }
 
-.ascii-tree .tree-row.root .proj-subheader {
-  font-size: var(--root-font);
-}
-
-/* Connector lines: one positioned cell per tree level */
+/* Connector lines, positioned per level at --x (set inline) */
 .tree-lines {
-  display: flex;
+  position: relative;
   align-self: stretch;
   flex-shrink: 0;
-  margin-left: 2ch;
 }
 
-.tree-cell {
-  position: relative;
-  width: 4ch;
-}
-
-.tree-cell.branch {
-  width: 3ch;
-}
-
-/* Vertical through-line: ancestor levels, spacers, and rows with
-   more siblings below */
-.tree-cell.pipe::before,
-.tree-cell.tee::before {
-  content: "";
+.tree-lines .pipe {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: calc(0.5ch - var(--tree-line-w) / 2);
-  border-left: var(--tree-line-w) solid;
+  left: calc(var(--x) - var(--tree-line-w) / 2);
+  width: var(--tree-line-w);
+  background: currentColor;
 }
 
 /* Curve out of the vertical into a horizontal pointing at the label */
-.tree-cell.branch::after {
-  content: "";
+.tree-lines .branch {
   position: absolute;
   top: 0;
-  left: calc(0.5ch - var(--tree-line-w) / 2);
+  left: calc(var(--x) - var(--tree-line-w) / 2);
   right: 0.5ch;
   height: calc(var(--branch-y) + var(--tree-line-w) / 2);
+}
+
+/* The curve and horizontal run */
+.tree-lines .branch::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--tree-curve) + var(--tree-line-w));
   border-left: var(--tree-line-w) solid;
   border-bottom: var(--tree-line-w) solid;
   border-bottom-left-radius: var(--tree-curve);
 }
 
-/* The line to a row's children sprouts from the tip of its label */
-.tree-row.parent::after {
+/* Straight head above the curve: the pipes' exact primitive, poking
+   into the row above so the seam can't show */
+.tree-lines .branch::after {
   content: "";
   position: absolute;
+  top: calc(-1 * var(--tree-line-w));
+  bottom: var(--tree-curve);
+  left: 0;
+  width: var(--tree-line-w);
+  background: currentColor;
+}
+
+/* The line to a row's children runs out of the label's end, then
+   curves down: the lead-in elbow, flipped */
+.tree-lines .dangle {
+  position: absolute;
+  top: calc(var(--branch-y) - var(--tree-line-w) / 2);
+  /* Overlap the row seam so rounding can't leave a notch */
+  bottom: calc(-1 * var(--tree-line-w));
+  left: calc(var(--x) - 2ch - var(--tree-line-w) / 2);
+  width: calc(2ch + var(--tree-line-w));
+}
+
+/* Horizontal run and the curve itself */
+.tree-lines .dangle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--tree-curve) + var(--tree-line-w));
+  border-top: var(--tree-line-w) solid;
+  border-right: var(--tree-line-w) solid;
+  border-top-right-radius: var(--tree-curve);
+}
+
+/* Straight tail below the curve: the pipes' exact primitive and
+   anchoring, so the joint into the rows below stays flush */
+.tree-lines .dangle::after {
+  content: "";
+  position: absolute;
+  top: var(--tree-curve);
   bottom: 0;
-  height: 0.3em;
-  left: calc(2ch + (var(--tree-depth, 0) + 1) * 4ch + 0.5ch - var(--tree-line-w) / 2);
-  border-left: var(--tree-line-w) solid;
-}
-
-.tree-row.section.parent::after {
-  height: calc(0.3 * var(--header-font));
-}
-
-.tree-row.root.parent::after {
-  left: calc(2.5ch - var(--tree-line-w) / 2);
-  height: calc(0.3 * var(--root-font));
+  left: 2ch;
+  width: var(--tree-line-w);
+  background: currentColor;
 }
 
 /* Spacer rows keep the verticals flowing between groups */
@@ -186,12 +205,8 @@ body:has(#app-base.proj-colors) {
   height: 1.4em;
 }
 
-.tree-row .link {
-  flex: 1;
-}
-
 .ascii-tree p.link-text {
-  margin: 0 0.3em 0 0;
+  margin: 0 1.5em 0 0;
   white-space: nowrap;
 }
 

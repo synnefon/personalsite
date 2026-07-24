@@ -16,6 +16,30 @@ body:has(#app-base.home-colors) {
 }
 
 /* ============================================
+   LAYOUT
+   ============================================ */
+
+/* The tree's staircase can outrun the viewport; let it scroll */
+#app-base.home-colors {
+  overflow-x: auto;
+}
+
+/* Hug the menu's right edge so the tree gets the horizontal room.
+   Clearance tracks the nav-item font; widen if menu labels grow. */
+@media screen and (min-width: 961px) {
+  #app-base.home-colors .content-wrapper {
+    width: 100%;
+    padding-left: 0;
+    margin-left: calc((14px + 1.2vmin) * 6.5);
+  }
+
+  /* The person icon's -50% shift assumes the narrow centered wrapper */
+  #app-base.home-colors #person-icon {
+    left: 0;
+  }
+}
+
+/* ============================================
    PAGE THEMES
    ============================================ */
 

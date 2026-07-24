@@ -13,20 +13,39 @@ export const types = {
   audioContent: "audioContent",
 };
 
-// One positioned cell per tree level, drawn with CSS borders instead of
-// glyphs. `ancestors` holds one flag per level above: true when that
-// ancestor has more siblings below, so its line continues; false leaves
-// a gap. The tail cell is `pipe` for spacer rows, or the row's own
-// connector: `branch` (curve into the label) plus `tee` when siblings
-// follow below.
-const TreeLines = ({ ancestors, tail }) => (
-  <span className="tree-lines" aria-hidden="true">
-    {ancestors.map((more, i) => (
-      <span key={i} className={`tree-cell${more ? " pipe" : ""}`} />
-    ))}
-    <span className={`tree-cell ${tail}`} />
-  </span>
-);
+// Each level's vertical dangles from the end of its parent label, so
+// positions are counts of monospace chars plus header letter-spaces.
+// 0.12em tracks the .proj-subheader letter-spacing.
+const chx = ({ chs, sp }) => `calc(${chs}ch + ${+(sp * 0.12).toFixed(3)}em)`;
+
+// Lines for one row, positioned absolutely. `ancestors` holds one entry
+// per level above: its line x, and whether that ancestor has more
+// siblings below (so its line continues through this row). `x` is this
+// row's own line; the tail is `pipe` for spacer rows, or the row's
+// connector: `branch` (curve into the label) plus a continuing pipe
+// when siblings follow (`tee`). `dangleX` positions the line out to
+// this row's children; deriving it from the same char counts as the
+// pipes keeps the joint exact in every browser.
+const TreeLines = ({ ancestors, x, tail, dangleX }) => {
+  const hasBranch = tail === "tee" || tail === "branch";
+  return (
+    <span
+      className="tree-lines"
+      aria-hidden="true"
+      style={hasBranch ? { width: chx({ chs: x.chs + 2.5, sp: x.sp }) } : undefined}
+    >
+      {ancestors.map(
+        (a, i) =>
+          a.more && <span key={i} className="pipe" style={{ "--x": chx(a.x) }} />
+      )}
+      {(tail === "pipe" || tail === "tee") && (
+        <span className="pipe" style={{ "--x": chx(x) }} />
+      )}
+      {hasBranch && <span className="branch" style={{ "--x": chx(x) }} />}
+      {dangleX && <span className="dangle" style={{ "--x": chx(dangleX) }} />}
+    </span>
+  );
+};
 
 // One shared player so starting a clip stops the previous one
 const sfx = new PersonalAudio();
@@ -127,31 +146,40 @@ const LinkParts = ({ node }) => (
   </>
 );
 
-const renderNodes = (nodes, ancestors) =>
+const renderNodes = (nodes, ancestors, x) =>
   nodes.map((node, i) => {
     const hasMoreSiblings = i < nodes.length - 1;
+    const labelLen = (node.title ?? "").length;
+    // content offset + label + dangle run
+    const childX =
+      node.children?.length > 0
+        ? { chs: x.chs + 2.5 + labelLen + 2.5, sp: x.sp + labelLen }
+        : null;
     return (
       <Fragment key={`${node.title ?? node.content}-${i}`}>
         {(node.type === types.section || i === 0) && (
           <div className="tree-row spacer">
-            <TreeLines ancestors={ancestors} tail="pipe" />
+            <TreeLines ancestors={ancestors} x={x} tail="pipe" />
           </div>
         )}
         <div
-          className={`tree-row${node.type === types.section ? " section" : ""}${
-            node.children?.length > 0 ? " parent" : ""
-          }`}
+          className={`tree-row${node.type === types.section ? " section" : ""}`}
           id={node.id}
-          style={{ "--tree-depth": ancestors.length }}
         >
           <TreeLines
             ancestors={ancestors}
-            tail={hasMoreSiblings ? "branch tee" : "branch"}
+            x={x}
+            tail={hasMoreSiblings ? "tee" : "branch"}
+            dangleX={childX}
           />
           <NodeContent node={node} />
         </div>
-        {node.children?.length > 0 &&
-          renderNodes(node.children, [...ancestors, hasMoreSiblings])}
+        {childX &&
+          renderNodes(
+            node.children,
+            [...ancestors, { more: hasMoreSiblings, x }],
+            childX
+          )}
       </Fragment>
     );
   });
@@ -161,15 +189,16 @@ const renderNodes = (nodes, ancestors) =>
 // children? }); every level follows the same rules. The root's row
 // renders unprefixed.
 export default function AsciiTree({ root }) {
+  const rootLen = (root.title ?? "").length;
+  const rootChildX =
+    root.children?.length > 0 ? { chs: rootLen + 2.5, sp: rootLen } : null;
   return (
     <div className="ascii-tree">
-      <div
-        className={`tree-row root${root.children?.length > 0 ? " parent" : ""}`}
-        id={root.id}
-      >
+      <div className="tree-row root" id={root.id}>
+        {rootChildX && <TreeLines ancestors={[]} dangleX={rootChildX} />}
         <NodeContent node={root} />
       </div>
-      {root.children?.length > 0 && renderNodes(root.children, [])}
+      {rootChildX && renderNodes(root.children, [], rootChildX)}
     </div>
   );
 }

@@ -76,7 +76,7 @@ const SITE_TREE = {
     },
     {
       type: types.section,
-      title: "projects",
+      title: "work",
       id: "projects-section",
       children: [
         {
@@ -120,17 +120,23 @@ const SITE_TREE = {
     },
     {
       type: types.section,
-      title: "personality",
+      title: "self",
       id: "personality-fragments-section",
       children: [
         {
-          type: types.section, title: "fragment 1", children: [
+          type: types.section, title: "frag 1", children: [
             { type: types.stringContent, title: "quote", content: "you should sit in meditation for ten minutes every day - except when you are too busy. then you should sit for an hour." },
             { type: types.stringContent, title: "author", content: "shunryu suzuki" },
           ]
         },
         {
-          type: types.section, title: "fragment 2", children: [
+          type: types.section, title: "frag 2", children: [
+            { type: types.stringContent, title: "quote", content: 'it requires a genuine fight to produce one well designed object of relatively permanent value' },
+            { type: types.stringContent, title: "author", content: "george nakashima" },
+          ]
+        },
+        {
+          type: types.section, title: "frag 3", children: [
             { type: types.stringContent, title: "quote", content: '"meow" means "woof" in cat.' },
             { type: types.stringContent, title: "author", content: "george carlin" },
           ]

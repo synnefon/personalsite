@@ -68,7 +68,6 @@ body:has(#app-base.about-colors) {
    ============================================ */
 
 .audio-fact {
-  flex: 1;
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -86,6 +85,7 @@ body:has(#app-base.about-colors) {
 
 .audio-fact .audio-hint {
   height: 1.1em;
+  margin-left: 1.5em;
   margin-right: 25px;
   align-self: center;
   opacity: 0;

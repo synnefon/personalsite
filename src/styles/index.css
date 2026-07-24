@@ -10,6 +10,16 @@
   font-style: normal;
 }
 
+/* Real bold face: synthetic bold can widen glyph advances, which
+   breaks layouts that assume monospace metrics */
+@font-face {
+  font-family: "JuliaMono";
+  src: local("JuliaMono-Bold"),
+    url("../fonts/JuliaMono/JuliaMono-Bold.ttf") format("truetype");
+  font-weight: bold;
+  font-style: normal;
+}
+
 @font-face {
   font-family: "CafeMajestic";
   src: local("CafeMajestic"),
