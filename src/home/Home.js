@@ -179,7 +179,11 @@ export default function Home() {
   const [flapFrame, setFlapFrame] = useState(false);
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("homeTheme");
-    return THEMES.includes(saved) ? saved : "white";
+    if (THEMES.includes(saved)) return saved;
+    // Until a theme is picked, default to the browser's requested mode
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "black"
+      : "white";
   });
   const [skipAnimations, setSkipAnimations] = useState(false);
   const [duckPosition, setDuckPosition] = useState({ left: null, top: null, bottom: null });
@@ -287,10 +291,12 @@ export default function Home() {
     localStorage.setItem("hasSeenHomeAnimation", "true");
   }, [skipAnimations]);
 
-  // Remember the chosen theme across visits
-  useEffect(() => {
-    localStorage.setItem("homeTheme", theme);
-  }, [theme]);
+  // Remember explicit picks only, so an unpicked theme keeps
+  // following the browser's mode on future visits
+  const pickTheme = (t) => {
+    setTheme(t);
+    localStorage.setItem("homeTheme", t);
+  };
 
   // Cleanup on unmount
   useEffect(() => {
@@ -465,7 +471,7 @@ export default function Home() {
             key={t}
             aria-label={`${t} theme`}
             className={`theme-box theme-box-${t} ${theme === t ? "selected" : ""}`}
-            onClick={() => setTheme(t)}
+            onClick={() => pickTheme(t)}
           />
         ))}
       </div>

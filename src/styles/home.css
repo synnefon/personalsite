@@ -24,13 +24,20 @@ body:has(#app-base.home-colors) {
   overflow-x: auto;
 }
 
-/* Hug the menu's right edge so the tree gets the horizontal room.
-   Clearance tracks the nav-item font; widen if menu labels grow. */
+/* Center the tree (~42em of visual mass) on wide pages; as the page
+   narrows, the centering term shrinks below the menu clearance and the
+   tree pins to the top left instead. Clearance tracks the nav-item
+   font; widen if menu labels grow. */
 @media screen and (min-width: 961px) {
+  /* Overflow spills right (scrollable), never left under the menu */
+  #app-base.home-colors {
+    justify-content: flex-start;
+  }
+
   #app-base.home-colors .content-wrapper {
     width: 100%;
     padding-left: 0;
-    margin-left: calc((14px + 1.2vmin) * 6.5);
+    margin-left: max(calc((14px + 1.2vmin) * 6.5), calc(50vw - 21em));
   }
 
   /* The person icon's -50% shift assumes the narrow centered wrapper */
