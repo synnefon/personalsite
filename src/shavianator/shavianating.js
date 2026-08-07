@@ -1,3 +1,5 @@
+import { CONTRACTIONS } from "./contractions";
+
 // Token types enum
 export const TokenType = {
   WORD: "word",
@@ -88,9 +90,6 @@ const ARPABET_TO_SHAVIAN = Object.fromEntries(
   ])
 );
 
-export const shavianateParagraphs = (paragraphs) =>
-  paragraphs.split("\n").map(toShavian).join("\n");
-
 export const getArpabetFromShavian = (word) => {
   const clean = word.replace(/[^\u{10450}-\u{1047F}]/gu, "");
   const chars = [...clean];
@@ -98,6 +97,70 @@ export const getArpabetFromShavian = (word) => {
   return chars.length === 1 && SHAVIAN_SHORTHAND[clean]
     ? `${arpabet} (${SHAVIAN_SHORTHAND[clean]})`
     : arpabet;
+};
+
+const normalizeApostrophes = (str) => str.replace(/’/g, "'");
+
+const hasShavian = (str) => /[\u{10450}-\u{1047F}]/u.test(str);
+
+const arpabetToShavian = (phonemes) =>
+  phonemes
+    .split(" ")
+    .map((p) => ARPABET_TO_SHAVIAN[p] ?? p)
+    .join("");
+
+const toShavianLetters = (str) => [...str].filter((c) => hasShavian(c));
+
+const SIBILANT_FINALS = new Set(
+  ["S", "Z", "SH", "ZH", "CH", "JH"].map((p) => ARPABET_TO_SHAVIAN[p])
+);
+const VOICELESS_FINALS = new Set(
+  ["P", "T", "K", "F", "TH"].map((p) => ARPABET_TO_SHAVIAN[p])
+);
+const VOWEL_LETTERS = new Set([..."𐑰𐑦𐑱𐑧𐑨𐑭𐑷𐑴𐑫𐑵𐑳𐑩𐑲𐑬𐑶𐑻𐑸𐑹𐑺𐑽𐑼𐑾𐑿"]);
+
+const lastLetter = (shavian) => {
+  const letters = toShavianLetters(shavian);
+  return letters[letters.length - 1];
+};
+
+// 's is voiced, voiceless, or syllabic depending on the preceding sound
+const possessiveS = (base) => {
+  const last = lastLetter(base);
+  if (SIBILANT_FINALS.has(last)) return "𐑦𐑟";
+  if (VOICELESS_FINALS.has(last)) return "𐑕";
+  return "𐑟";
+};
+
+// Clitic endings for apostrophe words outside the contraction list.
+// The bare apostrophe covers plural possessives (dogs', James').
+const APOSTROPHE_SUFFIXES = [
+  { ending: "n't", append: () => "𐑯𐑑" },
+  { ending: "'s", append: possessiveS },
+  { ending: "'", append: () => "" },
+  { ending: "'ll", append: () => "𐑤" },
+  { ending: "'re", append: () => "𐑼" },
+  { ending: "'ve", append: (base) => (VOWEL_LETTERS.has(lastLetter(base)) ? "𐑝" : "𐑩𐑝") },
+  { ending: "'d", append: () => "𐑛" },
+  { ending: "'m", append: () => "𐑥" },
+];
+
+const shavianateSuffixed = (word) => {
+  const normalized = normalizeApostrophes(word.toLowerCase());
+  for (const { ending, append } of APOSTROPHE_SUFFIXES) {
+    if (!normalized.endsWith(ending)) continue;
+    const base = toShavian(word.slice(0, word.length - ending.length));
+    if (hasShavian(base)) return base + append(base);
+  }
+  return null;
+};
+
+const shavianateWord = (word) => {
+  if (word.toLowerCase() === "a") return ARPABET_TO_SHAVIAN["AX"];
+  const key = normalizeApostrophes(word.toLowerCase());
+  if (CONTRACTIONS[key]) return arpabetToShavian(CONTRACTIONS[key]);
+  if (key.includes("'")) return shavianateSuffixed(word) ?? word;
+  return toShavian(word);
 };
 
 // Convert quotes to guillemets - keep other punctuation as-is
@@ -125,8 +188,7 @@ const makePunctuationToken = (str, quoteState) => ({
 const makeWordToken = (word, wordCount) => ({
   type: TokenType.WORD,
   english: word,
-  shavian:
-    word.toLowerCase() === "a" ? ARPABET_TO_SHAVIAN["AX"] : toShavian(word),
+  shavian: shavianateWord(word),
   index: wordCount,
 });
 
@@ -142,7 +204,24 @@ function tokenizeSegment(part, quoteState, wordCountRef) {
     tokens.push(makePunctuationToken(part, quoteState));
     return tokens;
   }
-  const [, pre, word, post] = match;
+  let [, pre, word, post] = match;
+  // a leading apostrophe belongs to contractions like 'tis / 'em
+  const lead = pre.match(/['\u2019]$/);
+  if (lead && CONTRACTIONS[normalizeApostrophes((lead[0] + word).toLowerCase())]) {
+    pre = pre.slice(0, -1);
+    word = lead[0] + word;
+  }
+  // a trailing apostrophe after s is a plural possessive (dogs', James'),
+  // unless paired with an opening quote ('dogs')
+  if (
+    /^['\u2019]/.test(post) &&
+    /s$/i.test(word) &&
+    !/['\u2019]$/.test(pre) &&
+    !/^['\u2019]/.test(word)
+  ) {
+    word += post[0];
+    post = post.slice(1);
+  }
   if (pre) tokens.push(makePunctuationToken(pre, quoteState));
   tokens.push(makeWordToken(word, wordCountRef.value++));
   if (post) tokens.push(makePunctuationToken(post, quoteState));
