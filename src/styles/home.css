@@ -24,6 +24,16 @@ body:has(#app-base.home-colors) {
   overflow-x: auto;
 }
 
+/* Veiled: the first paint holds content hidden until the webfont and
+   the first scroll settle (Home lifts it); the bg still paints */
+#app-base.veiled > * {
+  visibility: hidden;
+}
+
+body:has(#app-base.veiled) .navbar {
+  visibility: hidden;
+}
+
 /* Center the tree (~42em of visual mass) on wide pages; as the page
    narrows, the centering term shrinks below the menu clearance and the
    tree pins to the top left instead. Clearance tracks the nav-item
@@ -246,7 +256,7 @@ div#app-base {
 
 .duck-container.docked .duck-icon {
   font-size: calc(6.4px + 1.6vmin);
-  line-height: 1;
+  line-height: 1.4;
   padding: 0;
   margin-left: 0.3em;
   color: var(--text-color);

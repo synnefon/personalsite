@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Navigate, Route, HashRouter as Router, Routes, useLocation } from "react-router-dom";
+import { Route, HashRouter as Router, Routes, useLocation } from "react-router-dom";
 import Footer from "./Footer";
 import Navbar from "./Navbar";
 import { ColorBlindModeProvider } from "./context/ColorBlindModeContext";
@@ -49,7 +49,6 @@ function App() {
             {SECTIONS.map(({ slug }) => (
               <Route key={slug} path={`/${slug}`} element={<Home />} />
             ))}
-            <Route path="/about" element={<Navigate to="/personal-info" replace />} />
             <Route path="/snek" element={<Snek />} />
             <Route path="/wip" element={<Wip />} />
             <Route path="/sudoku" element={<Sudoku />} />

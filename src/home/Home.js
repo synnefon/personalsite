@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigationType } from "react-router-dom";
 import Self from "../about/Self";
 import AsciiTree, { types } from "../components/AsciiTree";
@@ -159,14 +159,14 @@ const SITE_TREE = {
 };
 
 // Top-level tree sections drive the navbar, home routes, and scroll
-// targets: label from the node title, url slug from the node id,
-// highlight color from the node color.
+// targets: label and url slug from the node title, scroll anchor from
+// the node id, highlight color from the node color.
 export const SECTIONS = SITE_TREE.children
   .filter((node) => node.id)
   .map((node) => ({
     label: node.title,
     id: node.id,
-    slug: node.id.replace(/-section$/, ""),
+    slug: node.title.replace(/\s+/g, "-"),
     color: node.color,
   }));
 
@@ -205,6 +205,7 @@ export default function Home() {
     return SCHEMES.includes(saved) ? saved : "rainbow";
   });
   const [skipAnimations, setSkipAnimations] = useState(false);
+  const [revealed, setRevealed] = useState(false);
   const [duckPosition, setDuckPosition] = useState({ left: null, top: null, bottom: null });
   const [docked, setDocked] = useState(true);
   const [dockPos, setDockPos] = useState(null);
@@ -234,14 +235,30 @@ export default function Home() {
     firstScrollRef.current = false;
     if (first && location.pathname === "/") return;
 
+    // Land the section's chip level with its own menu item: the chip's
+    // offset from the first chip's resting spot, minus the item's
+    // offset within the menu (the first section lands at 0, the very
+    // top of the page).
     const scroll = () => {
       const behavior = first ? "auto" : "smooth";
-      if (id === SECTIONS[0].id) {
-        // The first section: go all the way to the top of the page
-        document.getElementById("app-base")?.scrollTo({ top: 0, behavior });
-      } else {
-        document.getElementById(id)?.scrollIntoView({ behavior, block: "start" });
-      }
+      const scroller = document.getElementById("app-base");
+      const target = document.getElementById(id);
+      const anchor = document.getElementById(SECTIONS[0].id);
+      if (!scroller || !target || !anchor) return;
+      const links = document.querySelectorAll(".navbar .nav-link");
+      const item = links[SECTIONS.findIndex((s) => s.id === id)];
+      const menuOffset =
+        item && links[0]
+          ? item.getBoundingClientRect().top -
+            links[0].getBoundingClientRect().top
+          : 0;
+      scroller.scrollTo({
+        top:
+          target.getBoundingClientRect().top -
+          anchor.getBoundingClientRect().top -
+          menuOffset,
+        behavior,
+      });
     };
 
     if (first) {
@@ -250,6 +267,35 @@ export default function Home() {
       scroll();
     }
   }, [location.pathname, navigationType]);
+
+  // Veil the page until the webfont is in and the first scroll (queued
+  // on fonts.ready above, so it runs first) has landed. Without this,
+  // the first paint flashes: font-less text pops in, and deep links
+  // glimpse the top of the page before snapping to their section.
+  useEffect(() => {
+    document.fonts.ready.then(() => setRevealed(true));
+  }, []);
+
+  // Pin the menu level with the tree's first section chip: publish the
+  // chip's resting (scroll-top) position for navbar.css to consume.
+  // Layout effect so the menu never paints anywhere else first.
+  useLayoutEffect(() => {
+    const scroller = document.getElementById("app-base");
+    const anchor = document.getElementById(SECTIONS[0].id);
+    if (!scroller || !anchor) return;
+
+    const measure = () => {
+      const top = anchor.getBoundingClientRect().top + scroller.scrollTop;
+      document.documentElement.style.setProperty("--navbar-top", `${top}px`);
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      document.documentElement.style.removeProperty("--navbar-top");
+    };
+  }, []);
 
   useEffect(() => {
     // Check if animation has been seen before (localStorage persists across visits)
@@ -487,7 +533,10 @@ export default function Home() {
   };
 
   return (
-    <div id="app-base" className={`home-colors theme-${bg} scheme-${scheme}`}>
+    <div
+      id="app-base"
+      className={`home-colors theme-${bg} scheme-${scheme}${revealed ? "" : " veiled"}`}
+    >
       <div className="theme-picker" onWheel={forwardWheel}>
         {BGS.map((b) => (
           <button

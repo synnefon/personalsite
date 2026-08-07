@@ -5,10 +5,9 @@
 .navbar {
   position: absolute !important;
   left: 0;
-  margin-top: 0.5em;
-  /* Lines the first chip up with the tree root chip at scroll top:
-     offsets the wrapper margin and the chips' differing paddings */
-  padding-top: calc(1.5px + 0.6vmin);
+  /* Set by Home: the resting spot of the tree's first section chip,
+     so the menu and that chip sit level at scroll top */
+  top: var(--navbar-top);
   margin-left: 0.4em;
   z-index: 999;
   display: flex;
@@ -69,7 +68,7 @@ body.lava-lamp-fullscreen .navbar {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: lowercase;
-  line-height: 1;
+  line-height: 1.4;
   white-space: nowrap;
   color: var(--text-color);
   cursor: var(--pointer);
