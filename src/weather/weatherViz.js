@@ -133,6 +133,9 @@ function buildAqiGaugeLines(aqi, totalW = 0) {
     [seg("  "), seg(`┌${dashes.join("┬")}┐`, { color: AXIS })],
     mid,
     [seg("  "), seg(`└${dashes.join("┴")}┘`, { color: AXIS })],
+    [],
+    [],
+    [],
   ];
 }
 
