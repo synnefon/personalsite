@@ -1,0 +1,115 @@
+/* ============================================
+   COLOR THEME
+   ============================================ */
+
+#app-base.weather-colors {
+  background-color: var(--color-black);
+  color: var(--color-text-light);
+}
+
+.weather-colors .content-wrapper {
+  width: 100%;
+  max-width: 95%;
+  align-items: center;
+  gap: 1.5em;
+  padding-top: 2em;
+}
+
+/* ============================================
+   LOCATION SEARCH
+   ============================================ */
+
+.weather-search {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  width: min(28em, 100%);
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid rgb(100, 100, 100);
+}
+
+.weather-prompt {
+  color: var(--color-green-lime);
+  user-select: none;
+}
+
+.weather-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text-light);
+  font-family: JuliaMono, monospace;
+  font-size: 0.9em;
+  cursor: var(--text);
+  caret-color: var(--color-green-lime);
+}
+
+.weather-input::placeholder {
+  color: rgb(100, 100, 100);
+}
+
+/* ============================================
+   TERMINAL DISPLAY
+   ============================================ */
+
+/* The display is its own scrollable screen; the search bar stays pinned above */
+.weather-screen {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: auto;
+  padding-bottom: 3em;
+  scrollbar-width: none; /* Firefox */
+}
+
+.weather-screen::-webkit-scrollbar {
+  display: none;
+}
+
+.weather-display {
+  width: fit-content;
+  margin: 0 auto;
+  font-family: JuliaMono, monospace;
+  font-size: clamp(8px, 1.45vw, 15px);
+  line-height: 1.2;
+  user-select: text;
+}
+
+.weather-line {
+  white-space: pre;
+}
+
+.weather-emoji {
+  position: relative;
+  display: inline-block;
+  text-align: center;
+}
+
+/* Hover tooltip showing the hour's condition text */
+.weather-emoji[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 0.6em);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.2em 0.6em;
+  white-space: nowrap;
+  background-color: var(--color-black);
+  border: 1px solid rgb(100, 100, 100);
+  color: rgb(180, 180, 180);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.weather-status {
+  margin-top: 2em;
+  text-align: center;
+  font-size: 0.7em;
+  color: rgb(128, 128, 128);
+}
+
+.weather-status-error {
+  color: rgb(232, 44, 44);
+}

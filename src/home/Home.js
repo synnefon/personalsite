@@ -115,6 +115,7 @@ const SITE_TREE = {
           children: [
             { type: types.linkContent, title: "shavian transliterator", desc: "english \u2192 shavian", to: "/shavianator" },
             { type: types.linkContent, title: "shufflenator", desc: "optimal shuffle pattern calculator", to: "/shufflenator" },
+            { type: types.linkContent, title: "weather", desc: "predicts the weather", to: "/weather" },
           ],
         },
         {
