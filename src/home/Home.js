@@ -126,6 +126,7 @@ const SITE_TREE = {
             { type: types.hrefContent, title: "3d models", desc: "collection of my 3d-printable work", href: "https://thangs.com/designer/synnefon" },
             { type: types.hrefContent, title: "img-butler", desc: "image interaction npm package", href: "https://www.npmjs.com/package/img-butler" },
             { type: types.hrefContent, title: "spagett ql", desc: "lisp-like query language. al dente.", href: "https://github.com/synnefon/spagett" },
+            { type: types.hrefContent, title: "puget sound bathy-mator", desc: "generates svgs to make laser-cut maps", href: "https://github.com/synnefon/bathymetric-map-cut-generator/tree/main" },
           ],
         },
       ],
