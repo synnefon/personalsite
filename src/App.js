@@ -6,6 +6,7 @@ import { ColorBlindModeProvider } from "./context/ColorBlindModeContext";
 import GunCursor from "./easter_eggs/GunCursor";
 import Home, { SECTIONS } from "./home/Home";
 
+const CalendarPuzzle = lazy(() => import("./calendar_puzzle/CalendarPuzzle.tsx"));
 const Game4096 = lazy(() => import("./4096/Game4096.tsx"));
 const Dendrites = lazy(() => import("./dendrites/Dendrites.tsx"));
 const GameOfLife = lazy(() => import("./game_of_life/GameOfLife.tsx"));
@@ -63,6 +64,7 @@ function App() {
             <Route path="/monarch-music" element={<MonarchMusic />} />
             <Route path="/war-of-the-dice" element={<WarOfTheDice />} />
             <Route path="/weather" element={<Weather />} />
+            <Route path="/calendar-puzzle" element={<CalendarPuzzle />} />
             <Route path="toolbox" element={<Toolbox />} />
           </Routes>
         </Suspense>

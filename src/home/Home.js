@@ -106,6 +106,7 @@ const SITE_TREE = {
             { type: types.linkContent, title: "war of the dice", desc: "dice-rolling territory conquest", to: "/war-of-the-dice" },
             { type: types.linkContent, title: "sudoku", desc: "eternal classic", to: "/sudoku" },
             { type: types.linkContent, title: "game of life", desc: "cellular automata simulator", to: "/game-of-life" },
+            { type: types.linkContent, title: "calendar puzzle", desc: "solves polypuzzlelab's date puzzle", to: "/calendar-puzzle" },
           ],
         },
         {

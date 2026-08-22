@@ -28,7 +28,8 @@
     "wotd:train": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/war_of_the_dice/training/train.ts",
     "wotd:bake": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/war_of_the_dice/training/bake.ts",
     "wotd:calibrate": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/war_of_the_dice/training/calibrate.ts",
-    "wotd:roundrobin": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/war_of_the_dice/training/roundRobin.ts"
+    "wotd:roundrobin": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/war_of_the_dice/training/roundRobin.ts",
+    "calpuzzle:verify": "NODE_NO_WARNINGS=1 ts-node --transpile-only src/calendar_puzzle/verify.ts"
   },
   "eslintConfig": {
     "extends": [

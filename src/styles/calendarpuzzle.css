@@ -1,0 +1,363 @@
+/* ============================================
+   COLOR THEME
+   ============================================ */
+
+.calendar-puzzle {
+  --cp-bg: #14181f;
+  --cp-text: #e8e2d4;
+  --cp-accent: #e9c46a;
+  --cp-frame: #caa96e;
+  --cp-face: #ecdfbd;
+  --cp-engrave: #7b6244;
+  --cp-engrave-strong: #43331f;
+  --cp-score: rgba(123, 98, 68, 0.28);
+  --cp-window: rgba(67, 51, 31, 0.14);
+  --cp-dot: rgba(30, 20, 8, 0.5);
+}
+
+
+/* ============================================
+   CONTAINER
+   ============================================ */
+
+.calendar-puzzle {
+  position: absolute;
+  top: 0 !important;
+  bottom: 0;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 2em 1em 4em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1.6em;
+  overflow-x: hidden;
+  background-color: var(--cp-bg);
+  color: var(--cp-text);
+  user-select: none;
+  box-sizing: border-box;
+}
+
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.cp-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cp-title {
+  margin: 0;
+  color: var(--cp-accent);
+  font-size: 2em;
+}
+
+.cp-help-button {
+  position: fixed;
+  top: 2em;
+  right: 2em;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--cp-accent);
+  border-radius: 50%;
+  background-color: transparent;
+  color: var(--cp-accent);
+  font-size: 1.5em;
+  font-weight: bold;
+  cursor: var(--pointer);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.cp-help-button:hover {
+  background-color: var(--cp-accent);
+  color: var(--cp-bg);
+}
+
+
+/* ============================================
+   MODAL
+   ============================================ */
+
+.cp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--color-black-08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  cursor: pointer;
+}
+
+.cp-modal {
+  position: relative;
+  width: 90%;
+  max-width: 640px;
+  max-height: 80vh;
+  background-color: var(--cp-bg);
+  border: 2px solid var(--cp-accent);
+  border-radius: 10px;
+  padding: 2em;
+  overflow-y: auto;
+  cursor: default;
+}
+
+.cp-modal-close {
+  position: absolute;
+  top: 0.4em;
+  right: 0.55em;
+  border: none;
+  background: transparent;
+  color: var(--cp-accent);
+  font-size: 1.6em;
+  cursor: var(--pointer);
+}
+
+.cp-explainer h2 {
+  color: var(--cp-accent);
+  font-size: 1.1em;
+  margin: 1em 0 0.3em;
+}
+
+.cp-explainer h2:first-child {
+  margin-top: 0;
+}
+
+.cp-explainer p {
+  margin: 0.4em 0;
+  line-height: 1.5;
+  font-size: 0.95em;
+}
+
+
+/* ============================================
+   CONTROLS
+   ============================================ */
+
+.cp-controls {
+  /* full width so flex-wrap has a real line length to wrap against */
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9em;
+}
+
+.cp-date-input {
+  font-family: inherit;
+  font-size: 1em;
+  padding: 0.42em 0.6em;
+  background-color: transparent;
+  color: var(--cp-text);
+  border: 2px solid var(--cp-frame);
+  border-radius: 8px;
+  cursor: var(--pointer);
+  color-scheme: dark;
+}
+
+.cp-date-input:focus {
+  outline: none;
+  border-color: var(--cp-accent);
+}
+
+.cp-mode-toggle {
+  display: flex;
+  border: 2px solid var(--cp-frame);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cp-mode-button {
+  font-family: inherit;
+  font-size: 0.9em;
+  padding: 0.5em 0.8em;
+  border: none;
+  background-color: transparent;
+  color: var(--cp-text);
+  cursor: var(--pointer);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.cp-mode-button + .cp-mode-button {
+  border-left: 2px solid var(--cp-frame);
+}
+
+.cp-mode-button:hover {
+  background-color: rgba(202, 169, 110, 0.18);
+}
+
+.cp-mode-button.selected {
+  background-color: var(--cp-accent);
+  color: var(--cp-bg);
+  font-weight: bold;
+}
+
+.cp-shuffle-button {
+  font-family: inherit;
+  font-size: 0.95em;
+  padding: 0.5em 1.1em;
+  border: 2px solid var(--cp-accent);
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--cp-accent);
+  cursor: var(--pointer);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.cp-shuffle-button:hover {
+  background-color: var(--cp-accent);
+  color: var(--cp-bg);
+  font-weight: bold;
+}
+
+.cp-shuffle-button:active {
+  transform: translateY(1px);
+}
+
+
+/* ============================================
+   BOARD
+   ============================================ */
+
+.cp-board-wrap {
+  position: relative;
+  width: min(94vw, 860px);
+}
+
+.cp-board {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.cp-frame {
+  fill: var(--cp-frame);
+}
+
+.cp-face {
+  fill: var(--cp-face);
+}
+
+.cp-score {
+  stroke: var(--cp-score);
+  stroke-width: 1;
+}
+
+.cp-window {
+  fill: var(--cp-window);
+  stroke: var(--cp-engrave);
+  stroke-width: 1.5;
+}
+
+.cp-label {
+  font-family: JuliaMono, monospace;
+  fill: var(--cp-engrave);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.cp-label-word {
+  font-size: 21px;
+}
+
+.cp-label-num {
+  font-size: 24px;
+}
+
+.cp-label-window {
+  fill: var(--cp-engrave-strong);
+  font-weight: bold;
+}
+
+.cp-piece {
+  animation: cp-place 0.34s cubic-bezier(0.2, 0.7, 0.35, 1.2) backwards;
+  filter: drop-shadow(0 2px 1.6px rgba(0, 0, 0, 0.3));
+}
+
+.cp-piece-path {
+  stroke: var(--cp-face);
+}
+
+.cp-dot {
+  fill: var(--cp-dot);
+}
+
+@keyframes cp-place {
+  from {
+    opacity: 0;
+    transform: translateY(-9px) scale(1.05);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-piece {
+    animation: none;
+  }
+}
+
+.cp-no-solution {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1em;
+  color: var(--cp-accent);
+  background-color: rgba(20, 24, 31, 0.55);
+  border-radius: 12px;
+  font-size: 1.05em;
+}
+
+
+/* ============================================
+   CAPTION
+   ============================================ */
+
+.cp-caption {
+  max-width: 92vw;
+  font-size: 0.9em;
+  color: var(--cp-text);
+  opacity: 0.75;
+  text-align: center;
+}
+
+.cp-credit {
+  max-width: 92vw;
+  margin-top: -0.9em;
+  font-size: 0.8em;
+  opacity: 0.6;
+  text-align: center;
+}
+
+.cp-credit a,
+.cp-explainer a {
+  color: var(--cp-accent);
+  cursor: var(--pointer);
+}
+
+@media (max-width: 600px) {
+  .cp-help-button {
+    top: 1em;
+    right: 1em;
+  }
+
+  .cp-title {
+    font-size: 1.5em;
+  }
+}
