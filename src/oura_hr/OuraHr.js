@@ -18,9 +18,11 @@ import {
 import { METRICS, buildChart, buildStats, fmtTime, nearestIndex } from "./hrViz";
 
 const TABLE_PREVIEW_ROWS = 500;
+const MIN_ZOOM_DRAG_PX = 8;
 
 // Tall enough to read, capped so the filter row stays in view
 const chartHeight = () => Math.min(560, Math.max(320, Math.round(window.innerHeight * 0.55)));
+
 const PRESETS = [
   { label: "today", days: 1 },
   { label: "3d", days: 3 },
@@ -51,15 +53,20 @@ function download(filename, text, mime) {
   URL.revokeObjectURL(url);
 }
 
+const prettySource = (source) => source.replace(/_/g, " ");
+
 // ============================================
 // CHART
 // ============================================
 
 function HrChart({ samples, metric }) {
-  const { unit, order, colors } = METRICS[metric];
+  const { unit, order, colors, describe } = METRICS[metric];
   const wrapperRef = useRef(null);
   const [{ width, height }, setSize] = useState({ width: 0, height: chartHeight() });
   const [hoverIdx, setHoverIdx] = useState(null);
+  const [hidden, setHidden] = useState(() => new Set());
+  const [zoom, setZoom] = useState(null); // [t0, t1] | null
+  const [drag, setDrag] = useState(null); // {x0, x1} | null
 
   useEffect(() => {
     const el = wrapperRef.current;
@@ -75,16 +82,86 @@ function HrChart({ samples, metric }) {
     };
   }, []);
 
+  // A new fetch means a new time range: drop the zoom
+  useEffect(() => {
+    setZoom(null);
+    setHoverIdx(null);
+    setDrag(null);
+  }, [samples]);
+
+  // bpm and hrv share source names ("sleep", "rest") that mean
+  // different things — a filter from one mustn't leak into the other
+  useEffect(() => setHidden(new Set()), [metric]);
+
+  const allSources = useMemo(() => {
+    const present = new Set(samples.map((s) => s.source));
+    return order.filter((s) => present.has(s));
+  }, [samples, order]);
+
+  const shown = useMemo(() => {
+    let list = samples;
+    if (hidden.size) list = list.filter((s) => !hidden.has(s.source));
+    if (zoom) list = list.filter((s) => s.t >= zoom[0] && s.t <= zoom[1]);
+    return list;
+  }, [samples, hidden, zoom]);
+
   const geo = useMemo(
-    () => (width > 0 ? buildChart(samples, width, height, order) : null),
-    [samples, width, height, order]
+    () => (width > 0 && shown.length ? buildChart(shown, width, height, order, zoom) : null),
+    [shown, width, height, order, zoom]
   );
+
+  const stats = useMemo(() => (shown.length ? buildStats(shown) : null), [shown]);
+
+  // Lowest sleeping heart rate in view — oura's "resting heart rate"
+  const resting = useMemo(() => {
+    if (metric !== "bpm") return null;
+    let min = Infinity;
+    for (const s of shown) {
+      if (s.source === "sleep" && s.value < min) min = s.value;
+    }
+    return Number.isFinite(min) ? min : null;
+  }, [shown, metric]);
+
+  const toggleSource = (source) => {
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(source)) next.delete(source);
+      else next.add(source);
+      // never hide the whole chart
+      if (allSources.every((s) => next.has(s))) return prev;
+      return next;
+    });
+    setHoverIdx(null);
+  };
+
+  const plotX = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return Math.min(Math.max(e.clientX - rect.left, geo.plot.x), geo.plot.x + geo.plot.w);
+  };
+
+  const onPointerDown = (e) => {
+    if (!geo) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const x = plotX(e);
+    setDrag({ x0: x, x1: x });
+  };
 
   const onPointerMove = (e) => {
     if (!geo) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = Math.min(Math.max(e.clientX - rect.left, geo.plot.x), geo.plot.x + geo.plot.w);
-    setHoverIdx(nearestIndex(samples, geo.xToT(x)));
+    const x = plotX(e);
+    if (drag) setDrag((d) => ({ ...d, x1: x }));
+    setHoverIdx(nearestIndex(shown, geo.xToT(x)));
+  };
+
+  const onPointerUp = () => {
+    if (!drag || !geo) return;
+    const lo = Math.min(drag.x0, drag.x1);
+    const hi = Math.max(drag.x0, drag.x1);
+    setDrag(null);
+    if (hi - lo >= MIN_ZOOM_DRAG_PX) {
+      setZoom([geo.xToT(lo), geo.xToT(hi)]);
+      setHoverIdx(null);
+    }
   };
 
   const onKeyDown = (e) => {
@@ -92,36 +169,53 @@ function HrChart({ samples, metric }) {
     const delta = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
     if (!delta) return;
     e.preventDefault();
-    setHoverIdx((idx) =>
-      Math.min(Math.max((idx ?? 0) + delta, 0), samples.length - 1)
-    );
+    setHoverIdx((idx) => Math.min(Math.max((idx ?? 0) + delta, 0), shown.length - 1));
   };
 
-  const hovered = hoverIdx === null ? null : samples[hoverIdx];
+  const hovered = hoverIdx === null ? null : shown[hoverIdx];
   const tipOnLeft = hovered && geo && geo.toX(hovered.t) > geo.plot.x + geo.plot.w * 0.62;
 
   return (
     <div className="hr-chart" ref={wrapperRef}>
-      {geo && (
-        <div className="hr-legend">
-          {geo.sources.map((source) => (
-            <span className="hr-legend-item" key={source}>
-              <span className="hr-key" style={{ backgroundColor: colors[source] }} />
-              {source.replace(/_/g, " ")}
-            </span>
-          ))}
-        </div>
-      )}
+      <div className="hr-legend">
+        {allSources.map((source) => (
+          <button
+            key={source}
+            className={`hr-legend-item${hidden.has(source) ? " hr-legend-off" : ""}`}
+            data-tip={describe[source]}
+            onClick={() => toggleSource(source)}
+          >
+            <span className="hr-key" style={{ backgroundColor: colors[source] }} />
+            {prettySource(source)}
+          </button>
+        ))}
+        {zoom && (
+          <button
+            className="hr-legend-item hr-zoom-reset"
+            data-tip="or double-click the chart"
+            onClick={() => setZoom(null)}
+          >
+            ⟲ reset zoom
+          </button>
+        )}
+      </div>
+      {!geo && zoom && <p className="hr-status">nothing in this window — reset the zoom</p>}
       {geo && (
         <div className="hr-plot-wrapper">
           <svg
             width={width}
             height={height}
             role="img"
-            aria-label="heart rate over time"
+            aria-label={`${metric} over time; drag to zoom`}
             tabIndex={0}
+            onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
-            onPointerLeave={() => setHoverIdx(null)}
+            onPointerUp={onPointerUp}
+            onPointerLeave={() => {
+              setHoverIdx(null);
+              setDrag(null);
+            }}
+            onDoubleClick={() => setZoom(null)}
             onKeyDown={onKeyDown}
           >
             {geo.yTicks.map(({ y, label }) => (
@@ -131,6 +225,19 @@ function HrChart({ samples, metric }) {
                   {label}
                 </text>
               </g>
+            ))}
+            <text className="hr-tick-label" x={geo.plot.x - 8} y={geo.plot.y - 5} textAnchor="end">
+              {unit}
+            </text>
+            {geo.dayLines.map((x, i) => (
+              <line
+                className="hr-dayline"
+                key={i}
+                x1={x}
+                x2={x}
+                y1={geo.plot.y}
+                y2={geo.plot.y + geo.plot.h}
+              />
             ))}
             {geo.xTicks.map(({ x, label, isDate }, i) => (
               <text
@@ -150,6 +257,25 @@ function HrChart({ samples, metric }) {
               y1={geo.plot.y + geo.plot.h}
               y2={geo.plot.y + geo.plot.h}
             />
+            {resting !== null && (
+              <g>
+                <line
+                  className="hr-guide"
+                  x1={geo.plot.x}
+                  x2={geo.plot.x + geo.plot.w}
+                  y1={geo.toY(resting)}
+                  y2={geo.toY(resting)}
+                />
+                <text
+                  className="hr-guide-label"
+                  x={geo.plot.x + geo.plot.w}
+                  y={geo.toY(resting) - 5}
+                  textAnchor="end"
+                >
+                  resting {resting}
+                </text>
+              </g>
+            )}
             {geo.runs.map((run, i) =>
               run.samples.length === 1 ? (
                 <circle
@@ -171,7 +297,16 @@ function HrChart({ samples, metric }) {
                 />
               )
             )}
-            {hovered && (
+            {drag && Math.abs(drag.x1 - drag.x0) >= MIN_ZOOM_DRAG_PX && (
+              <rect
+                className="hr-select"
+                x={Math.min(drag.x0, drag.x1)}
+                width={Math.abs(drag.x1 - drag.x0)}
+                y={geo.plot.y}
+                height={geo.plot.h}
+              />
+            )}
+            {hovered && !drag && (
               <g>
                 <line
                   className="hr-crosshair"
@@ -191,7 +326,7 @@ function HrChart({ samples, metric }) {
               </g>
             )}
           </svg>
-          {hovered && (
+          {hovered && !drag && (
             <div
               className="hr-tooltip"
               style={{
@@ -205,54 +340,62 @@ function HrChart({ samples, metric }) {
               </div>
               <div className="hr-tip-source">
                 <span className="hr-key" style={{ backgroundColor: colors[hovered.source] }} />
-                {hovered.source.replace(/_/g, " ")}
+                {prettySource(hovered.source)}
               </div>
               <div className="hr-tip-time">{fmtTime(hovered.t)}</div>
             </div>
           )}
         </div>
       )}
+      {stats && (
+        <p className="hr-stats">
+          <span className="hr-stat-value">{stats.count}</span> samples ·{" "}
+          min <span className="hr-stat-value">{stats.min}</span> ·{" "}
+          avg <span className="hr-stat-value">{stats.avg}</span> ·{" "}
+          max <span className="hr-stat-value">{stats.max}</span>
+          {resting !== null && (
+            <>
+              {" "}· resting <span className="hr-stat-value">{resting}</span>
+            </>
+          )}{" "}
+          {unit}
+        </p>
+      )}
     </div>
   );
 }
 
 // ============================================
-// DATA TABLE + EXPORTS
+// DATA TABLE
 // ============================================
 
 function SampleTable({ samples, metric }) {
-  const [open, setOpen] = useState(false);
   return (
-    <details className="hr-table-details" onToggle={(e) => setOpen(e.target.open)}>
-      <summary>data table</summary>
-      {open && (
-        <>
-          {samples.length > TABLE_PREVIEW_ROWS && (
-            <p className="hr-muted">
-              showing first {TABLE_PREVIEW_ROWS} of {samples.length} — download the csv for all of them
-            </p>
-          )}
-          <table className="hr-table">
-            <thead>
-              <tr>
-                <th>time</th>
-                <th>{METRICS[metric].unit}</th>
-                <th>source</th>
-              </tr>
-            </thead>
-            <tbody>
-              {samples.slice(0, TABLE_PREVIEW_ROWS).map((s, i) => (
-                <tr key={i}>
-                  <td>{fmtTime(s.t)}</td>
-                  <td>{Math.round(s.value)}</td>
-                  <td>{s.source.replace(/_/g, " ")}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
+    <div>
+      {samples.length > TABLE_PREVIEW_ROWS && (
+        <p className="hr-muted">
+          showing first {TABLE_PREVIEW_ROWS} of {samples.length} — download the csv for all of them
+        </p>
       )}
-    </details>
+      <table className="hr-table">
+        <thead>
+          <tr>
+            <th>time</th>
+            <th>{METRICS[metric].unit}</th>
+            <th>source</th>
+          </tr>
+        </thead>
+        <tbody>
+          {samples.slice(0, TABLE_PREVIEW_ROWS).map((s, i) => (
+            <tr key={i}>
+              <td>{fmtTime(s.t)}</td>
+              <td>{Math.round(s.value)}</td>
+              <td>{prettySource(s.source)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -265,8 +408,8 @@ export default function OuraHr() {
   const [authNotice] = useState(takeAuthError);
   const [clientIdInput, setClientIdInput] = useState(getClientId);
   const [tokenInput, setTokenInput] = useState("");
-  const [{ start, end }, setRange] = useState(() => presetRange(3));
-  const [preset, setPreset] = useState("3d");
+  const [{ start, end }, setRange] = useState(() => presetRange(1));
+  const [preset, setPreset] = useState("today");
   const [metric, setMetric] = useState("bpm");
   const [proxyInput, setProxyInput] = useState(getProxyBase);
   const [phase, setPhase] = useState("idle"); // idle | loading | ready | error
@@ -274,6 +417,7 @@ export default function OuraHr() {
   const [errorCode, setErrorCode] = useState(null);
   const [progress, setProgress] = useState(0);
   const [samples, setSamples] = useState([]);
+  const [showTable, setShowTable] = useState(false);
   const requestRef = useRef(0);
 
   // Run a fetch, ignoring its result if a newer request has started
@@ -381,7 +525,6 @@ export default function OuraHr() {
     </div>
   );
 
-  const stats = useMemo(() => (samples.length ? buildStats(samples) : null), [samples]);
   const stamp = `${start}_${end}`;
 
   return (
@@ -515,15 +658,9 @@ export default function OuraHr() {
             {samples.length > 0 && (
               <div className={`hr-results${phase === "loading" ? " hr-stale" : ""}`}>
                 <HrChart samples={samples} metric={metric} />
-                {stats && (
-                  <p className="hr-stats">
-                    {stats.count} samples · min {stats.min} · avg {stats.avg} · max {stats.max}{" "}
-                    {METRICS[metric].unit}
-                  </p>
-                )}
-                <div className="hr-actions">
+                <div className="hr-utility">
                   <button
-                    className="hr-button"
+                    className="hr-button hr-quiet"
                     onClick={() =>
                       download(
                         `oura-${metric}_${stamp}.csv`,
@@ -535,7 +672,7 @@ export default function OuraHr() {
                     download csv
                   </button>
                   <button
-                    className="hr-button"
+                    className="hr-button hr-quiet"
                     onClick={() =>
                       download(
                         `oura-${metric}_${stamp}.json`,
@@ -546,8 +683,11 @@ export default function OuraHr() {
                   >
                     download json
                   </button>
+                  <button className="hr-button hr-quiet" onClick={() => setShowTable((v) => !v)}>
+                    {showTable ? "hide table" : "data table"}
+                  </button>
                 </div>
-                <SampleTable samples={samples} metric={metric} />
+                {showTable && <SampleTable samples={samples} metric={metric} />}
               </div>
             )}
           </>

@@ -163,11 +163,17 @@
    FILTER ROW + RESULTS
    ============================================ */
 
+/* Tight gaps inside a control group, wide breathing room at dividers,
+   so the row reads as metric | presets | custom range */
 .hr-filters {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.6em;
+  gap: 0.4em;
+}
+
+.hr-filters .hr-filter-divider {
+  margin: 0 0.9em;
 }
 
 .hr-preset-active {
@@ -208,14 +214,21 @@
 
 .hr-stats {
   text-align: center;
-  color: var(--color-gray-medium);
+  color: rgb(128, 128, 128);
   font-size: 0.9em;
+  margin-top: 0.8em;
 }
 
-.hr-actions {
+.hr-stat-value {
+  color: var(--color-text-light);
+  font-weight: bold;
+  font-size: 1.15em;
+}
+
+.hr-utility {
   display: flex;
-  justify-content: center;
-  gap: 0.8em;
+  justify-content: flex-end;
+  gap: 0.4em;
 }
 
 /* ============================================
@@ -235,10 +248,45 @@
   font-size: 0.85em;
 }
 
+/* Legend chips are filters: click hides/shows the source, hover explains it */
 .hr-legend-item {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.5em;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: var(--pointer, pointer);
+}
+
+.hr-legend-item:hover {
+  color: var(--color-text-light);
+}
+
+.hr-legend-item[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 0.5em);
+  left: 0;
+  padding: 0.2em 0.6em;
+  white-space: nowrap;
+  background-color: var(--color-black);
+  border: 1px solid rgb(100, 100, 100);
+  color: rgb(180, 180, 180);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.hr-legend-off {
+  opacity: 0.35;
+}
+
+.hr-zoom-reset {
+  margin-left: auto;
+  color: var(--color-green-lime);
 }
 
 .hr-key {
@@ -287,6 +335,35 @@
   stroke-width: 1;
 }
 
+.hr-dayline {
+  stroke: rgb(70, 70, 70);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+}
+
+.hr-guide {
+  stroke: rgb(140, 140, 140);
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+}
+
+.hr-guide-label {
+  fill: var(--color-gray-medium);
+  font-family: JuliaMono, monospace;
+  font-size: 10px;
+  /* halo so the label survives sitting on top of a data line */
+  paint-order: stroke;
+  stroke: var(--color-black);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.hr-select {
+  fill: rgba(234, 234, 247, 0.1);
+  stroke: rgb(100, 100, 100);
+  stroke-width: 1;
+}
+
 .hr-tooltip {
   position: absolute;
   padding: 0.4em 0.7em;
@@ -326,12 +403,6 @@
 /* ============================================
    DATA TABLE
    ============================================ */
-
-.hr-table-details summary {
-  color: rgb(128, 128, 128);
-  cursor: var(--pointer, pointer);
-  user-select: none;
-}
 
 .hr-table {
   margin-top: 0.8em;

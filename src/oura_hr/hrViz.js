@@ -19,6 +19,14 @@ export const METRICS = {
       session: "#d55181",
       live: "#9085e9",
     },
+    describe: {
+      sleep: "measured every few minutes while you sleep",
+      workout: "recorded during a logged workout",
+      rest: "daytime stillness the ring reads as restful",
+      awake: "ordinary daytime readings",
+      session: "app session — breathwork, meditation",
+      live: "streamed by the app's live heart rate view",
+    },
   },
   hrv: {
     unit: "ms",
@@ -29,6 +37,12 @@ export const METRICS = {
       sleep: "#199e70",
       late_nap: "#c98500",
       rest: "#d55181",
+    },
+    describe: {
+      long_sleep: "the main overnight sleep period",
+      sleep: "confirmed nap, 15 min to 3 h",
+      late_nap: "nap late enough to credit the next day",
+      rest: "restful period, not scored as sleep",
     },
   },
 };
@@ -87,15 +101,25 @@ function buildYTicks(lo, hi, toY) {
   return ticks;
 }
 
+// Local midnights inside (t0, t1), for the vertical day separators
+function buildDayLines(t0, t1, toX) {
+  const xs = [];
+  const d = new Date(t0);
+  d.setHours(24, 0, 0, 0);
+  for (; d.getTime() < t1; d.setDate(d.getDate() + 1)) xs.push(toX(d.getTime()));
+  return xs;
+}
+
 // samples: [{t, value, source}] sorted by t. Returns everything the
 // svg needs: runs (polylines/lone dots per source), ticks, mappers.
-export function buildChart(samples, width, height, sourceOrder) {
-  const pad = { top: 12, right: 14, bottom: 26, left: 40 };
+// domain pins the x extent (a zoom window); defaults to the data's.
+export function buildChart(samples, width, height, sourceOrder, domain) {
+  const pad = { top: 16, right: 14, bottom: 26, left: 40 };
   const innerW = Math.max(1, width - pad.left - pad.right);
   const innerH = Math.max(1, height - pad.top - pad.bottom);
 
-  const t0 = samples[0].t;
-  const t1 = samples.at(-1).t;
+  const t0 = domain ? domain[0] : samples[0].t;
+  const t1 = domain ? domain[1] : samples.at(-1).t;
   const tSpan = Math.max(1, t1 - t0);
 
   let valLo = Infinity;
@@ -133,6 +157,7 @@ export function buildChart(samples, width, height, sourceOrder) {
     runs,
     xTicks: buildXTicks(t0, t1, toX),
     yTicks: buildYTicks(yLo, yHi, toY),
+    dayLines: buildDayLines(t0, t1, toX),
     sources: sourceOrder.filter((s) => present.has(s)),
     toX,
     toY,
