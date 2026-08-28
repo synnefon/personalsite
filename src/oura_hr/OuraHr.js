@@ -7,7 +7,6 @@ import {
   fetchHeartrate,
   fetchHrv,
   fetchSteps,
-  fetchStress,
   getClientId,
   getProxyBase,
   getStoredAuth,
@@ -25,7 +24,7 @@ const MIN_ZOOM_DRAG_PX = 8;
 const chartHeight = () => Math.min(560, Math.max(320, Math.round(window.innerHeight * 0.55)));
 
 const PRESETS = [
-  { label: "1d", hours: 24 },
+  { label: "1d", days: 1 },
   { label: "3d", days: 3 },
   { label: "7d", days: 7 },
   { label: "30d", days: 30 },
@@ -36,18 +35,11 @@ function toDayStr(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-// Day presets show whole calendar days (domain null = derive from the
-// day bounds); hour presets show a rolling window ending now
-function rangeForPreset({ hours, days }) {
-  if (hours) {
-    const now = Date.now();
-    const from = now - hours * 3_600_000;
-    return { start: toDayStr(new Date(from)), end: toDayStr(new Date(now)), domain: [from, now] };
-  }
+function rangeForPreset({ days }) {
   const end = new Date();
   const start = new Date();
   start.setDate(end.getDate() - (days - 1));
-  return { start: toDayStr(start), end: toDayStr(end), domain: null };
+  return { start: toDayStr(start), end: toDayStr(end) };
 }
 
 function dayBoundsMs(startDay, endDay) {
@@ -74,7 +66,8 @@ const prettySource = (source) => source.replace(/_/g, " ");
 // ============================================
 
 function HrChart({ samples, metric, view }) {
-  const { unit, order, colors, describe, yFallback, yPad, yZero, gapMs, decimals } = METRICS[metric];
+  const { unit, order, colors, describe, yFallback, yPad, yZero, gapMs, decimals, bar } =
+    METRICS[metric];
   const fmtVal = (v) => (decimals ? v.toFixed(decimals) : String(Math.round(v)));
   const wrapperRef = useRef(null);
   const [{ width, height }, setSize] = useState({ width: 0, height: chartHeight() });
@@ -115,12 +108,9 @@ function HrChart({ samples, metric, view }) {
     return order.filter((s) => present.has(s));
   }, [samples, order]);
 
-  // The x extent is always the asked-for window (sparse data shows as
-  // blank space), zoomed in when a zoom is set
-  const domain = useMemo(
-    () => zoom ?? view.domain ?? dayBoundsMs(view.start, view.end),
-    [zoom, view]
-  );
+  // The x extent is always the asked-for days, midnight to midnight
+  // (sparse data shows as blank space), zoomed in when a zoom is set
+  const domain = useMemo(() => zoom ?? dayBoundsMs(view.start, view.end), [zoom, view]);
 
   const shown = useMemo(() => {
     let list = samples;
@@ -131,9 +121,9 @@ function HrChart({ samples, metric, view }) {
   const geo = useMemo(
     () =>
       width > 0
-        ? buildChart(shown, width, height, { order, domain, yFallback, yPad, yZero, gapMs })
+        ? buildChart(shown, width, height, { order, domain, yFallback, yPad, yZero, gapMs, bar })
         : null,
-    [shown, width, height, order, domain, yFallback, yPad, yZero, gapMs]
+    [shown, width, height, order, domain, yFallback, yPad, yZero, gapMs, bar]
   );
 
   const stats = useMemo(() => (shown.length ? buildStats(shown) : null), [shown]);
@@ -150,26 +140,85 @@ function HrChart({ samples, metric, view }) {
     setHoverIdx(null);
   };
 
+  // Touch gets its own gestures: one finger scrubs the crosshair (and
+  // the tooltip survives lifting), two fingers pinch-zoom the window.
+  // Mouse keeps drag-to-select.
+  const touchesRef = useRef(new Map()); // pointerId -> x
+  const pinchRef = useRef(null); // { idA, idB, ta, tb } anchor times
+
   const plotX = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     return Math.min(Math.max(e.clientX - rect.left, geo.plot.x), geo.plot.x + geo.plot.w);
   };
 
+  const scrub = (x) => {
+    if (shown.length) setHoverIdx(nearestIndex(shown, geo.xToT(x)));
+  };
+
+  // Solve the domain that keeps both anchor times under the fingers
+  const applyPinch = ({ ta, tb }, xa, xb) => {
+    const { x: padL, w } = geo.plot;
+    const span = ((tb - ta) * w) / (xb - xa);
+    if (!(span > 0)) return;
+    const base = dayBoundsMs(view.start, view.end);
+    if (span >= base[1] - base[0]) return setZoom(null);
+    if (span < 10 * 60 * 1000) return;
+    let t0 = ta - ((xa - padL) * span) / w;
+    if (t0 < base[0]) t0 = base[0];
+    if (t0 + span > base[1]) t0 = base[1] - span;
+    setZoom([t0, t0 + span]);
+  };
+
   const onPointerDown = (e) => {
     if (!geo) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // synthetic events have no active pointer to capture
+    }
     const x = plotX(e);
+    if (e.pointerType === "touch") {
+      touchesRef.current.set(e.pointerId, x);
+      if (touchesRef.current.size === 2) {
+        const [[idA, xa], [idB, xb]] = [...touchesRef.current.entries()];
+        pinchRef.current = { idA, idB, ta: geo.xToT(xa), tb: geo.xToT(xb) };
+        setHoverIdx(null);
+      } else {
+        scrub(x);
+      }
+      return;
+    }
     setDrag({ x0: x, x1: x });
   };
 
   const onPointerMove = (e) => {
     if (!geo) return;
     const x = plotX(e);
+    if (e.pointerType === "touch") {
+      const touches = touchesRef.current;
+      if (touches.has(e.pointerId)) touches.set(e.pointerId, x);
+      const pinch = pinchRef.current;
+      if (pinch && touches.size >= 2) {
+        const xa = touches.get(pinch.idA);
+        const xb = touches.get(pinch.idB);
+        if (xa != null && xb != null && Math.abs(xb - xa) >= 12) {
+          applyPinch(pinch, xa, xb);
+        }
+        return;
+      }
+      scrub(x);
+      return;
+    }
     if (drag) setDrag((d) => ({ ...d, x1: x }));
-    if (shown.length) setHoverIdx(nearestIndex(shown, geo.xToT(x)));
+    scrub(x);
   };
 
-  const onPointerUp = () => {
+  const onPointerUp = (e) => {
+    if (e.pointerType === "touch") {
+      touchesRef.current.delete(e.pointerId);
+      if (touchesRef.current.size < 2) pinchRef.current = null;
+      return;
+    }
     if (!drag || !geo) return;
     const lo = Math.min(drag.x0, drag.x1);
     const hi = Math.max(drag.x0, drag.x1);
@@ -178,6 +227,17 @@ function HrChart({ samples, metric, view }) {
       setZoom([geo.xToT(lo), geo.xToT(hi)]);
       setHoverIdx(null);
     }
+  };
+
+  const onPointerLeave = (e) => {
+    if (e.pointerType === "touch") {
+      // keep the tooltip up after the finger lifts
+      touchesRef.current.delete(e.pointerId);
+      if (touchesRef.current.size < 2) pinchRef.current = null;
+      return;
+    }
+    setHoverIdx(null);
+    setDrag(null);
   };
 
   const onKeyDown = (e) => {
@@ -194,38 +254,6 @@ function HrChart({ samples, metric, view }) {
 
   return (
     <div className="hr-chart" ref={wrapperRef}>
-      <div className="hr-legend">
-        {allSources.map((source) => (
-          <button
-            key={source}
-            className={`hr-legend-item${hidden.has(source) ? " hr-legend-off" : ""}`}
-            data-tip={describe[source]}
-            onClick={() => toggleSource(source)}
-          >
-            <span className="hr-key" style={{ backgroundColor: colors[source] }} />
-            {prettySource(source)}
-          </button>
-        ))}
-        <span className="hr-legend-right">
-          {zoom && (
-            <button
-              className="hr-legend-item hr-zoom-reset"
-              data-tip="or double-click the chart"
-              onClick={() => setZoom(null)}
-            >
-              ⟲ reset zoom
-            </button>
-          )}
-          <label className="hr-check">
-            <input type="checkbox" checked={showLine} onChange={(e) => setShowLine(e.target.checked)} />
-            line
-          </label>
-          <label className="hr-check">
-            <input type="checkbox" checked={showDot} onChange={(e) => setShowDot(e.target.checked)} />
-            dot
-          </label>
-        </span>
-      </div>
       {geo && (
         <div className="hr-plot-wrapper">
           <svg
@@ -237,10 +265,7 @@ function HrChart({ samples, metric, view }) {
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            onPointerLeave={() => {
-              setHoverIdx(null);
-              setDrag(null);
-            }}
+            onPointerLeave={onPointerLeave}
             onDoubleClick={() => setZoom(null)}
             onKeyDown={onKeyDown}
           >
@@ -280,7 +305,12 @@ function HrChart({ samples, metric, view }) {
               y1={geo.plot.y + geo.plot.h}
               y2={geo.plot.y + geo.plot.h}
             />
-            {showLine &&
+            {geo.bars &&
+              geo.bars.map((b, i) => (
+                <rect key={i} x={b.x} y={b.y} width={b.w} height={b.h} rx={1.5} fill={colors[b.source]} />
+              ))}
+            {!geo.bars &&
+              showLine &&
               geo.runs.map((run, i) =>
                 run.samples.length === 1 ? (
                   !showDot && (
@@ -304,7 +334,8 @@ function HrChart({ samples, metric, view }) {
                   />
                 )
               )}
-            {showDot &&
+            {!geo.bars &&
+              showDot &&
               shown.map((s, i) => (
                 <circle
                   key={i}
@@ -364,20 +395,53 @@ function HrChart({ samples, metric, view }) {
           )}
         </div>
       )}
+      <div className="hr-legend">
+        {allSources.map((source) => (
+          <button
+            key={source}
+            className={`hr-legend-item${hidden.has(source) ? " hr-legend-off" : ""}`}
+            data-tip={describe[source]}
+            onClick={() => toggleSource(source)}
+          >
+            <span className="hr-key" style={{ backgroundColor: colors[source] }} />
+            {prettySource(source)}
+          </button>
+        ))}
+        <span className="hr-legend-right">
+          {zoom && (
+            <button
+              className="hr-legend-item hr-zoom-reset"
+              data-tip="or double-click the chart"
+              onClick={() => setZoom(null)}
+            >
+              ⟲ reset zoom
+            </button>
+          )}
+          {!bar && (
+            <>
+              <label className="hr-check">
+                <input type="checkbox" checked={showLine} onChange={(e) => setShowLine(e.target.checked)} />
+                line
+              </label>
+              <label className="hr-check">
+                <input type="checkbox" checked={showDot} onChange={(e) => setShowDot(e.target.checked)} />
+                dot
+              </label>
+            </>
+          )}
+        </span>
+      </div>
       {stats && (
         <p className="hr-stats">
           <span className="hr-stat-pair">
             <span className="hr-stat-value">{stats.count}</span> samples
-          </span>{" "}
-          ·{" "}
+          </span>
           <span className="hr-stat-pair">
             min <span className="hr-stat-value">{fmtVal(stats.min)}</span>
-          </span>{" "}
-          ·{" "}
+          </span>
           <span className="hr-stat-pair">
             avg <span className="hr-stat-value">{fmtVal(stats.avg)}</span>
-          </span>{" "}
-          ·{" "}
+          </span>
           <span className="hr-stat-pair">
             max <span className="hr-stat-value">{fmtVal(stats.max)}</span> {unit}
           </span>
@@ -396,7 +460,7 @@ export default function OuraHr() {
   const [authNotice] = useState(takeAuthError);
   const [clientIdInput, setClientIdInput] = useState(getClientId);
   const [tokenInput, setTokenInput] = useState("");
-  const [{ start, end, domain }, setRange] = useState(() => rangeForPreset(PRESETS[0]));
+  const [{ start, end }, setRange] = useState(() => rangeForPreset(PRESETS[0]));
   const [preset, setPreset] = useState("1d");
   const [fetchedView, setFetchedView] = useState(null);
   const [metric, setMetric] = useState("bpm");
@@ -409,10 +473,10 @@ export default function OuraHr() {
   const [cornerOpen, setCornerOpen] = useState(false);
   const requestRef = useRef(0);
 
-  const FETCHERS = { bpm: fetchHeartrate, hrv: fetchHrv, steps: fetchSteps, stress: fetchStress };
+  const FETCHERS = { bpm: fetchHeartrate, hrv: fetchHrv, steps: fetchSteps };
 
   // Run a fetch, ignoring its result if a newer request has started
-  const run = async (token, startDate, endDate, which = metric, force = false, viewDomain = null) => {
+  const run = async (token, startDate, endDate, which = metric, force = false) => {
     const fetcher = FETCHERS[which];
     const requestId = ++requestRef.current;
     setPhase("loading");
@@ -421,7 +485,7 @@ export default function OuraHr() {
       const result = await fetcher({ token, startDate, endDate, onProgress: setProgress, force });
       if (requestId !== requestRef.current) return;
       setSamples(result);
-      setFetchedView({ start: startDate, end: endDate, domain: viewDomain });
+      setFetchedView({ start: startDate, end: endDate });
       setPhase("ready");
     } catch (e) {
       if (requestId !== requestRef.current) return;
@@ -437,7 +501,7 @@ export default function OuraHr() {
 
   // Already connected (or just back from the oauth redirect): fetch right away
   useEffect(() => {
-    if (auth) run(auth.token, start, end, metric, false, domain);
+    if (auth) run(auth.token, start, end);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -468,27 +532,27 @@ export default function OuraHr() {
     setCornerOpen(false);
   };
 
-  const fetchRange = (startDate, endDate, force = false, viewDomain = null) => {
+  const fetchRange = (startDate, endDate, force = false) => {
     // Tolerate a backwards range instead of erroring
     const [s, e] = startDate <= endDate ? [startDate, endDate] : [endDate, startDate];
-    if (auth) run(auth.token, s, e, metric, force, viewDomain);
+    if (auth) run(auth.token, s, e, metric, force);
   };
 
   const pickPreset = (p) => {
     const range = rangeForPreset(p);
     setRange(range);
     setPreset(p.label);
-    fetchRange(range.start, range.end, false, range.domain);
+    fetchRange(range.start, range.end);
   };
 
   const pickMetric = (which) => {
     if (which === metric) return;
     setMetric(which);
-    if (auth) run(auth.token, start, end, which, false, domain);
+    if (auth) run(auth.token, start, end, which);
   };
 
   const setDay = (key) => (e) => {
-    setRange((r) => ({ ...r, [key]: e.target.value, domain: null }));
+    setRange((r) => ({ ...r, [key]: e.target.value }));
     setPreset(null);
   };
 
@@ -636,16 +700,23 @@ export default function OuraHr() {
                 <input className="hr-input hr-date" type="date" value={start} onChange={setDay("start")} aria-label="start date" />
                 <span className="hr-muted">to</span>
                 <input className="hr-input hr-date" type="date" value={end} onChange={setDay("end")} aria-label="end date" />
-                <button className="hr-button" onClick={() => fetchRange(start, end, true, domain)}>
+                <button className="hr-button" onClick={() => fetchRange(start, end, true)}>
                   fetch
                 </button>
               </span>
             </div>
 
             {phase === "loading" && (
-              <p className="hr-status">
-                fetching {metric} data... {progress > 0 && `${progress} fetched`}
-              </p>
+              <>
+                <p className="hr-status">
+                  fetching {metric} data... {progress > 0 && `${progress} fetched`}
+                </p>
+                <div className="hr-ring-flight" aria-hidden="true">
+                  <div className="hr-ring-climb">
+                    <div className="hr-ring" />
+                  </div>
+                </div>
+              </>
             )}
             {phase === "error" && <p className="hr-status hr-status-error">error: {error}</p>}
             {phase === "error" && errorCode === "unreachable" && (

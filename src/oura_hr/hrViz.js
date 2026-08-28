@@ -55,25 +55,10 @@ export const METRICS = {
     yFallback: [0, 15000],
     yPad: 500,
     yZero: true,
-    gapMs: 36 * 60 * 60 * 1000,
+    bar: true,
     order: ["steps"],
     colors: { steps: "#3987e5" },
     describe: { steps: "day's total — oura only reports steps per day" },
-  },
-  stress: {
-    unit: "h",
-    csvColumn: "hours",
-    yFallback: [0, 10],
-    yPad: 0.5,
-    yZero: true,
-    decimals: 1,
-    gapMs: 36 * 60 * 60 * 1000,
-    order: ["stress", "recovery"],
-    colors: { stress: "#d95926", recovery: "#199e70" },
-    describe: {
-      stress: "hours in the high-stress zone that day",
-      recovery: "hours in the high-recovery zone that day",
-    },
   },
 };
 
@@ -160,7 +145,7 @@ export function buildChart(samples, width, height, opts) {
   const pad = { top: 16, right: 14, bottom: 26, left: 40 };
   const innerW = Math.max(1, width - pad.left - pad.right);
   const innerH = Math.max(1, height - pad.top - pad.bottom);
-  const { order: sourceOrder, domain, yFallback, yPad = 3, yZero = false } = opts;
+  const { order: sourceOrder, domain, yFallback, yPad = 3, yZero = false, bar = false } = opts;
   const gapMs = opts.gapMs ?? GAP_BREAK_MS;
 
   const t0 = domain ? domain[0] : samples[0].t;
@@ -204,12 +189,27 @@ export function buildChart(samples, width, height, opts) {
     r.points = r.samples.map((s) => `${toX(s.t).toFixed(1)},${toY(s.value).toFixed(1)}`).join(" ");
   }
 
+  // Bar metrics (daily totals) get one column per sample instead of runs
+  let bars = null;
+  if (bar) {
+    const dayW = ((24 * HOUR_MS) / tSpan) * innerW;
+    const barW = Math.max(2, dayW * 0.55);
+    bars = samples.map((s) => ({
+      x: toX(s.t) - barW / 2,
+      y: toY(s.value),
+      w: barW,
+      h: Math.max(0, toY(yLo) - toY(s.value)),
+      source: s.source,
+    }));
+  }
+
   const present = new Set(samples.map((s) => s.source));
   const { ticks: xTicks, stepH } = buildXTicks(t0, t1, toX);
   return {
     pad,
     plot: { x: pad.left, y: pad.top, w: innerW, h: innerH },
     runs,
+    bars,
     xTicks,
     yTicks: buildYTicks(yLo, yHi, toY),
     // past day-per-tick density, one separator per label is plenty
