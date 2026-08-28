@@ -89,7 +89,7 @@ function buildXTicks(t0, t1, toX) {
       isDate,
     });
   }
-  return ticks;
+  return { ticks, stepH };
 }
 
 function buildYTicks(lo, hi, toY) {
@@ -151,13 +151,15 @@ export function buildChart(samples, width, height, sourceOrder, domain) {
   }
 
   const present = new Set(samples.map((s) => s.source));
+  const { ticks: xTicks, stepH } = buildXTicks(t0, t1, toX);
   return {
     pad,
     plot: { x: pad.left, y: pad.top, w: innerW, h: innerH },
     runs,
-    xTicks: buildXTicks(t0, t1, toX),
+    xTicks,
     yTicks: buildYTicks(yLo, yHi, toY),
-    dayLines: buildDayLines(t0, t1, toX),
+    // past day-per-tick density, one separator per label is plenty
+    dayLines: stepH >= 24 ? xTicks.map((t) => t.x) : buildDayLines(t0, t1, toX),
     sources: sourceOrder.filter((s) => present.has(s)),
     toX,
     toY,

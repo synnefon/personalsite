@@ -23,7 +23,7 @@ const MIN_ZOOM_DRAG_PX = 8;
 const chartHeight = () => Math.min(560, Math.max(320, Math.round(window.innerHeight * 0.55)));
 
 const PRESETS = [
-  { label: "1d", days: 1 },
+  { label: "1d", hours: 24 },
   { label: "3d", days: 3 },
   { label: "7d", days: 7 },
   { label: "30d", days: 30 },
@@ -34,11 +34,24 @@ function toDayStr(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-function presetRange(days) {
+// Day presets show whole calendar days (domain null = derive from the
+// day bounds); hour presets show a rolling window ending now
+function rangeForPreset({ hours, days }) {
+  if (hours) {
+    const now = Date.now();
+    const from = now - hours * 3_600_000;
+    return { start: toDayStr(new Date(from)), end: toDayStr(new Date(now)), domain: [from, now] };
+  }
   const end = new Date();
   const start = new Date();
   start.setDate(end.getDate() - (days - 1));
-  return { start: toDayStr(start), end: toDayStr(end) };
+  return { start: toDayStr(start), end: toDayStr(end), domain: null };
+}
+
+function dayBoundsMs(startDay, endDay) {
+  const [y0, m0, d0] = startDay.split("-").map(Number);
+  const [y1, m1, d1] = endDay.split("-").map(Number);
+  return [new Date(y0, m0 - 1, d0).getTime(), new Date(y1, m1 - 1, d1 + 1).getTime() - 1];
 }
 
 function download(filename, text, mime) {
@@ -58,7 +71,7 @@ const prettySource = (source) => source.replace(/_/g, " ");
 // CHART
 // ============================================
 
-function HrChart({ samples, metric }) {
+function HrChart({ samples, metric, view }) {
   const { unit, order, colors, describe } = METRICS[metric];
   const wrapperRef = useRef(null);
   const [{ width, height }, setSize] = useState({ width: 0, height: chartHeight() });
@@ -97,16 +110,22 @@ function HrChart({ samples, metric }) {
     return order.filter((s) => present.has(s));
   }, [samples, order]);
 
+  // The x extent is always the asked-for window (sparse data shows as
+  // blank space), zoomed in when a zoom is set
+  const domain = useMemo(
+    () => zoom ?? view.domain ?? dayBoundsMs(view.start, view.end),
+    [zoom, view]
+  );
+
   const shown = useMemo(() => {
     let list = samples;
     if (hidden.size) list = list.filter((s) => !hidden.has(s.source));
-    if (zoom) list = list.filter((s) => s.t >= zoom[0] && s.t <= zoom[1]);
-    return list;
-  }, [samples, hidden, zoom]);
+    return list.filter((s) => s.t >= domain[0] && s.t <= domain[1]);
+  }, [samples, hidden, domain]);
 
   const geo = useMemo(
-    () => (width > 0 && shown.length ? buildChart(shown, width, height, order, zoom) : null),
-    [shown, width, height, order, zoom]
+    () => (width > 0 && shown.length ? buildChart(shown, width, height, order, domain) : null),
+    [shown, width, height, order, domain]
   );
 
   const stats = useMemo(() => (shown.length ? buildStats(shown) : null), [shown]);
@@ -198,7 +217,7 @@ function HrChart({ samples, metric }) {
           </button>
         )}
       </div>
-      {!geo && zoom && <p className="hr-status">nothing in this window — reset the zoom</p>}
+      {!geo && <p className="hr-status">nothing in this window</p>}
       {geo && (
         <div className="hr-plot-wrapper">
           <svg
@@ -359,7 +378,10 @@ function HrChart({ samples, metric }) {
           max <span className="hr-stat-value">{stats.max}</span>
           {resting !== null && (
             <>
-              {" "}· resting <span className="hr-stat-value">{resting}</span>
+              {" "}·{" "}
+              <span className="hr-tip-host" data-tip="lowest heart rate while asleep in this view">
+                resting <span className="hr-stat-value">{resting}</span>
+              </span>
             </>
           )}{" "}
           {unit}
@@ -378,8 +400,9 @@ export default function OuraHr() {
   const [authNotice] = useState(takeAuthError);
   const [clientIdInput, setClientIdInput] = useState(getClientId);
   const [tokenInput, setTokenInput] = useState("");
-  const [{ start, end }, setRange] = useState(() => presetRange(1));
+  const [{ start, end, domain }, setRange] = useState(() => rangeForPreset(PRESETS[0]));
   const [preset, setPreset] = useState("1d");
+  const [fetchedView, setFetchedView] = useState(null);
   const [metric, setMetric] = useState("bpm");
   const [proxyInput, setProxyInput] = useState(getProxyBase);
   const [phase, setPhase] = useState("idle"); // idle | loading | ready | error
@@ -390,7 +413,7 @@ export default function OuraHr() {
   const requestRef = useRef(0);
 
   // Run a fetch, ignoring its result if a newer request has started
-  const run = async (token, startDate, endDate, which = metric, force = false) => {
+  const run = async (token, startDate, endDate, which = metric, force = false, viewDomain = null) => {
     const fetcher = which === "hrv" ? fetchHrv : fetchHeartrate;
     const requestId = ++requestRef.current;
     setPhase("loading");
@@ -399,6 +422,7 @@ export default function OuraHr() {
       const result = await fetcher({ token, startDate, endDate, onProgress: setProgress, force });
       if (requestId !== requestRef.current) return;
       setSamples(result);
+      setFetchedView({ start: startDate, end: endDate, domain: viewDomain });
       setPhase("ready");
     } catch (e) {
       if (requestId !== requestRef.current) return;
@@ -414,7 +438,7 @@ export default function OuraHr() {
 
   // Already connected (or just back from the oauth redirect): fetch right away
   useEffect(() => {
-    if (auth) run(auth.token, start, end);
+    if (auth) run(auth.token, start, end, metric, false, domain);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -444,27 +468,27 @@ export default function OuraHr() {
     setPhase("idle");
   };
 
-  const fetchRange = (startDate, endDate, force = false) => {
+  const fetchRange = (startDate, endDate, force = false, viewDomain = null) => {
     // Tolerate a backwards range instead of erroring
     const [s, e] = startDate <= endDate ? [startDate, endDate] : [endDate, startDate];
-    if (auth) run(auth.token, s, e, metric, force);
+    if (auth) run(auth.token, s, e, metric, force, viewDomain);
   };
 
-  const pickPreset = ({ label, days }) => {
-    const range = presetRange(days);
+  const pickPreset = (p) => {
+    const range = rangeForPreset(p);
     setRange(range);
-    setPreset(label);
-    fetchRange(range.start, range.end);
+    setPreset(p.label);
+    fetchRange(range.start, range.end, false, range.domain);
   };
 
   const pickMetric = (which) => {
     if (which === metric) return;
     setMetric(which);
-    if (auth) run(auth.token, start, end, which);
+    if (auth) run(auth.token, start, end, which, false, domain);
   };
 
   const setDay = (key) => (e) => {
-    setRange((r) => ({ ...r, [key]: e.target.value }));
+    setRange((r) => ({ ...r, [key]: e.target.value, domain: null }));
     setPreset(null);
   };
 
@@ -600,7 +624,7 @@ export default function OuraHr() {
               <input className="hr-input hr-date" type="date" value={start} onChange={setDay("start")} aria-label="start date" />
               <span className="hr-muted">to</span>
               <input className="hr-input hr-date" type="date" value={end} onChange={setDay("end")} aria-label="end date" />
-              <button className="hr-button" onClick={() => fetchRange(start, end, true)}>
+              <button className="hr-button" onClick={() => fetchRange(start, end, true, domain)}>
                 fetch
               </button>
             </div>
@@ -623,9 +647,9 @@ export default function OuraHr() {
               <p className="hr-status">no {metric} samples in that range</p>
             )}
 
-            {samples.length > 0 && (
+            {samples.length > 0 && fetchedView && (
               <div className={`hr-results${phase === "loading" ? " hr-stale" : ""}`}>
-                <HrChart samples={samples} metric={metric} />
+                <HrChart samples={samples} metric={metric} view={fetchedView} />
                 <div className="hr-utility">
                   <button
                     className="hr-button hr-quiet"
