@@ -272,6 +272,52 @@ export async function fetchHrv({ token, startDate, endDate, onProgress }) {
   return samples.filter(finite).sort(byTime);
 }
 
+// Daily-total metrics plot one sample per day, anchored at local noon
+function noonMs(day) {
+  const [y, m, d] = parseDay(day);
+  return new Date(y, m - 1, d, 12).getTime();
+}
+
+export async function fetchSteps({ token, startDate, endDate, onProgress }) {
+  if (token === "demo") return demoDaily(startDate, endDate, "steps");
+
+  const docs = await fetchAllPages({
+    token,
+    route: "daily_activity",
+    params: { start_date: startDate, end_date: endDate },
+    onProgress,
+  });
+  return docs
+    .filter((doc) => Number.isFinite(doc.steps))
+    .map((doc) => ({ timestamp: doc.day, value: doc.steps, source: "steps", t: noonMs(doc.day) }))
+    .sort(byTime);
+}
+
+export async function fetchStress({ token, startDate, endDate, onProgress }) {
+  if (token === "demo") return demoDaily(startDate, endDate, "stress");
+
+  const docs = await fetchAllPages({
+    token,
+    route: "daily_stress",
+    params: { start_date: startDate, end_date: endDate },
+    onProgress,
+  });
+  const samples = [];
+  for (const doc of docs) {
+    const t = noonMs(doc.day);
+    // the +1min keeps the two same-day series hover-distinguishable
+    if (Number.isFinite(doc.stress_high)) {
+      samples.push({ timestamp: doc.day, value: hours(doc.stress_high), source: "stress", t });
+    }
+    if (Number.isFinite(doc.recovery_high)) {
+      samples.push({ timestamp: doc.day, value: hours(doc.recovery_high), source: "recovery", t: t + 60_000 });
+    }
+  }
+  return samples.sort(byTime);
+}
+
+const hours = (seconds) => Math.round((seconds / 3600) * 10) / 10;
+
 export function toCsv(samples, valueColumn) {
   const rows = samples.map((s) => `${s.timestamp},${s.value},${s.source}`);
   return `timestamp,${valueColumn},source\n${rows.join("\n")}\n`;
@@ -318,6 +364,25 @@ function demoHeartrate(startDate, endDate) {
     }
   }
   return samples.sort(byTime);
+}
+
+function demoDaily(startDate, endDate, kind) {
+  const samples = [];
+  for (const day of listDays(startDate, endDate)) {
+    const t = noonMs(day);
+    if (kind === "steps") {
+      samples.push({ timestamp: day, value: Math.round(4000 + Math.random() * 11000), source: "steps", t });
+    } else {
+      samples.push({ timestamp: day, value: Math.round((1 + Math.random() * 7) * 10) / 10, source: "stress", t });
+      samples.push({
+        timestamp: day,
+        value: Math.round((1 + Math.random() * 5) * 10) / 10,
+        source: "recovery",
+        t: t + 60_000,
+      });
+    }
+  }
+  return samples;
 }
 
 function demoHrv(startDate, endDate) {

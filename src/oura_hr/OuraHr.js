@@ -6,6 +6,8 @@ import {
   clearAuth,
   fetchHeartrate,
   fetchHrv,
+  fetchSteps,
+  fetchStress,
   getClientId,
   getProxyBase,
   getStoredAuth,
@@ -72,7 +74,8 @@ const prettySource = (source) => source.replace(/_/g, " ");
 // ============================================
 
 function HrChart({ samples, metric, view }) {
-  const { unit, order, colors, describe, yFallback } = METRICS[metric];
+  const { unit, order, colors, describe, yFallback, yPad, yZero, gapMs, decimals } = METRICS[metric];
+  const fmtVal = (v) => (decimals ? v.toFixed(decimals) : String(Math.round(v)));
   const wrapperRef = useRef(null);
   const [{ width, height }, setSize] = useState({ width: 0, height: chartHeight() });
   const [hoverIdx, setHoverIdx] = useState(null);
@@ -126,8 +129,11 @@ function HrChart({ samples, metric, view }) {
   }, [samples, hidden, domain]);
 
   const geo = useMemo(
-    () => (width > 0 ? buildChart(shown, width, height, order, domain, yFallback) : null),
-    [shown, width, height, order, domain, yFallback]
+    () =>
+      width > 0
+        ? buildChart(shown, width, height, { order, domain, yFallback, yPad, yZero, gapMs })
+        : null,
+    [shown, width, height, order, domain, yFallback, yPad, yZero, gapMs]
   );
 
   const stats = useMemo(() => (shown.length ? buildStats(shown) : null), [shown]);
@@ -347,7 +353,7 @@ function HrChart({ samples, metric, view }) {
               }}
             >
               <div className="hr-tip-bpm">
-                {Math.round(hovered.value)} <span className="hr-tip-unit">{unit}</span>
+                {fmtVal(hovered.value)} <span className="hr-tip-unit">{unit}</span>
               </div>
               <div className="hr-tip-source">
                 <span className="hr-key" style={{ backgroundColor: colors[hovered.source] }} />
@@ -360,10 +366,21 @@ function HrChart({ samples, metric, view }) {
       )}
       {stats && (
         <p className="hr-stats">
-          <span className="hr-stat-value">{stats.count}</span> samples ·{" "}
-          min <span className="hr-stat-value">{stats.min}</span> ·{" "}
-          avg <span className="hr-stat-value">{stats.avg}</span> ·{" "}
-          max <span className="hr-stat-value">{stats.max}</span> {unit}
+          <span className="hr-stat-pair">
+            <span className="hr-stat-value">{stats.count}</span> samples
+          </span>{" "}
+          ·{" "}
+          <span className="hr-stat-pair">
+            min <span className="hr-stat-value">{fmtVal(stats.min)}</span>
+          </span>{" "}
+          ·{" "}
+          <span className="hr-stat-pair">
+            avg <span className="hr-stat-value">{fmtVal(stats.avg)}</span>
+          </span>{" "}
+          ·{" "}
+          <span className="hr-stat-pair">
+            max <span className="hr-stat-value">{fmtVal(stats.max)}</span> {unit}
+          </span>
         </p>
       )}
     </div>
@@ -392,9 +409,11 @@ export default function OuraHr() {
   const [cornerOpen, setCornerOpen] = useState(false);
   const requestRef = useRef(0);
 
+  const FETCHERS = { bpm: fetchHeartrate, hrv: fetchHrv, steps: fetchSteps, stress: fetchStress };
+
   // Run a fetch, ignoring its result if a newer request has started
   const run = async (token, startDate, endDate, which = metric, force = false, viewDomain = null) => {
-    const fetcher = which === "hrv" ? fetchHrv : fetchHeartrate;
+    const fetcher = FETCHERS[which];
     const requestId = ++requestRef.current;
     setPhase("loading");
     setProgress(0);
@@ -507,7 +526,7 @@ export default function OuraHr() {
         {!auth ? (
           <div className="hr-connect">
             <div className="hr-title-row">
-              <span className="hr-prompt">&gt;</span> oura heartrate
+              <span className="hr-prompt">&gt;</span> oura tracking data
             </div>
             {authNotice && <p className="hr-status hr-status-error">login failed: {authNotice}</p>}
             {phase === "error" && <p className="hr-status hr-status-error">error: {error}</p>}
@@ -613,12 +632,14 @@ export default function OuraHr() {
                 </button>
               ))}
               <span className="hr-filter-divider" />
-              <input className="hr-input hr-date" type="date" value={start} onChange={setDay("start")} aria-label="start date" />
-              <span className="hr-muted">to</span>
-              <input className="hr-input hr-date" type="date" value={end} onChange={setDay("end")} aria-label="end date" />
-              <button className="hr-button" onClick={() => fetchRange(start, end, true, domain)}>
-                fetch
-              </button>
+              <span className="hr-dates">
+                <input className="hr-input hr-date" type="date" value={start} onChange={setDay("start")} aria-label="start date" />
+                <span className="hr-muted">to</span>
+                <input className="hr-input hr-date" type="date" value={end} onChange={setDay("end")} aria-label="end date" />
+                <button className="hr-button" onClick={() => fetchRange(start, end, true, domain)}>
+                  fetch
+                </button>
+              </span>
             </div>
 
             {phase === "loading" && (

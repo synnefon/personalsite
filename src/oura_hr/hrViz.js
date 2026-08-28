@@ -11,6 +11,7 @@ export const METRICS = {
     unit: "bpm",
     csvColumn: "bpm",
     yFallback: [40, 160],
+    yPad: 3,
     order: ["sleep", "workout", "rest", "awake", "session", "live"],
     colors: {
       sleep: "#3987e5",
@@ -33,6 +34,7 @@ export const METRICS = {
     unit: "ms",
     csvColumn: "rmssd_ms",
     yFallback: [0, 120],
+    yPad: 3,
     order: ["long_sleep", "sleep", "late_nap", "rest"],
     colors: {
       long_sleep: "#3987e5",
@@ -47,6 +49,32 @@ export const METRICS = {
       rest: "restful period, not scored as sleep",
     },
   },
+  steps: {
+    unit: "steps",
+    csvColumn: "steps",
+    yFallback: [0, 15000],
+    yPad: 500,
+    yZero: true,
+    gapMs: 36 * 60 * 60 * 1000,
+    order: ["steps"],
+    colors: { steps: "#3987e5" },
+    describe: { steps: "day's total — oura only reports steps per day" },
+  },
+  stress: {
+    unit: "h",
+    csvColumn: "hours",
+    yFallback: [0, 10],
+    yPad: 0.5,
+    yZero: true,
+    decimals: 1,
+    gapMs: 36 * 60 * 60 * 1000,
+    order: ["stress", "recovery"],
+    colors: { stress: "#d95926", recovery: "#199e70" },
+    describe: {
+      stress: "hours in the high-stress zone that day",
+      recovery: "hours in the high-recovery zone that day",
+    },
+  },
 };
 
 // Never draw a line across more than this much silence between samples
@@ -54,7 +82,6 @@ const GAP_BREAK_MS = 20 * 60 * 1000;
 
 const HOUR_MS = 60 * 60 * 1000;
 const X_TICK_STEPS_H = [1, 2, 3, 6, 12, 24, 48, 96, 168, 336, 720];
-const Y_TICK_STEPS = [5, 10, 20, 25, 50];
 const MAX_TICKS = 8;
 
 const fmtDate = (d) => `${d.getMonth() + 1}/${d.getDate()}`;
@@ -94,11 +121,23 @@ function buildXTicks(t0, t1, toX) {
   return { ticks, stepH };
 }
 
+// Smallest of 1/2/2.5/5 x 10^k giving at most ~6 ticks over the span
+function yTickStep(span) {
+  const target = Math.max(0.1, span / 6);
+  const pow = 10 ** Math.floor(Math.log10(target));
+  for (const mult of [1, 2, 2.5, 5, 10]) {
+    if (pow * mult >= target) return pow * mult;
+  }
+  return pow * 10;
+}
+
+const fmtTickValue = (v) => (v >= 1000 ? `${+(v / 1000).toFixed(1)}k` : String(+v.toFixed(1)));
+
 function buildYTicks(lo, hi, toY) {
-  const step = Y_TICK_STEPS.find((s) => (hi - lo) / s <= 6) ?? Y_TICK_STEPS.at(-1);
+  const step = yTickStep(hi - lo);
   const ticks = [];
-  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
-    ticks.push({ y: toY(v), label: String(v) });
+  for (let v = Math.ceil(lo / step) * step; v <= hi + step / 1e6; v += step) {
+    ticks.push({ y: toY(v), label: fmtTickValue(v) });
   }
   return ticks;
 }
@@ -114,12 +153,15 @@ function buildDayLines(t0, t1, toX) {
 
 // samples: [{t, value, source}] sorted by t, possibly empty. Returns
 // everything the svg needs: runs (polylines/lone dots per source),
-// ticks, mappers. The frame comes first: domain pins the x extent and
-// yFallback scales an empty chart; data only fills what's there.
-export function buildChart(samples, width, height, sourceOrder, domain, yFallback) {
+// ticks, mappers. The frame comes first: opts.domain pins the x extent
+// and opts.yFallback scales an empty chart; data only fills what's
+// there. opts: { order, domain, yFallback, yPad, yZero, gapMs }.
+export function buildChart(samples, width, height, opts) {
   const pad = { top: 16, right: 14, bottom: 26, left: 40 };
   const innerW = Math.max(1, width - pad.left - pad.right);
   const innerH = Math.max(1, height - pad.top - pad.bottom);
+  const { order: sourceOrder, domain, yFallback, yPad = 3, yZero = false } = opts;
+  const gapMs = opts.gapMs ?? GAP_BREAK_MS;
 
   const t0 = domain ? domain[0] : samples[0].t;
   const t1 = domain ? domain[1] : samples.at(-1).t;
@@ -134,8 +176,11 @@ export function buildChart(samples, width, height, sourceOrder, domain, yFallbac
       if (s.value < valLo) valLo = s.value;
       if (s.value > valHi) valHi = s.value;
     }
-    yLo = Math.max(0, Math.floor((valLo - 3) / 10) * 10);
-    yHi = Math.ceil((valHi + 3) / 10) * 10;
+    const rawLo = yZero ? 0 : Math.max(0, valLo - yPad);
+    const rawHi = valHi + yPad;
+    const step = yTickStep(rawHi - rawLo);
+    yLo = Math.floor(rawLo / step) * step;
+    yHi = Math.ceil(rawHi / step) * step;
   } else {
     [yLo, yHi] = yFallback ?? [0, 100];
   }
@@ -149,7 +194,7 @@ export function buildChart(samples, width, height, sourceOrder, domain, yFallbac
   let run = null;
   for (const s of samples) {
     const prev = run?.samples.at(-1);
-    if (!prev || s.source !== run.source || s.t - prev.t > GAP_BREAK_MS) {
+    if (!prev || s.source !== run.source || s.t - prev.t > gapMs) {
       run = { source: s.source, samples: [] };
       runs.push(run);
     }
@@ -198,10 +243,5 @@ export function buildStats(samples) {
     if (s.value > max) max = s.value;
     sum += s.value;
   }
-  return {
-    count: samples.length,
-    min: Math.round(min),
-    max: Math.round(max),
-    avg: Math.round(sum / samples.length),
-  };
+  return { count: samples.length, min, max, avg: sum / samples.length };
 }

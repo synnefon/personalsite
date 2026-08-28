@@ -202,6 +202,12 @@
   margin: 0 0.9em;
 }
 
+.hr-dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
 .hr-preset-active {
   border-color: var(--color-green-lime);
   color: var(--color-green-lime);
@@ -243,6 +249,11 @@
   color: rgb(128, 128, 128);
   font-size: 0.9em;
   margin-top: 0.8em;
+}
+
+/* wraps between stats, never inside one */
+.hr-stat-pair {
+  white-space: nowrap;
 }
 
 .hr-stat-value {
@@ -345,6 +356,29 @@
   width: 0.55em;
   height: 0.55em;
   background-color: var(--color-green-lime);
+}
+
+/* ============================================
+   MOBILE
+   ============================================ */
+
+@media (max-width: 700px) {
+  .ourahr-colors .content-wrapper {
+    padding-top: 2.8em;
+  }
+
+  /* stack the control groups: metrics+presets flow, dates on their own line */
+  .hr-filters .hr-filter-divider {
+    display: none;
+  }
+
+  .hr-filter-spacer {
+    flex-basis: 100%;
+  }
+
+  .hr-date {
+    width: 8.6em;
+  }
 }
 
 .hr-key {
