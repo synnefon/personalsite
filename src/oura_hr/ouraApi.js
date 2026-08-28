@@ -2,16 +2,28 @@
 // token storage, and paginated fetching of /v2/usercollection/heartrate.
 
 const AUTHORIZE_URL = "https://cloud.ouraring.com/oauth/authorize";
-// In dev, go through the CRA proxy (setupProxy.js) so CORS never applies.
-// In prod the browser calls oura directly, which oura only allows for
-// origins tied to a registered oauth app.
-const API_BASE =
-  process.env.NODE_ENV === "development" ? "/oura-api" : "https://api.ouraring.com";
 
 const AUTH_KEY = "oura_auth";
 const CLIENT_ID_KEY = "oura_client_id";
 const STATE_KEY = "oura_oauth_state";
 const AUTH_ERROR_KEY = "oura_auth_error";
+const PROXY_KEY = "oura_proxy_base";
+
+// api.ouraring.com refuses browser (CORS) calls outright, so prod needs
+// a self-hosted forwarder (oura-proxy/); dev falls back to the CRA
+// proxy in setupProxy.js when none is configured.
+function apiBase() {
+  const proxy = getProxyBase();
+  if (proxy) return proxy;
+  return process.env.NODE_ENV === "development" ? "/oura-api" : "https://api.ouraring.com";
+}
+
+export const getProxyBase = () => localStorage.getItem(PROXY_KEY) ?? "";
+export function setProxyBase(url) {
+  const cleaned = url.trim().replace(/\/+$/, "");
+  if (cleaned) localStorage.setItem(PROXY_KEY, cleaned);
+  else localStorage.removeItem(PROXY_KEY);
+}
 
 // Fallback when the redirect omits expires_in; oura implicit tokens last 30 days
 const DEFAULT_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -109,14 +121,17 @@ export async function fetchHeartrate({ token, startDate, endDate, onProgress }) 
 
     let resp;
     try {
-      resp = await fetch(`${API_BASE}/v2/usercollection/heartrate?${params}`, {
+      resp = await fetch(`${apiBase()}/v2/usercollection/heartrate?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
     } catch {
-      throw new Error(
-        "couldn't reach the oura api — likely a CORS block. is this origin's " +
-          "redirect uri registered on your oura app?"
+      const err = new Error(
+        getProxyBase()
+          ? "couldn't reach the api proxy — check its url"
+          : "oura blocks direct browser calls (cors) — set an api proxy url below"
       );
+      err.code = "unreachable";
+      throw err;
     }
     if (resp.status === 401) {
       const err = new Error("oura rejected the token (expired or revoked) — reconnect");

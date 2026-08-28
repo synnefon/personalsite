@@ -5,8 +5,10 @@ import {
   clearAuth,
   fetchHeartrate,
   getClientId,
+  getProxyBase,
   getStoredAuth,
   setClientId,
+  setProxyBase,
   storeToken,
   takeAuthError,
   toCsv,
@@ -256,8 +258,10 @@ export default function OuraHr() {
   const [tokenInput, setTokenInput] = useState("");
   const [{ start, end }, setRange] = useState(() => presetRange(3));
   const [preset, setPreset] = useState("3d");
+  const [proxyInput, setProxyInput] = useState(getProxyBase);
   const [phase, setPhase] = useState("idle"); // idle | loading | ready | error
   const [error, setError] = useState("");
+  const [errorCode, setErrorCode] = useState(null);
   const [progress, setProgress] = useState(0);
   const [samples, setSamples] = useState([]);
   const requestRef = useRef(0);
@@ -279,6 +283,7 @@ export default function OuraHr() {
         setAuth(null);
       }
       setError(e.message || "something went wrong");
+      setErrorCode(e.code ?? null);
       setPhase("error");
     }
   };
@@ -331,6 +336,32 @@ export default function OuraHr() {
     setPreset(null);
   };
 
+  const saveProxy = () => {
+    setProxyBase(proxyInput);
+    setProxyInput(getProxyBase());
+    if (auth) run(auth.token, start, end);
+  };
+
+  const proxyField = (
+    <div className="hr-token-row">
+      <input
+        className="hr-input"
+        type="text"
+        value={proxyInput}
+        spellCheck={false}
+        placeholder="https://oura-proxy.<you>.workers.dev"
+        aria-label="api proxy url"
+        onChange={(e) => setProxyInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") saveProxy();
+        }}
+      />
+      <button className="hr-button" onClick={saveProxy}>
+        {auth ? "save & retry" : "save"}
+      </button>
+    </div>
+  );
+
   const stats = useMemo(() => (samples.length ? buildStats(samples) : null), [samples]);
   const stamp = `${start}_${end}`;
 
@@ -372,10 +403,15 @@ export default function OuraHr() {
                 </li>
                 <li>
                   add redirect uris:
-                  <code>{window.location.origin}/oura-callback.html</code>
-                  <code>http://localhost:3000/oura-callback.html</code>
+                  <code className="hr-uri">{window.location.origin}/oura-callback.html</code>
+                  <code className="hr-uri">http://localhost:3000/oura-callback.html</code>
                 </li>
                 <li>paste the app's client id above and connect</li>
+                <li>
+                  oura blocks direct browser calls, so deploy the tiny forwarder in the
+                  repo's <code>oura-proxy/</code> (readme inside) and paste its url:
+                  {proxyField}
+                </li>
               </ol>
             </details>
             <details className="hr-help">
@@ -432,6 +468,14 @@ export default function OuraHr() {
               <p className="hr-status">fetching heartrate data... {progress > 0 && `${progress} samples`}</p>
             )}
             {phase === "error" && <p className="hr-status hr-status-error">error: {error}</p>}
+            {phase === "error" && errorCode === "unreachable" && (
+              <div className="hr-proxy-fix">
+                <p className="hr-muted">
+                  api proxy url (deploy the repo's <code>oura-proxy/</code> — readme inside):
+                </p>
+                {proxyField}
+              </div>
+            )}
             {phase === "ready" && samples.length === 0 && (
               <p className="hr-status">no heartrate samples in that range</p>
             )}

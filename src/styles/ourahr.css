@@ -134,16 +134,14 @@
 }
 
 .hr-help code {
-  display: block;
-  margin-top: 0.3em;
-  color: var(--color-gray-medium);
+  color: var(--color-text-light);
   overflow-wrap: anywhere;
 }
 
-.hr-help p code {
-  display: inline;
-  margin: 0;
-  color: var(--color-text-light);
+.hr-help code.hr-uri {
+  display: block;
+  margin-top: 0.3em;
+  color: var(--color-gray-medium);
 }
 
 .hr-help a {
@@ -185,6 +183,15 @@
 
 .hr-filter-spacer {
   flex: 1;
+}
+
+.hr-proxy-fix {
+  width: min(34em, 100%);
+  margin: 0 auto;
+}
+
+.hr-proxy-fix code {
+  color: var(--color-text-light);
 }
 
 .hr-results {
