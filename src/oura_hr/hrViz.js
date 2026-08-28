@@ -10,6 +10,7 @@ export const METRICS = {
   bpm: {
     unit: "bpm",
     csvColumn: "bpm",
+    yFallback: [40, 160],
     order: ["sleep", "workout", "rest", "awake", "session", "live"],
     colors: {
       sleep: "#3987e5",
@@ -31,6 +32,7 @@ export const METRICS = {
   hrv: {
     unit: "ms",
     csvColumn: "rmssd_ms",
+    yFallback: [0, 120],
     order: ["long_sleep", "sleep", "late_nap", "rest"],
     colors: {
       long_sleep: "#3987e5",
@@ -110,10 +112,11 @@ function buildDayLines(t0, t1, toX) {
   return xs;
 }
 
-// samples: [{t, value, source}] sorted by t. Returns everything the
-// svg needs: runs (polylines/lone dots per source), ticks, mappers.
-// domain pins the x extent (a zoom window); defaults to the data's.
-export function buildChart(samples, width, height, sourceOrder, domain) {
+// samples: [{t, value, source}] sorted by t, possibly empty. Returns
+// everything the svg needs: runs (polylines/lone dots per source),
+// ticks, mappers. The frame comes first: domain pins the x extent and
+// yFallback scales an empty chart; data only fills what's there.
+export function buildChart(samples, width, height, sourceOrder, domain, yFallback) {
   const pad = { top: 16, right: 14, bottom: 26, left: 40 };
   const innerW = Math.max(1, width - pad.left - pad.right);
   const innerH = Math.max(1, height - pad.top - pad.bottom);
@@ -122,14 +125,20 @@ export function buildChart(samples, width, height, sourceOrder, domain) {
   const t1 = domain ? domain[1] : samples.at(-1).t;
   const tSpan = Math.max(1, t1 - t0);
 
-  let valLo = Infinity;
-  let valHi = -Infinity;
-  for (const s of samples) {
-    if (s.value < valLo) valLo = s.value;
-    if (s.value > valHi) valHi = s.value;
+  let yLo;
+  let yHi;
+  if (samples.length) {
+    let valLo = Infinity;
+    let valHi = -Infinity;
+    for (const s of samples) {
+      if (s.value < valLo) valLo = s.value;
+      if (s.value > valHi) valHi = s.value;
+    }
+    yLo = Math.max(0, Math.floor((valLo - 3) / 10) * 10);
+    yHi = Math.ceil((valHi + 3) / 10) * 10;
+  } else {
+    [yLo, yHi] = yFallback ?? [0, 100];
   }
-  const yLo = Math.max(0, Math.floor((valLo - 3) / 10) * 10);
-  const yHi = Math.ceil((valHi + 3) / 10) * 10;
 
   const toX = (t) => pad.left + ((t - t0) / tSpan) * innerW;
   const toY = (value) => pad.top + (1 - (value - yLo) / (yHi - yLo)) * innerH;

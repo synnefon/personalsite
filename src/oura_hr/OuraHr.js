@@ -72,7 +72,7 @@ const prettySource = (source) => source.replace(/_/g, " ");
 // ============================================
 
 function HrChart({ samples, metric, view }) {
-  const { unit, order, colors, describe } = METRICS[metric];
+  const { unit, order, colors, describe, yFallback } = METRICS[metric];
   const wrapperRef = useRef(null);
   const [{ width, height }, setSize] = useState({ width: 0, height: chartHeight() });
   const [hoverIdx, setHoverIdx] = useState(null);
@@ -126,8 +126,8 @@ function HrChart({ samples, metric, view }) {
   }, [samples, hidden, domain]);
 
   const geo = useMemo(
-    () => (width > 0 && shown.length ? buildChart(shown, width, height, order, domain) : null),
-    [shown, width, height, order, domain]
+    () => (width > 0 ? buildChart(shown, width, height, order, domain, yFallback) : null),
+    [shown, width, height, order, domain, yFallback]
   );
 
   const stats = useMemo(() => (shown.length ? buildStats(shown) : null), [shown]);
@@ -160,7 +160,7 @@ function HrChart({ samples, metric, view }) {
     if (!geo) return;
     const x = plotX(e);
     if (drag) setDrag((d) => ({ ...d, x1: x }));
-    setHoverIdx(nearestIndex(shown, geo.xToT(x)));
+    if (shown.length) setHoverIdx(nearestIndex(shown, geo.xToT(x)));
   };
 
   const onPointerUp = () => {
@@ -176,6 +176,7 @@ function HrChart({ samples, metric, view }) {
 
   const onKeyDown = (e) => {
     if (e.key === "Escape") return setHoverIdx(null);
+    if (!shown.length) return;
     const delta = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
     if (!delta) return;
     e.preventDefault();
@@ -219,7 +220,6 @@ function HrChart({ samples, metric, view }) {
           </label>
         </span>
       </div>
-      {!geo && <p className="hr-status">nothing in this window</p>}
       {geo && (
         <div className="hr-plot-wrapper">
           <svg
@@ -635,14 +635,11 @@ export default function OuraHr() {
                 {proxyField}
               </div>
             )}
-            {phase === "ready" && samples.length === 0 && (
-              <p className="hr-status">no {metric} samples in that range</p>
-            )}
-
-            {samples.length > 0 && fetchedView && (
+            {fetchedView && (
               <div className={`hr-results${phase === "loading" ? " hr-stale" : ""}`}>
                 <HrChart samples={samples} metric={metric} view={fetchedView} />
-                <div className="hr-utility">
+                {samples.length > 0 && (
+                  <div className="hr-utility">
                   <button
                     className="hr-button hr-quiet"
                     onClick={() =>
@@ -667,7 +664,8 @@ export default function OuraHr() {
                   >
                     download json
                   </button>
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </>
