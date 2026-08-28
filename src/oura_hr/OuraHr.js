@@ -17,6 +17,7 @@ import {
   toCsv,
 } from "./ouraApi";
 import { METRICS, buildChart, buildStats, fmtTime, nearestIndex } from "./hrViz";
+import { startAmbientMusic } from "./ambientMusic";
 
 const MIN_ZOOM_DRAG_PX = 8;
 
@@ -60,6 +61,68 @@ function download(filename, text, mime) {
 }
 
 const prettySource = (source) => source.replace(/_/g, " ");
+
+// ============================================
+// BACKGROUND RINGS
+// ============================================
+
+// keeps the list bounded when the overlay is display: none (hidden
+// climbs never fire animationend, so rings would pile up forever)
+const RING_CAP = 40;
+
+// Rings spawn at random moments at random spots along the bottom edge,
+// climb past the top of the page tumbling end over end, and unmount
+// when the climb animation ends. Ring geometry is in em, so the random
+// font size scales band and glow together. Turning `active` off stops
+// the spawner; rings already in flight finish their climb.
+function RingField({ active }) {
+  const [rings, setRings] = useState([]);
+  const nextIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!active) return undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    let timer;
+    const spawn = () => {
+      setRings((rs) => [
+        ...rs.slice(1 - RING_CAP),
+        {
+          id: nextIdRef.current++,
+          left: `${1 + Math.random() * 94}vw`,
+          sizePx: 14 + Math.random() * 10,
+          climbS: 8 + Math.random() * 6,
+          tumbleS: 1 + Math.random() * 0.6,
+          phaseS: -Math.random() * 1.6,
+        },
+      ]);
+      timer = setTimeout(spawn, 200 + Math.random() * 760);
+    };
+    spawn();
+    return () => clearTimeout(timer);
+  }, [active]);
+
+  return (
+    <div className="hr-ring-flight" aria-hidden="true">
+      {rings.map((r) => (
+        <div
+          key={r.id}
+          className="hr-ring-climb"
+          style={{ left: r.left, animationDuration: `${r.climbS}s` }}
+          onAnimationEnd={() => setRings((rs) => rs.filter((x) => x.id !== r.id))}
+        >
+          <div
+            className="hr-ring"
+            style={{
+              fontSize: `${r.sizePx}px`,
+              animationDuration: `${r.tumbleS}s`,
+              animationDelay: `${r.phaseS}s`,
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ============================================
 // CHART
@@ -471,7 +534,29 @@ export default function OuraHr() {
   const [progress, setProgress] = useState(0);
   const [samples, setSamples] = useState([]);
   const [cornerOpen, setCornerOpen] = useState(false);
+  const [musicOn, setMusicOn] = useState(false);
   const requestRef = useRef(0);
+  const musicRef = useRef(null);
+
+  // Music and rings start together from the note button; starting from
+  // a click also satisfies the browser autoplay rules
+  const toggleMusic = () => {
+    if (musicRef.current) {
+      musicRef.current.stop();
+      musicRef.current = null;
+      setMusicOn(false);
+    } else {
+      musicRef.current = startAmbientMusic();
+      setMusicOn(true);
+    }
+  };
+
+  // Silence the music when navigating away
+  useEffect(() => {
+    return () => {
+      if (musicRef.current) musicRef.current.stop();
+    };
+  }, []);
 
   const FETCHERS = { bpm: fetchHeartrate, hrv: fetchHrv, steps: fetchSteps };
 
@@ -551,9 +636,15 @@ export default function OuraHr() {
     if (auth) run(auth.token, start, end, which);
   };
 
+  // Dates fetch on change; skip the partial values a keyboard edit
+  // passes through (year "0002" etc), and empty fields
+  const plausibleDay = (d) => d >= "2013-01-01" && d <= "2099-12-31";
+
   const setDay = (key) => (e) => {
-    setRange((r) => ({ ...r, [key]: e.target.value }));
+    const next = { start, end, [key]: e.target.value };
+    setRange(next);
     setPreset(null);
+    if (plausibleDay(next.start) && plausibleDay(next.end)) fetchRange(next.start, next.end);
   };
 
   const saveProxy = () => {
@@ -586,7 +677,34 @@ export default function OuraHr() {
 
   return (
     <div id="app-base" className="ourahr-colors">
+      {/* page background: rings drift up from the bottom, passing beneath the graph */}
+      <RingField active={musicOn} />
       <div className="content-wrapper ourahr-colors">
+        <div className="hr-corner">
+          <span className="hr-corner-row">
+            {auth && cornerOpen && (
+              <button className="hr-button hr-quiet" onClick={disconnect}>
+                disconnect
+              </button>
+            )}
+            {auth && (
+              <button
+                className="hr-heart"
+                aria-label="account"
+                onClick={() => setCornerOpen((v) => !v)}
+              >
+                {cornerOpen ? "♥" : "♡"}
+              </button>
+            )}
+          </span>
+          <button
+            className={`hr-note${musicOn ? " hr-note-on" : ""}`}
+            aria-label={musicOn ? "music and rings off" : "music and rings on"}
+            onClick={toggleMusic}
+          >
+            {musicOn ? "♫" : "♪"}
+          </button>
+        </div>
         {!auth ? (
           <div className="hr-connect">
             <div className="hr-title-row">
@@ -661,20 +779,6 @@ export default function OuraHr() {
           </div>
         ) : (
           <>
-            <div className="hr-corner">
-              {cornerOpen && (
-                <button className="hr-button hr-quiet" onClick={disconnect}>
-                  disconnect
-                </button>
-              )}
-              <button
-                className="hr-heart"
-                aria-label="account"
-                onClick={() => setCornerOpen((v) => !v)}
-              >
-                {cornerOpen ? "♥" : "♡"}
-              </button>
-            </div>
             <div className="hr-filters">
               {Object.keys(METRICS).map((m) => (
                 <button
@@ -700,23 +804,13 @@ export default function OuraHr() {
                 <input className="hr-input hr-date" type="date" value={start} onChange={setDay("start")} aria-label="start date" />
                 <span className="hr-muted">to</span>
                 <input className="hr-input hr-date" type="date" value={end} onChange={setDay("end")} aria-label="end date" />
-                <button className="hr-button" onClick={() => fetchRange(start, end, true)}>
-                  fetch
-                </button>
               </span>
             </div>
 
             {phase === "loading" && (
-              <>
-                <p className="hr-status">
-                  fetching {metric} data... {progress > 0 && `${progress} fetched`}
-                </p>
-                <div className="hr-ring-flight" aria-hidden="true">
-                  <div className="hr-ring-climb">
-                    <div className="hr-ring" />
-                  </div>
-                </div>
-              </>
+              <p className="hr-status">
+                fetching {metric} data... {progress > 0 && `${progress} fetched`}
+              </p>
             )}
             {phase === "error" && <p className="hr-status hr-status-error">error: {error}</p>}
             {phase === "error" && errorCode === "unreachable" && (
