@@ -9,13 +9,16 @@ const STATE_KEY = "oura_oauth_state";
 const AUTH_ERROR_KEY = "oura_auth_error";
 const PROXY_KEY = "oura_proxy_base";
 
-// api.ouraring.com refuses browser (CORS) calls outright, so prod needs
-// a self-hosted forwarder (oura-proxy/); dev falls back to the CRA
-// proxy in setupProxy.js when none is configured.
+// api.ouraring.com refuses browser (CORS) calls outright, so prod goes
+// through the deployed oura-proxy/ worker; dev uses the CRA proxy in
+// setupProxy.js. A localStorage override (the page's proxy field) wins
+// over both, for anyone running their own forwarder.
+export const DEFAULT_PROXY = "https://oura-proxy.connor-j-hopkins.workers.dev";
+
 function apiBase() {
   const proxy = getProxyBase();
   if (proxy) return proxy;
-  return process.env.NODE_ENV === "development" ? "/oura-api" : "https://api.ouraring.com";
+  return process.env.NODE_ENV === "development" ? "/oura-api" : DEFAULT_PROXY;
 }
 
 export const getProxyBase = () => localStorage.getItem(PROXY_KEY) ?? "";
@@ -128,7 +131,7 @@ export async function fetchHeartrate({ token, startDate, endDate, onProgress }) 
       const err = new Error(
         getProxyBase()
           ? "couldn't reach the api proxy — check its url"
-          : "oura blocks direct browser calls (cors) — set an api proxy url below"
+          : "couldn't reach the api proxy — is the oura-proxy worker up?"
       );
       err.code = "unreachable";
       throw err;

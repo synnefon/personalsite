@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "../styles/ourahr.css";
 import {
+  DEFAULT_PROXY,
   beginLogin,
   clearAuth,
   fetchHeartrate,
@@ -349,7 +350,7 @@ export default function OuraHr() {
         type="text"
         value={proxyInput}
         spellCheck={false}
-        placeholder="https://oura-proxy.<you>.workers.dev"
+        placeholder={DEFAULT_PROXY}
         aria-label="api proxy url"
         onChange={(e) => setProxyInput(e.target.value)}
         onKeyDown={(e) => {
@@ -408,8 +409,9 @@ export default function OuraHr() {
                 </li>
                 <li>paste the app's client id above and connect</li>
                 <li>
-                  oura blocks direct browser calls, so deploy the tiny forwarder in the
-                  repo's <code>oura-proxy/</code> (readme inside) and paste its url:
+                  oura blocks direct browser calls, so requests route through the{" "}
+                  <code>oura-proxy/</code> cloudflare worker by default — override here if
+                  you run your own:
                   {proxyField}
                 </li>
               </ol>

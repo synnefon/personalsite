@@ -14,9 +14,10 @@ npx wrangler login    # opens a browser
 npx wrangler deploy   # prints the worker url
 ```
 
-Paste the printed url (e.g. `https://oura-proxy.<subdomain>.workers.dev`)
-into the "api proxy url" field on the /oura-hr page. It's kept in
-localStorage, so this is per-browser, no site redeploy needed.
+The live deployment (`https://oura-proxy.connor-j-hopkins.workers.dev`)
+is the page's baked-in default (`DEFAULT_PROXY` in src/oura_hr/ouraApi.js).
+The "api proxy url" field on the /oura-hr page overrides it per-browser
+via localStorage — useful if you redeploy under a different name.
 
 ## Test locally
 
