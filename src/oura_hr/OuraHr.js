@@ -246,14 +246,6 @@ function HrChart({ samples, metric, view }) {
                 </text>
               </g>
             ))}
-            <text
-              className="hr-tick-label"
-              x={geo.pad.left / 2}
-              y={geo.plot.y - 10}
-              textAnchor="middle"
-            >
-              {unit}
-            </text>
             {geo.dayLines.map((x, i) => (
               <line
                 className="hr-dayline"

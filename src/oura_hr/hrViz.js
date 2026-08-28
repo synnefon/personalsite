@@ -114,7 +114,7 @@ function buildDayLines(t0, t1, toX) {
 // svg needs: runs (polylines/lone dots per source), ticks, mappers.
 // domain pins the x extent (a zoom window); defaults to the data's.
 export function buildChart(samples, width, height, sourceOrder, domain) {
-  const pad = { top: 24, right: 14, bottom: 26, left: 40 };
+  const pad = { top: 16, right: 14, bottom: 26, left: 40 };
   const innerW = Math.max(1, width - pad.left - pad.right);
   const innerH = Math.max(1, height - pad.top - pad.bottom);
 
