@@ -3,9 +3,17 @@
    ============================================ */
 
 #app-base.ourahr-colors {
+  position: relative;
   background-color: var(--color-black);
   color: var(--color-text-light);
   font-family: JuliaMono, monospace;
+}
+
+.hr-disconnect {
+  position: absolute;
+  top: 1em;
+  right: 1.4em;
+  z-index: 5;
 }
 
 .ourahr-colors .content-wrapper {
@@ -13,7 +21,8 @@
   max-width: min(85em, 95%);
   align-items: stretch;
   gap: 1.2em;
-  padding-top: 2em;
+  /* leaves the floating disconnect button its own strip up top */
+  padding-top: 3.4em;
   padding-bottom: 3em;
   font-size: 0.85em;
 }
@@ -400,23 +409,3 @@
   font-size: 0.8em;
 }
 
-/* ============================================
-   DATA TABLE
-   ============================================ */
-
-.hr-table {
-  margin-top: 0.8em;
-  border-collapse: collapse;
-  font-size: 0.85em;
-}
-
-.hr-table th,
-.hr-table td {
-  text-align: left;
-  padding: 0.25em 1.6em 0.25em 0;
-}
-
-.hr-table th {
-  color: var(--color-gray-medium);
-  border-bottom: 1px solid rgb(60, 60, 60);
-}

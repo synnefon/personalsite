@@ -17,14 +17,13 @@ import {
 } from "./ouraApi";
 import { METRICS, buildChart, buildStats, fmtTime, nearestIndex } from "./hrViz";
 
-const TABLE_PREVIEW_ROWS = 500;
 const MIN_ZOOM_DRAG_PX = 8;
 
 // Tall enough to read, capped so the filter row stays in view
 const chartHeight = () => Math.min(560, Math.max(320, Math.round(window.innerHeight * 0.55)));
 
 const PRESETS = [
-  { label: "today", days: 1 },
+  { label: "1d", days: 1 },
   { label: "3d", days: 3 },
   { label: "7d", days: 7 },
   { label: "30d", days: 30 },
@@ -366,40 +365,6 @@ function HrChart({ samples, metric }) {
 }
 
 // ============================================
-// DATA TABLE
-// ============================================
-
-function SampleTable({ samples, metric }) {
-  return (
-    <div>
-      {samples.length > TABLE_PREVIEW_ROWS && (
-        <p className="hr-muted">
-          showing first {TABLE_PREVIEW_ROWS} of {samples.length} — download the csv for all of them
-        </p>
-      )}
-      <table className="hr-table">
-        <thead>
-          <tr>
-            <th>time</th>
-            <th>{METRICS[metric].unit}</th>
-            <th>source</th>
-          </tr>
-        </thead>
-        <tbody>
-          {samples.slice(0, TABLE_PREVIEW_ROWS).map((s, i) => (
-            <tr key={i}>
-              <td>{fmtTime(s.t)}</td>
-              <td>{Math.round(s.value)}</td>
-              <td>{prettySource(s.source)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ============================================
 // PAGE
 // ============================================
 
@@ -409,7 +374,7 @@ export default function OuraHr() {
   const [clientIdInput, setClientIdInput] = useState(getClientId);
   const [tokenInput, setTokenInput] = useState("");
   const [{ start, end }, setRange] = useState(() => presetRange(1));
-  const [preset, setPreset] = useState("today");
+  const [preset, setPreset] = useState("1d");
   const [metric, setMetric] = useState("bpm");
   const [proxyInput, setProxyInput] = useState(getProxyBase);
   const [phase, setPhase] = useState("idle"); // idle | loading | ready | error
@@ -417,7 +382,6 @@ export default function OuraHr() {
   const [errorCode, setErrorCode] = useState(null);
   const [progress, setProgress] = useState(0);
   const [samples, setSamples] = useState([]);
-  const [showTable, setShowTable] = useState(false);
   const requestRef = useRef(0);
 
   // Run a fetch, ignoring its result if a newer request has started
@@ -604,6 +568,9 @@ export default function OuraHr() {
           </div>
         ) : (
           <>
+            <button className="hr-button hr-quiet hr-disconnect" onClick={disconnect}>
+              disconnect
+            </button>
             <div className="hr-filters">
               {Object.keys(METRICS).map((m) => (
                 <button
@@ -624,16 +591,12 @@ export default function OuraHr() {
                   {p.label}
                 </button>
               ))}
-              <span className="hr-filter-divider" />
+              <span className="hr-filter-spacer" />
               <input className="hr-input hr-date" type="date" value={start} onChange={setDay("start")} aria-label="start date" />
               <span className="hr-muted">to</span>
               <input className="hr-input hr-date" type="date" value={end} onChange={setDay("end")} aria-label="end date" />
               <button className="hr-button" onClick={() => fetchRange(start, end)}>
                 fetch
-              </button>
-              <span className="hr-filter-spacer" />
-              <button className="hr-button hr-quiet" onClick={disconnect}>
-                disconnect
               </button>
             </div>
 
@@ -683,11 +646,7 @@ export default function OuraHr() {
                   >
                     download json
                   </button>
-                  <button className="hr-button hr-quiet" onClick={() => setShowTable((v) => !v)}>
-                    {showTable ? "hide table" : "data table"}
-                  </button>
                 </div>
-                {showTable && <SampleTable samples={samples} metric={metric} />}
               </div>
             )}
           </>
