@@ -293,9 +293,41 @@
   opacity: 0.35;
 }
 
-.hr-zoom-reset {
+.hr-legend-right {
   margin-left: auto;
+  display: inline-flex;
+  gap: 1em;
+}
+
+.hr-zoom-reset {
   color: var(--color-green-lime);
+}
+
+.hr-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  cursor: var(--pointer, pointer);
+  user-select: none;
+}
+
+.hr-check input {
+  appearance: none;
+  width: 1em;
+  height: 1em;
+  margin: 0;
+  background-color: var(--color-black);
+  border: 1px solid var(--color-text-light);
+  display: inline-grid;
+  place-content: center;
+  cursor: var(--pointer, pointer);
+}
+
+.hr-check input:checked::before {
+  content: "";
+  width: 0.55em;
+  height: 0.55em;
+  background-color: var(--color-green-lime);
 }
 
 .hr-key {

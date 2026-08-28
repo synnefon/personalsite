@@ -79,6 +79,8 @@ function HrChart({ samples, metric, view }) {
   const [hidden, setHidden] = useState(() => new Set());
   const [zoom, setZoom] = useState(null); // [t0, t1] | null
   const [drag, setDrag] = useState(null); // {x0, x1} | null
+  const [showLine, setShowLine] = useState(true);
+  const [showDot, setShowDot] = useState(true);
 
   useEffect(() => {
     const el = wrapperRef.current;
@@ -197,15 +199,25 @@ function HrChart({ samples, metric, view }) {
             {prettySource(source)}
           </button>
         ))}
-        {zoom && (
-          <button
-            className="hr-legend-item hr-zoom-reset"
-            data-tip="or double-click the chart"
-            onClick={() => setZoom(null)}
-          >
-            ⟲ reset zoom
-          </button>
-        )}
+        <span className="hr-legend-right">
+          {zoom && (
+            <button
+              className="hr-legend-item hr-zoom-reset"
+              data-tip="or double-click the chart"
+              onClick={() => setZoom(null)}
+            >
+              ⟲ reset zoom
+            </button>
+          )}
+          <label className="hr-check">
+            <input type="checkbox" checked={showLine} onChange={(e) => setShowLine(e.target.checked)} />
+            line
+          </label>
+          <label className="hr-check">
+            <input type="checkbox" checked={showDot} onChange={(e) => setShowDot(e.target.checked)} />
+            dot
+          </label>
+        </span>
       </div>
       {!geo && <p className="hr-status">nothing in this window</p>}
       {geo && (
@@ -270,27 +282,40 @@ function HrChart({ samples, metric, view }) {
               y1={geo.plot.y + geo.plot.h}
               y2={geo.plot.y + geo.plot.h}
             />
-            {geo.runs.map((run, i) =>
-              run.samples.length === 1 ? (
+            {showLine &&
+              geo.runs.map((run, i) =>
+                run.samples.length === 1 ? (
+                  !showDot && (
+                    <circle
+                      key={i}
+                      cx={geo.toX(run.samples[0].t)}
+                      cy={geo.toY(run.samples[0].value)}
+                      r={3}
+                      fill={colors[run.source]}
+                    />
+                  )
+                ) : (
+                  <polyline
+                    key={i}
+                    points={run.points}
+                    fill="none"
+                    stroke={colors[run.source]}
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                )
+              )}
+            {showDot &&
+              shown.map((s, i) => (
                 <circle
                   key={i}
-                  cx={geo.toX(run.samples[0].t)}
-                  cy={geo.toY(run.samples[0].value)}
-                  r={2.5}
-                  fill={colors[run.source]}
+                  cx={geo.toX(s.t)}
+                  cy={geo.toY(s.value)}
+                  r={3}
+                  fill={colors[s.source]}
                 />
-              ) : (
-                <polyline
-                  key={i}
-                  points={run.points}
-                  fill="none"
-                  stroke={colors[run.source]}
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              )
-            )}
+              ))}
             {drag && Math.abs(drag.x1 - drag.x0) >= MIN_ZOOM_DRAG_PX && (
               <rect
                 className="hr-select"
