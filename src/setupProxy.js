@@ -9,4 +9,13 @@ module.exports = function (app) {
       pathRewrite: { "^/journeynorth": "" },
     })
   );
+  // Dev-only escape from the oura api's CORS origin allowlist
+  app.use(
+    "/oura-api",
+    createProxyMiddleware({
+      target: "https://api.ouraring.com",
+      changeOrigin: true,
+      pathRewrite: { "^/oura-api": "" },
+    })
+  );
 };

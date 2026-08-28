@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>connor.oura</title>
+    <style>
+      body {
+        background: #000;
+        color: rgb(234, 234, 247);
+        font-family: monospace;
+        display: flex;
+        justify-content: center;
+        padding-top: 20vh;
+      }
+    </style>
+  </head>
+  <body>
+    <p>finishing oura login...</p>
+    <script>
+      // Lands here from oura's oauth consent page with the implicit-grant
+      // token in the url fragment. Stash it and return to the tool page.
+      (function () {
+        var params = new URLSearchParams(window.location.hash.slice(1));
+        var query = new URLSearchParams(window.location.search);
+        var error = params.get("error") || query.get("error");
+        var token = params.get("access_token");
+        var expected = sessionStorage.getItem("oura_oauth_state");
+        sessionStorage.removeItem("oura_oauth_state");
+
+        if (!error && token && params.get("state") !== expected) {
+          error = "state mismatch — try connecting again";
+        }
+        if (!error && !token) {
+          error = "no token in oura's redirect";
+        }
+
+        if (error) {
+          sessionStorage.setItem("oura_auth_error", error);
+        } else {
+          var expiresIn = parseInt(params.get("expires_in") || "0", 10);
+          localStorage.setItem(
+            "oura_auth",
+            JSON.stringify({
+              token: token,
+              expiresAt:
+                Date.now() +
+                (expiresIn > 0 ? expiresIn * 1000 : 30 * 24 * 60 * 60 * 1000),
+            })
+          );
+        }
+        // replace() keeps the token-bearing url out of browser history
+        window.location.replace("/#/oura-hr");
+      })();
+    </script>
+  </body>
+</html>

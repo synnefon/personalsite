@@ -18,6 +18,7 @@ const Shufflenator = lazy(() => import("./shufflenator/Shufflenator"));
 const Snek = lazy(() => import("./snek/Snek"));
 const Sudoku = lazy(() => import("./sudoku/Sudoku"));
 const MonarchMusic = lazy(() => import("./monarch_music/MonarchMusic"));
+const OuraHr = lazy(() => import("./oura_hr/OuraHr.js"));
 const Toolbox = lazy(() => import("./toolbox/Toolbox.js"));
 const WarOfTheDice = lazy(() => import("./war_of_the_dice/WarOfTheDice.tsx"));
 const Weather = lazy(() => import("./weather/Weather.js"));
@@ -64,6 +65,7 @@ function App() {
             <Route path="/monarch-music" element={<MonarchMusic />} />
             <Route path="/war-of-the-dice" element={<WarOfTheDice />} />
             <Route path="/weather" element={<Weather />} />
+            <Route path="/oura-hr" element={<OuraHr />} />
             <Route path="/calendar-puzzle" element={<CalendarPuzzle />} />
             <Route path="toolbox" element={<Toolbox />} />
           </Routes>

@@ -1,0 +1,338 @@
+/* ============================================
+   COLOR THEME
+   ============================================ */
+
+#app-base.ourahr-colors {
+  background-color: var(--color-black);
+  color: var(--color-text-light);
+  font-family: JuliaMono, monospace;
+}
+
+.ourahr-colors .content-wrapper {
+  width: 100%;
+  max-width: min(64em, 95%);
+  align-items: stretch;
+  gap: 1.2em;
+  padding-top: 2em;
+  padding-bottom: 3em;
+  font-size: 0.85em;
+}
+
+/* ============================================
+   SHARED CONTROLS
+   ============================================ */
+
+.hr-prompt {
+  color: var(--color-green-lime);
+  user-select: none;
+}
+
+.hr-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text-light);
+  font-family: JuliaMono, monospace;
+  font-size: 1em;
+  padding: 0.2em 0;
+  border-bottom: 1px solid rgb(100, 100, 100);
+  caret-color: var(--color-green-lime);
+  cursor: var(--text);
+}
+
+.hr-input::placeholder {
+  color: rgb(100, 100, 100);
+}
+
+.hr-input:focus {
+  border-bottom-color: var(--color-green-lime);
+}
+
+.hr-date {
+  color-scheme: dark;
+  width: 10.5em;
+}
+
+.hr-button {
+  background: transparent;
+  border: 1px solid rgb(100, 100, 100);
+  color: var(--color-text-light);
+  font-family: JuliaMono, monospace;
+  font-size: 0.9em;
+  padding: 0.3em 0.9em;
+  cursor: var(--pointer, pointer);
+}
+
+.hr-button:hover:not(:disabled) {
+  border-color: var(--color-text-light);
+}
+
+.hr-button:disabled {
+  color: rgb(100, 100, 100);
+  cursor: var(--default, default);
+}
+
+.hr-quiet {
+  border-color: transparent;
+  color: rgb(128, 128, 128);
+}
+
+.hr-muted {
+  color: rgb(128, 128, 128);
+  font-size: 0.85em;
+}
+
+.hr-status {
+  text-align: center;
+  font-size: 0.85em;
+  color: rgb(128, 128, 128);
+}
+
+.hr-status-error {
+  color: rgb(232, 44, 44);
+}
+
+/* ============================================
+   CONNECT PANEL
+   ============================================ */
+
+.hr-connect {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2em;
+  width: min(34em, 100%);
+  margin: 0 auto;
+}
+
+.hr-title-row {
+  font-size: 1.1em;
+}
+
+.hr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.hr-field-label {
+  color: rgb(128, 128, 128);
+  font-size: 0.85em;
+}
+
+.hr-help summary {
+  color: rgb(128, 128, 128);
+  cursor: var(--pointer, pointer);
+  user-select: none;
+}
+
+.hr-help ol {
+  margin: 0.8em 0 0;
+  padding-left: 1.4em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+}
+
+.hr-help code {
+  display: block;
+  margin-top: 0.3em;
+  color: var(--color-gray-medium);
+  overflow-wrap: anywhere;
+}
+
+.hr-help p code {
+  display: inline;
+  margin: 0;
+  color: var(--color-text-light);
+}
+
+.hr-help a {
+  color: var(--color-green-lime);
+}
+
+.hr-token-row {
+  display: flex;
+  gap: 0.8em;
+  margin-top: 0.8em;
+}
+
+.hr-token-row .hr-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================================
+   FILTER ROW + RESULTS
+   ============================================ */
+
+.hr-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6em;
+}
+
+.hr-preset-active {
+  border-color: var(--color-green-lime);
+  color: var(--color-green-lime);
+}
+
+.hr-filter-divider {
+  width: 1px;
+  align-self: stretch;
+  background: rgb(60, 60, 60);
+}
+
+.hr-filter-spacer {
+  flex: 1;
+}
+
+.hr-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  transition: opacity 0.2s;
+}
+
+.hr-stale {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.hr-stats {
+  text-align: center;
+  color: var(--color-gray-medium);
+  font-size: 0.9em;
+}
+
+.hr-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.8em;
+}
+
+/* ============================================
+   CHART
+   ============================================ */
+
+.hr-chart {
+  width: 100%;
+}
+
+.hr-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2em;
+  padding: 0 0 0.6em 40px;
+  color: var(--color-gray-medium);
+  font-size: 0.85em;
+}
+
+.hr-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.hr-key {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+}
+
+.hr-plot-wrapper {
+  position: relative;
+}
+
+.hr-plot-wrapper svg {
+  display: block;
+  touch-action: none;
+}
+
+.hr-plot-wrapper svg:focus {
+  outline: 1px solid rgb(60, 60, 60);
+}
+
+.hr-grid {
+  stroke: #1d1d1d;
+  stroke-width: 1;
+}
+
+.hr-axis {
+  stroke: rgb(60, 60, 60);
+  stroke-width: 1;
+}
+
+.hr-tick-label {
+  fill: var(--color-gray-medium);
+  font-family: JuliaMono, monospace;
+  font-size: 10px;
+}
+
+.hr-crosshair {
+  stroke: rgb(100, 100, 100);
+  stroke-width: 1;
+}
+
+.hr-tooltip {
+  position: absolute;
+  padding: 0.4em 0.7em;
+  background-color: var(--color-black);
+  border: 1px solid rgb(100, 100, 100);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.hr-tip-bpm {
+  font-size: 1.25em;
+  font-weight: bold;
+}
+
+.hr-tip-unit {
+  font-size: 0.7em;
+  font-weight: normal;
+  color: var(--color-gray-medium);
+}
+
+.hr-tip-source {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-top: 0.3em;
+  color: var(--color-gray-medium);
+  font-size: 0.85em;
+}
+
+.hr-tip-time {
+  margin-top: 0.2em;
+  color: rgb(128, 128, 128);
+  font-size: 0.8em;
+}
+
+/* ============================================
+   DATA TABLE
+   ============================================ */
+
+.hr-table-details summary {
+  color: rgb(128, 128, 128);
+  cursor: var(--pointer, pointer);
+  user-select: none;
+}
+
+.hr-table {
+  margin-top: 0.8em;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+
+.hr-table th,
+.hr-table td {
+  text-align: left;
+  padding: 0.25em 1.6em 0.25em 0;
+}
+
+.hr-table th {
+  color: var(--color-gray-medium);
+  border-bottom: 1px solid rgb(60, 60, 60);
+}

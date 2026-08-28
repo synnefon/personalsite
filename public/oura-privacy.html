@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>connor.oura privacy</title>
+    <style>
+      body {
+        background: #000;
+        color: rgb(234, 234, 247);
+        font-family: monospace;
+        line-height: 1.6;
+        max-width: 42em;
+        margin: 0 auto;
+        padding: 4em 1.5em;
+      }
+      h1 {
+        font-size: 1.2em;
+      }
+      h1::before {
+        content: "> ";
+        color: #3cff00;
+      }
+      a {
+        color: #3cff00;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>oura heartrate tool — privacy policy</h1>
+    <p>
+      this is a personal-use tool on connor hopkins' personal website. when you connect
+      your oura account, your browser fetches your data directly from the oura api and
+      renders it on the page. that's the whole pipeline.
+    </p>
+    <ul>
+      <li>no data ever leaves your browser — there is no server, database, or backend</li>
+      <li>nothing is logged, tracked, analyzed, shared, or sold</li>
+      <li>
+        your oura access token is kept in your browser's localStorage so you stay
+        connected between visits; hitting "disconnect" deletes it
+      </li>
+      <li>downloads (csv/json) are generated locally and saved to your own machine</li>
+    </ul>
+    <p>
+      questions: <a href="mailto:connorjhopkins@gmail.com">connorjhopkins@gmail.com</a>
+    </p>
+  </body>
+</html>
