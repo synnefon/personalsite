@@ -10,7 +10,7 @@
 
 .ourahr-colors .content-wrapper {
   width: 100%;
-  max-width: min(64em, 95%);
+  max-width: min(85em, 95%);
   align-items: stretch;
   gap: 1.2em;
   padding-top: 2em;
@@ -274,6 +274,12 @@
   fill: var(--color-gray-medium);
   font-family: JuliaMono, monospace;
   font-size: 10px;
+}
+
+.hr-tick-date {
+  fill: var(--color-text-light);
+  font-family: JuliaMono, monospace;
+  font-size: 13px;
 }
 
 .hr-crosshair {

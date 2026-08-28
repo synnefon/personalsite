@@ -73,7 +73,7 @@ export function beginLogin(clientId) {
     response_type: "token",
     client_id: clientId,
     redirect_uri: `${window.location.origin}/oura-callback.html`,
-    scope: "heartrate",
+    scope: "heartrate daily",
     state,
   });
   window.location.assign(`${AUTHORIZE_URL}?${params}`);
@@ -107,24 +107,18 @@ function localDayEnd(yyyyMmDd) {
 
 const MAX_PAGES = 200;
 
-// Fetch every heartrate sample in [startDate, endDate] (inclusive local
-// days), following next_token pagination. Returns rows sorted by time,
-// each { timestamp, bpm, source, t } where t is epoch ms.
-export async function fetchHeartrate({ token, startDate, endDate, onProgress }) {
-  if (token === "demo") return demoSamples(startDate, endDate);
-
-  const samples = [];
+// Fetch every document from a usercollection route, following
+// next_token pagination
+async function fetchAllPages({ token, route, params, onProgress }) {
+  const docs = [];
   let nextToken = null;
   for (let page = 0; page < MAX_PAGES; page++) {
-    const params = new URLSearchParams({
-      start_datetime: localDayStart(startDate),
-      end_datetime: localDayEnd(endDate),
-    });
-    if (nextToken) params.set("next_token", nextToken);
+    const query = new URLSearchParams(params);
+    if (nextToken) query.set("next_token", nextToken);
 
     let resp;
     try {
-      resp = await fetch(`${apiBase()}/v2/usercollection/heartrate?${params}`, {
+      resp = await fetch(`${apiBase()}/v2/usercollection/${route}?${query}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
     } catch {
@@ -141,40 +135,91 @@ export async function fetchHeartrate({ token, startDate, endDate, onProgress }) 
       err.status = 401;
       throw err;
     }
+    if (resp.status === 403) {
+      throw new Error("token is missing a scope — disconnect, then reconnect to re-consent");
+    }
     if (resp.status === 429) throw new Error("rate limited by oura — wait a minute, then retry");
     if (!resp.ok) throw new Error(`oura api error (${resp.status})`);
 
     const body = await resp.json();
-    samples.push(...body.data);
+    docs.push(...body.data);
     nextToken = body.next_token ?? null;
-    onProgress?.(samples.length);
+    onProgress?.(docs.length);
     if (!nextToken) break;
     if (page === MAX_PAGES - 1) throw new Error("range too large — narrow the dates");
   }
-
-  return samples
-    .map((s) => ({ timestamp: s.timestamp, bpm: s.bpm, source: s.source, t: Date.parse(s.timestamp) }))
-    .filter((s) => Number.isFinite(s.t) && Number.isFinite(s.bpm))
-    .sort((a, b) => a.t - b.t);
+  return docs;
 }
 
-export function toCsv(samples) {
-  const rows = samples.map((s) => `${s.timestamp},${s.bpm},${s.source}`);
-  return `timestamp,bpm,source\n${rows.join("\n")}\n`;
+const byTime = (a, b) => a.t - b.t;
+const finite = (s) => Number.isFinite(s.t) && Number.isFinite(s.value);
+
+// Every heartrate sample in [startDate, endDate] (inclusive local days),
+// sorted; each { timestamp, value: bpm, source, t (epoch ms) }
+export async function fetchHeartrate({ token, startDate, endDate, onProgress }) {
+  if (token === "demo") return demoHeartrate(startDate, endDate);
+
+  const docs = await fetchAllPages({
+    token,
+    route: "heartrate",
+    params: { start_datetime: localDayStart(startDate), end_datetime: localDayEnd(endDate) },
+    onProgress,
+  });
+  return docs
+    .map((s) => ({ timestamp: s.timestamp, value: s.bpm, source: s.source, t: Date.parse(s.timestamp) }))
+    .filter(finite)
+    .sort(byTime);
+}
+
+// Every hrv (rmssd, ms) sample in the range. Oura only measures hrv
+// during sleep, delivered as a 5-minute series inside each sleep
+// document; source is the sleep period's type.
+export async function fetchHrv({ token, startDate, endDate, onProgress }) {
+  if (token === "demo") return demoHrv(startDate, endDate);
+
+  const docs = await fetchAllPages({
+    token,
+    route: "sleep",
+    params: { start_date: startDate, end_date: endDate },
+    onProgress,
+  });
+  const samples = [];
+  for (const doc of docs) {
+    if (doc.type === "deleted" || !doc.hrv?.items?.length) continue;
+    const t0 = Date.parse(doc.hrv.timestamp);
+    const stepMs = (doc.hrv.interval ?? 300) * 1000;
+    doc.hrv.items.forEach((value, i) => {
+      if (value === null) return;
+      const t = t0 + i * stepMs;
+      samples.push({
+        timestamp: new Date(t).toISOString(),
+        value,
+        source: doc.type ?? "sleep",
+        t,
+      });
+    });
+  }
+  return samples.filter(finite).sort(byTime);
+}
+
+export function toCsv(samples, valueColumn) {
+  const rows = samples.map((s) => `${s.timestamp},${s.value},${s.source}`);
+  return `timestamp,${valueColumn},source\n${rows.join("\n")}\n`;
 }
 
 // ============================================
 // DEMO DATA (token "demo"): plausible days of samples, no api involved
 // ============================================
 
-function demoSamples(startDate, endDate) {
+const noise = (amp) => (Math.random() - 0.5) * amp;
+
+function demoHeartrate(startDate, endDate) {
   const [y0, m0, d0] = parseDay(startDate);
   const [y1, m1, d1] = parseDay(endDate);
   const end = new Date(y1, m1 - 1, d1 + 1, 7, 0, 0).getTime();
   const samples = [];
-  const noise = (amp) => (Math.random() - 0.5) * amp;
-  const push = (t, bpm, source) => {
-    if (t <= end) samples.push({ timestamp: new Date(t).toISOString(), bpm: Math.round(bpm), source, t });
+  const push = (t, value, source) => {
+    if (t <= end) samples.push({ timestamp: new Date(t).toISOString(), value: Math.round(value), source, t });
   };
 
   for (let day = new Date(y0, m0 - 1, d0); day.getTime() < end; day.setDate(day.getDate() + 1)) {
@@ -202,5 +247,43 @@ function demoSamples(startDate, endDate) {
       push(at(8, 10) + i * 60_000, 66 - i * 0.6 + noise(3), "session");
     }
   }
-  return samples.sort((a, b) => a.t - b.t);
+  return samples.sort(byTime);
+}
+
+function demoHrv(startDate, endDate) {
+  const [y0, m0, d0] = parseDay(startDate);
+  const [y1, m1, d1] = parseDay(endDate);
+  const end = new Date(y1, m1 - 1, d1 + 1, 7, 0, 0).getTime();
+  const samples = [];
+
+  for (let day = new Date(y0, m0 - 1, d0); day.getTime() < end; day.setDate(day.getDate() + 1)) {
+    const night = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 0).getTime();
+    // rmssd climbs through the night with slow waves, 5min cadence
+    for (let i = 0; i < 96; i++) {
+      const t = night + i * 5 * 60_000;
+      if (t > end) break;
+      const value = 45 + i / 4 + 18 * Math.sin(i / 7) + noise(12);
+      samples.push({
+        timestamp: new Date(t).toISOString(),
+        value: Math.max(15, Math.round(value)),
+        source: "long_sleep",
+        t,
+      });
+    }
+    // occasional afternoon nap
+    if (day.getDate() % 3 === 0) {
+      const nap = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 14, 30).getTime();
+      for (let i = 0; i < 12; i++) {
+        const t = nap + i * 5 * 60_000;
+        if (t > end) break;
+        samples.push({
+          timestamp: new Date(t).toISOString(),
+          value: Math.round(55 + 10 * Math.sin(i / 3) + noise(8)),
+          source: "late_nap",
+          t,
+        });
+      }
+    }
+  }
+  return samples.sort(byTime);
 }

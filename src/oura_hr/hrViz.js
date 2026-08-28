@@ -1,16 +1,36 @@
-// Chart geometry for the oura heartrate page: turns time-ordered bpm
-// samples into per-source polyline runs, axis ticks, and pixel mappers.
+// Chart geometry for the oura heartrate page: turns time-ordered
+// {t, value, source} samples into per-source polyline runs, axis
+// ticks, and pixel mappers.
 
-// Source order and hues are CVD-validated as a set against the black
-// surface (dataviz six-checks) — change them together, not piecemeal.
-export const SOURCE_ORDER = ["sleep", "workout", "rest", "awake", "session", "live"];
-export const SOURCE_COLORS = {
-  sleep: "#3987e5",
-  workout: "#d95926",
-  rest: "#199e70",
-  awake: "#c98500",
-  session: "#d55181",
-  live: "#008300",
+// Each metric's source order and hues are CVD-validated as a set
+// against the black surface (dataviz six-checks) — change them
+// together, not piecemeal. The hrv set reuses validated-adjacent
+// hue pairs from the bpm set.
+export const METRICS = {
+  bpm: {
+    unit: "bpm",
+    csvColumn: "bpm",
+    order: ["sleep", "workout", "rest", "awake", "session", "live"],
+    colors: {
+      sleep: "#3987e5",
+      workout: "#d95926",
+      rest: "#199e70",
+      awake: "#c98500",
+      session: "#d55181",
+      live: "#9085e9",
+    },
+  },
+  hrv: {
+    unit: "ms",
+    csvColumn: "rmssd_ms",
+    order: ["long_sleep", "sleep", "late_nap", "rest"],
+    colors: {
+      long_sleep: "#3987e5",
+      sleep: "#199e70",
+      late_nap: "#c98500",
+      rest: "#d55181",
+    },
+  },
 };
 
 // Never draw a line across more than this much silence between samples
@@ -48,9 +68,11 @@ function buildXTicks(t0, t1, toX) {
 
   const ticks = [];
   for (const d = first; d.getTime() <= t1; d.setHours(d.getHours() + stepH)) {
+    const isDate = stepH >= 24 || (d.getHours() === 0 && d.getMinutes() === 0);
     ticks.push({
       x: toX(d.getTime()),
-      label: stepH >= 24 ? fmtDate(d) : fmtHour(d),
+      label: isDate ? fmtDate(d) : fmtHour(d),
+      isDate,
     });
   }
   return ticks;
@@ -65,9 +87,9 @@ function buildYTicks(lo, hi, toY) {
   return ticks;
 }
 
-// samples: [{t, bpm, source}] sorted by t. Returns everything the svg
-// needs: runs (polylines/lone dots per source), ticks, mappers, extents.
-export function buildChart(samples, width, height) {
+// samples: [{t, value, source}] sorted by t. Returns everything the
+// svg needs: runs (polylines/lone dots per source), ticks, mappers.
+export function buildChart(samples, width, height, sourceOrder) {
   const pad = { top: 12, right: 14, bottom: 26, left: 40 };
   const innerW = Math.max(1, width - pad.left - pad.right);
   const innerH = Math.max(1, height - pad.top - pad.bottom);
@@ -76,17 +98,17 @@ export function buildChart(samples, width, height) {
   const t1 = samples.at(-1).t;
   const tSpan = Math.max(1, t1 - t0);
 
-  let bpmLo = Infinity;
-  let bpmHi = -Infinity;
+  let valLo = Infinity;
+  let valHi = -Infinity;
   for (const s of samples) {
-    if (s.bpm < bpmLo) bpmLo = s.bpm;
-    if (s.bpm > bpmHi) bpmHi = s.bpm;
+    if (s.value < valLo) valLo = s.value;
+    if (s.value > valHi) valHi = s.value;
   }
-  const yLo = Math.max(0, Math.floor((bpmLo - 3) / 10) * 10);
-  const yHi = Math.ceil((bpmHi + 3) / 10) * 10;
+  const yLo = Math.max(0, Math.floor((valLo - 3) / 10) * 10);
+  const yHi = Math.ceil((valHi + 3) / 10) * 10;
 
   const toX = (t) => pad.left + ((t - t0) / tSpan) * innerW;
-  const toY = (bpm) => pad.top + (1 - (bpm - yLo) / (yHi - yLo)) * innerH;
+  const toY = (value) => pad.top + (1 - (value - yLo) / (yHi - yLo)) * innerH;
 
   // Contiguous same-source stretches become polylines; breaks on source
   // change or a gap. Single-sample stretches render as dots.
@@ -101,7 +123,7 @@ export function buildChart(samples, width, height) {
     run.samples.push(s);
   }
   for (const r of runs) {
-    r.points = r.samples.map((s) => `${toX(s.t).toFixed(1)},${toY(s.bpm).toFixed(1)}`).join(" ");
+    r.points = r.samples.map((s) => `${toX(s.t).toFixed(1)},${toY(s.value).toFixed(1)}`).join(" ");
   }
 
   const present = new Set(samples.map((s) => s.source));
@@ -111,7 +133,7 @@ export function buildChart(samples, width, height) {
     runs,
     xTicks: buildXTicks(t0, t1, toX),
     yTicks: buildYTicks(yLo, yHi, toY),
-    sources: SOURCE_ORDER.filter((s) => present.has(s)),
+    sources: sourceOrder.filter((s) => present.has(s)),
     toX,
     toY,
     xToT: (x) => t0 + ((x - pad.left) / innerW) * tSpan,
@@ -136,9 +158,14 @@ export function buildStats(samples) {
   let max = -Infinity;
   let sum = 0;
   for (const s of samples) {
-    if (s.bpm < min) min = s.bpm;
-    if (s.bpm > max) max = s.bpm;
-    sum += s.bpm;
+    if (s.value < min) min = s.value;
+    if (s.value > max) max = s.value;
+    sum += s.value;
   }
-  return { count: samples.length, min, max, avg: Math.round(sum / samples.length) };
+  return {
+    count: samples.length,
+    min: Math.round(min),
+    max: Math.round(max),
+    avg: Math.round(sum / samples.length),
+  };
 }
