@@ -154,21 +154,91 @@ async function fetchAllPages({ token, route, params, onProgress }) {
 const byTime = (a, b) => a.t - b.t;
 const finite = (s) => Number.isFinite(s.t) && Number.isFinite(s.value);
 
+// Heartrate ranges are fetched as parallel chunks of consecutive days
+// (next_token pagination is sequential, but separate windows aren't),
+// and completed days are cached for the rest of the page load — only
+// today keeps changing. `force` (the fetch button) bypasses the cache.
+const HR_CHUNK_DAYS = 3;
+const HR_CONCURRENCY = 6;
+const hrDayCache = new Map(); // "yyyy-mm-dd" -> that local day's samples
+
+const pad2 = (n) => String(n).padStart(2, "0");
+const dayOf = (date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+
+function nextDay(yyyyMmDd) {
+  const [y, m, d] = parseDay(yyyyMmDd);
+  return dayOf(new Date(y, m - 1, d + 1));
+}
+
+function listDays(startDate, endDate) {
+  const days = [];
+  for (let day = startDate; day <= endDate; day = nextDay(day)) days.push(day);
+  return days;
+}
+
+// Run worker over items with at most `limit` in flight
+async function runPool(items, limit, worker) {
+  let i = 0;
+  const lanes = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length) await worker(items[i++]);
+  });
+  await Promise.all(lanes);
+}
+
 // Every heartrate sample in [startDate, endDate] (inclusive local days),
 // sorted; each { timestamp, value: bpm, source, t (epoch ms) }
-export async function fetchHeartrate({ token, startDate, endDate, onProgress }) {
+export async function fetchHeartrate({ token, startDate, endDate, onProgress, force }) {
   if (token === "demo") return demoHeartrate(startDate, endDate);
 
-  const docs = await fetchAllPages({
-    token,
-    route: "heartrate",
-    params: { start_datetime: localDayStart(startDate), end_datetime: localDayEnd(endDate) },
-    onProgress,
+  const today = dayOf(new Date());
+  const days = listDays(startDate, endDate);
+  const missing = days.filter((d) => force || d >= today || !hrDayCache.has(d));
+
+  // group missing days into chunks of consecutive days
+  const chunks = [];
+  for (const day of missing) {
+    const current = chunks.at(-1);
+    if (current && current.length < HR_CHUNK_DAYS && nextDay(current.at(-1)) === day) {
+      current.push(day);
+    } else {
+      chunks.push([day]);
+    }
+  }
+
+  let fetchedCount = 0;
+  const fresh = new Map(); // day -> samples fetched this call
+  await runPool(chunks, HR_CONCURRENCY, async (chunk) => {
+    const docs = await fetchAllPages({
+      token,
+      route: "heartrate",
+      params: {
+        start_datetime: localDayStart(chunk[0]),
+        end_datetime: localDayEnd(chunk.at(-1)),
+      },
+    });
+    const rows = docs
+      .map((s) => ({ timestamp: s.timestamp, value: s.bpm, source: s.source, t: Date.parse(s.timestamp) }))
+      .filter(finite);
+    fetchedCount += rows.length;
+    onProgress?.(fetchedCount);
+    for (const s of rows) {
+      const day = dayOf(new Date(s.t));
+      if (!fresh.has(day)) fresh.set(day, []);
+      fresh.get(day).push(s);
+    }
+    // a fetched day with no samples still counts as fetched
+    for (const day of chunk) {
+      if (!fresh.has(day)) fresh.set(day, []);
+    }
   });
-  return docs
-    .map((s) => ({ timestamp: s.timestamp, value: s.bpm, source: s.source, t: Date.parse(s.timestamp) }))
-    .filter(finite)
-    .sort(byTime);
+
+  const all = [];
+  for (const day of days) {
+    const rows = fresh.has(day) ? fresh.get(day) : hrDayCache.get(day);
+    if (fresh.has(day) && day < today) hrDayCache.set(day, rows);
+    all.push(...rows);
+  }
+  return all.sort(byTime);
 }
 
 // Every hrv (rmssd, ms) sample in the range. Oura only measures hrv

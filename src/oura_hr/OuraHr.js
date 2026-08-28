@@ -225,7 +225,12 @@ function HrChart({ samples, metric }) {
                 </text>
               </g>
             ))}
-            <text className="hr-tick-label" x={geo.plot.x - 8} y={geo.plot.y - 5} textAnchor="end">
+            <text
+              className="hr-tick-label"
+              x={geo.pad.left / 2}
+              y={geo.plot.y - 10}
+              textAnchor="middle"
+            >
               {unit}
             </text>
             {geo.dayLines.map((x, i) => (
@@ -385,13 +390,13 @@ export default function OuraHr() {
   const requestRef = useRef(0);
 
   // Run a fetch, ignoring its result if a newer request has started
-  const run = async (token, startDate, endDate, which = metric) => {
+  const run = async (token, startDate, endDate, which = metric, force = false) => {
     const fetcher = which === "hrv" ? fetchHrv : fetchHeartrate;
     const requestId = ++requestRef.current;
     setPhase("loading");
     setProgress(0);
     try {
-      const result = await fetcher({ token, startDate, endDate, onProgress: setProgress });
+      const result = await fetcher({ token, startDate, endDate, onProgress: setProgress, force });
       if (requestId !== requestRef.current) return;
       setSamples(result);
       setPhase("ready");
@@ -439,10 +444,10 @@ export default function OuraHr() {
     setPhase("idle");
   };
 
-  const fetchRange = (startDate, endDate) => {
+  const fetchRange = (startDate, endDate, force = false) => {
     // Tolerate a backwards range instead of erroring
     const [s, e] = startDate <= endDate ? [startDate, endDate] : [endDate, startDate];
-    if (auth) run(auth.token, s, e);
+    if (auth) run(auth.token, s, e, metric, force);
   };
 
   const pickPreset = ({ label, days }) => {
@@ -581,7 +586,7 @@ export default function OuraHr() {
                   {m}
                 </button>
               ))}
-              <span className="hr-filter-divider" />
+              <span className="hr-filter-spacer" />
               {PRESETS.map((p) => (
                 <button
                   key={p.label}
@@ -591,11 +596,11 @@ export default function OuraHr() {
                   {p.label}
                 </button>
               ))}
-              <span className="hr-filter-spacer" />
+              <span className="hr-filter-divider" />
               <input className="hr-input hr-date" type="date" value={start} onChange={setDay("start")} aria-label="start date" />
               <span className="hr-muted">to</span>
               <input className="hr-input hr-date" type="date" value={end} onChange={setDay("end")} aria-label="end date" />
-              <button className="hr-button" onClick={() => fetchRange(start, end)}>
+              <button className="hr-button" onClick={() => fetchRange(start, end, true)}>
                 fetch
               </button>
             </div>
