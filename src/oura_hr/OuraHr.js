@@ -389,6 +389,7 @@ export default function OuraHr() {
   const [errorCode, setErrorCode] = useState(null);
   const [progress, setProgress] = useState(0);
   const [samples, setSamples] = useState([]);
+  const [cornerOpen, setCornerOpen] = useState(false);
   const requestRef = useRef(0);
 
   // Run a fetch, ignoring its result if a newer request has started
@@ -445,6 +446,7 @@ export default function OuraHr() {
     setAuth(null);
     setSamples([]);
     setPhase("idle");
+    setCornerOpen(false);
   };
 
   const fetchRange = (startDate, endDate, force = false, viewDomain = null) => {
@@ -576,9 +578,20 @@ export default function OuraHr() {
           </div>
         ) : (
           <>
-            <button className="hr-button hr-quiet hr-disconnect" onClick={disconnect}>
-              disconnect
-            </button>
+            <div className="hr-corner">
+              {cornerOpen && (
+                <button className="hr-button hr-quiet" onClick={disconnect}>
+                  disconnect
+                </button>
+              )}
+              <button
+                className="hr-heart"
+                aria-label="account"
+                onClick={() => setCornerOpen((v) => !v)}
+              >
+                {cornerOpen ? "♥" : "♡"}
+              </button>
+            </div>
             <div className="hr-filters">
               {Object.keys(METRICS).map((m) => (
                 <button

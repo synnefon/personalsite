@@ -9,11 +9,28 @@
   font-family: JuliaMono, monospace;
 }
 
-.hr-disconnect {
+.hr-corner {
   position: absolute;
-  top: 1em;
-  right: 1.4em;
+  top: 0.5em;
+  right: 0.7em;
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
   z-index: 5;
+}
+
+.hr-heart {
+  background: none;
+  border: none;
+  padding: 0.2em;
+  color: var(--color-gray-medium);
+  font-family: JuliaMono, monospace;
+  font-size: 1.15em;
+  cursor: var(--pointer, pointer);
+}
+
+.hr-heart:hover {
+  color: var(--color-text-light);
 }
 
 .ourahr-colors .content-wrapper {
