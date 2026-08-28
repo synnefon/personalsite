@@ -130,16 +130,6 @@ function HrChart({ samples, metric, view }) {
 
   const stats = useMemo(() => (shown.length ? buildStats(shown) : null), [shown]);
 
-  // Lowest sleeping heart rate in view — oura's "resting heart rate"
-  const resting = useMemo(() => {
-    if (metric !== "bpm") return null;
-    let min = Infinity;
-    for (const s of shown) {
-      if (s.source === "sleep" && s.value < min) min = s.value;
-    }
-    return Number.isFinite(min) ? min : null;
-  }, [shown, metric]);
-
   const toggleSource = (source) => {
     setHidden((prev) => {
       const next = new Set(prev);
@@ -280,25 +270,6 @@ function HrChart({ samples, metric, view }) {
               y1={geo.plot.y + geo.plot.h}
               y2={geo.plot.y + geo.plot.h}
             />
-            {resting !== null && (
-              <g>
-                <line
-                  className="hr-guide"
-                  x1={geo.plot.x}
-                  x2={geo.plot.x + geo.plot.w}
-                  y1={geo.toY(resting)}
-                  y2={geo.toY(resting)}
-                />
-                <text
-                  className="hr-guide-label"
-                  x={geo.plot.x + geo.plot.w}
-                  y={geo.toY(resting) - 5}
-                  textAnchor="end"
-                >
-                  resting {resting}
-                </text>
-              </g>
-            )}
             {geo.runs.map((run, i) =>
               run.samples.length === 1 ? (
                 <circle
@@ -375,16 +346,7 @@ function HrChart({ samples, metric, view }) {
           <span className="hr-stat-value">{stats.count}</span> samples ·{" "}
           min <span className="hr-stat-value">{stats.min}</span> ·{" "}
           avg <span className="hr-stat-value">{stats.avg}</span> ·{" "}
-          max <span className="hr-stat-value">{stats.max}</span>
-          {resting !== null && (
-            <>
-              {" "}·{" "}
-              <span className="hr-tip-host" data-tip="lowest heart rate while asleep in this view">
-                resting <span className="hr-stat-value">{resting}</span>
-              </span>
-            </>
-          )}{" "}
-          {unit}
+          max <span className="hr-stat-value">{stats.max}</span> {unit}
         </p>
       )}
     </div>

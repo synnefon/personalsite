@@ -275,12 +275,7 @@
   color: var(--color-text-light);
 }
 
-.hr-tip-host {
-  position: relative;
-}
-
-.hr-legend-item[data-tip]:hover::after,
-.hr-tip-host[data-tip]:hover::after {
+.hr-legend-item[data-tip]:hover::after {
   content: attr(data-tip);
   position: absolute;
   bottom: calc(100% + 0.5em);
@@ -353,23 +348,6 @@
   stroke: rgb(70, 70, 70);
   stroke-width: 1;
   stroke-dasharray: 2 5;
-}
-
-.hr-guide {
-  stroke: rgb(140, 140, 140);
-  stroke-width: 1;
-  stroke-dasharray: 5 4;
-}
-
-.hr-guide-label {
-  fill: var(--color-gray-medium);
-  font-family: JuliaMono, monospace;
-  font-size: 10px;
-  /* halo so the label survives sitting on top of a data line */
-  paint-order: stroke;
-  stroke: var(--color-black);
-  stroke-width: 4px;
-  stroke-linejoin: round;
 }
 
 .hr-select {
